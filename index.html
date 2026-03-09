@@ -3212,7 +3212,8 @@
           <button id="closePythonSetupBtn" type="button" class="contact-dev-button" style="background:#b91c1c;">Close</button>
         </div>
         <p id="pythonSetupReason" style="margin-top:0; color:#475569;">Python report service is not reachable.</p>
-        <p style="margin-bottom:8px; color:#334155;"><strong>Run these commands in a terminal:</strong></p>
+        <div id="pythonSetupGuide" style="margin:0 0 10px 0; padding:10px 12px; border:1px solid #dbe2ea; border-radius:8px; background:#f8fafc; color:#334155;"></div>
+        <p style="margin-bottom:8px; color:#334155;"><strong>Step 3: Run these commands in Terminal/Command Prompt:</strong></p>
         <pre id="pythonSetupCommands" style="white-space:pre-wrap; word-break:break-word; margin:0; padding:12px; border:1px solid #dbe2ea; border-radius:8px; background:#f8fafc; color:#0f172a; font-family:Consolas, 'Courier New', monospace; font-size:13px;"></pre>
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
           <button id="copyPythonSetupBtn" type="button" class="contact-dev-button" style="background:#166534;">Copy Commands</button>
@@ -5763,8 +5764,17 @@
 
   function showPythonReportSetupInstructions(reasonText = '') {
     const reason = reasonText || 'Python report service is not reachable.';
+    const guide = [
+      'Step 1: Keep this app page open.',
+      'Step 2: Click "Copy Commands" below.',
+      'Step 3: Open Command Prompt (Windows: press Win key, type "cmd", press Enter).',
+      'Step 4: Paste the copied commands into Command Prompt and press Enter after each line.',
+      'Step 5: Keep that Command Prompt window running (do not close it).',
+      'Step 6: Return to this app and click "Python Report" again.'
+    ].join('\n');
+
     const commands = [
-      '# Install Python 3.11+ from https://www.python.org/downloads/',
+      '# If Python is not installed, install from: https://www.python.org/downloads/',
       'python -m venv .venv',
       '.\\.venv\\Scripts\\activate',
       'pip install fastapi uvicorn python-docx jinja2 pydantic',
@@ -5774,8 +5784,10 @@
 
     const modal = document.getElementById('pythonSetupModal');
     const reasonEl = document.getElementById('pythonSetupReason');
+    const guideEl = document.getElementById('pythonSetupGuide');
     const commandsEl = document.getElementById('pythonSetupCommands');
     if (reasonEl) reasonEl.textContent = reason;
+    if (guideEl) guideEl.textContent = guide;
     if (commandsEl) commandsEl.textContent = commands;
     if (modal) modal.style.display = 'block';
     if (typeof setAppStatusBanner === 'function') {
