@@ -5790,24 +5790,34 @@
 
   function showPythonReportSetupInstructions(reasonText = '') {
     const reason = reasonText || 'Python report service is not reachable.';
+    const serviceFolderHint = 'C:\\TIA-Python-Report-Service';
+    const reportServiceDownloadUrl = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/report_service.py';
+    const logoDownloadUrl = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/logo.jpeg';
     const guide = [
       'Step 1: Keep this app page open.',
       'Step 2: Click "Copy Commands" below.',
       'Step 3: Open Command Prompt (Windows: press Win key, type "cmd", press Enter).',
-      'Step 4: In Command Prompt, go to your project folder (the folder that contains index.html and report_service.py).',
-      'Step 5: Paste the copied commands into Command Prompt and press Enter after each line.',
-      'Step 6: Keep that Command Prompt window running (do not close it).',
-      'Step 7: Return to this app and click "Python Report" again.',
+      `Step 4: Create a local folder for the Python service (example: ${serviceFolderHint}).`,
+      `Step 5: Download report_service.py from: ${reportServiceDownloadUrl}`,
+      `Step 6: Save report_service.py inside ${serviceFolderHint} (or your chosen folder).`,
+      `Optional: Download logo.jpeg from: ${logoDownloadUrl} and save it in the same folder for branding.`,
+      'Step 7: In Command Prompt, run the copied commands line by line.',
+      'Step 8: Keep that Command Prompt window running (do not close it).',
+      'Step 9: Return to this app (GitHub link) and click "Python Report" again.',
       'If you still see an error, take a screenshot of the Command Prompt and share it with support.'
     ].join('\n');
 
     const commands = [
       '# If Python is not installed, install from: https://www.python.org/downloads/',
-      'cd "<folder-containing-index.html-and-report_service.py>"',
+      `mkdir "${serviceFolderHint}"`,
+      `cd /d "${serviceFolderHint}"`,
+      'dir report_service.py',
+      '# If the command above says File Not Found: download report_service.py from the link in this popup and save it in this folder.',
       'python -m venv .venv',
       '.\\.venv\\Scripts\\activate',
-      'pip install fastapi uvicorn python-docx jinja2 pydantic',
-      'uvicorn report_service:app --host 127.0.0.1 --port 8060',
+      'python -m pip install --upgrade pip',
+      'python -m pip install fastapi uvicorn python-docx jinja2 pydantic',
+      'python -m uvicorn --app-dir . report_service:app --host 127.0.0.1 --port 8060',
       '# Then click "Python Report" again'
     ].join('\n');
 
