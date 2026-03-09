@@ -27,7 +27,7 @@
       --brand-2: #0f2f32;
       --shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
       --radius: 12px;
-      --watermark-logo: url('Cromton%20Traffic%20Impact%20Asssessment/logo.jpeg');
+      --watermark-logo: url('logo.jpeg');
     }
 
     /* Loading overlay */
@@ -3098,7 +3098,7 @@
   
   <div id="loginGate" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
     <div class="login-card">
-      <img class="login-logo" src="Cromton%20Traffic%20Impact%20Asssessment/logo.jpeg" alt="Crompton logo" />
+      <img class="login-logo" src="logo.jpeg" alt="Crompton logo" />
       <h2 id="loginTitle" class="login-title">Crompton Login</h2>
       <p class="login-note">Please sign in to access the Traffic Impact Assessment tool.</p>
       <form id="loginForm">
@@ -3116,7 +3116,7 @@
   <div id="appStatusBanner" class="app-status-banner hidden" role="status" aria-live="polite"></div>
   <div class="container">
     <div class="print-header">
-      <img class="report-logo" src="Cromton%20Traffic%20Impact%20Asssessment/logo.jpeg" alt="Crompton logo" />
+      <img class="report-logo" src="logo.jpeg" alt="Crompton logo" />
       <h2 id="printReportTitle">Traffic Impact Assessment Report</h2>
       <p>Generated: <span id="printDate"></span></p>
       <p id="printSystemName">Crompton Traffic Analysis System</p>
@@ -3143,15 +3143,12 @@
     <div class="navbar">
       <a class="home-button" href="#" onclick="window.location.reload(); return false;">Home</a>
       
-      <a href="Cromton%20Traffic%20Impact%20Asssessment/manual.html" class="home-button" style="background: linear-gradient(135deg, #4a6c6f 0%, #2a4045 100%); text-decoration: none;">
-        📖 User Manual
-      </a>
-      
       <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
         <span class="sites-loaded-badge">
           <strong>Sites Loaded:</strong> <span id="sitesLoadedCount">0</span>
         </span>
-        <a class="contact-dev-button" href="index_formulas.html" target="_blank" rel="noopener noreferrer" style="text-decoration: none;" title="Open Formula View">📘 Formula View</a>
+        <a id="manualLink" class="contact-dev-button" href="./manual.html" target="_blank" rel="noopener noreferrer" style="text-decoration: none;" title="Open User Manual">📖 User Manual</a>
+        <a id="formulaViewLink" class="contact-dev-button" href="index_formulas.html" target="_blank" rel="noopener noreferrer" style="text-decoration: none;" title="Open Formula View">📘 Formula View</a>
         <div class="contact-dev-wrap">
           <button id="contactDevBtn" type="button" class="contact-dev-button" aria-expanded="false" aria-controls="contactDevPanel">💬 Contact Developer</button>
           <div id="contactDevPanel" class="contact-dev-panel hidden" role="dialog" aria-label="Developer contact details">
@@ -7121,15 +7118,38 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   setupLogoutButton();
   setupContactDeveloperButton();
 
+  function resolveRepoRelativePath(fileName) {
+    const cleanName = String(fileName || '').replace(/^\.\//, '');
+    const host = String(window.location.hostname || '').toLowerCase();
+    const pathParts = String(window.location.pathname || '').split('/').filter(Boolean);
+
+    if (host.endsWith('github.io') && pathParts.length > 0) {
+      return `/${pathParts[0]}/${cleanName}`;
+    }
+
+    return `./${cleanName}`;
+  }
+
+  function bindRepoSafeLinks() {
+    const manualLink = document.getElementById('manualLink');
+    if (manualLink) manualLink.href = resolveRepoRelativePath('manual.html');
+
+    const formulaLink = document.getElementById('formulaViewLink');
+    if (formulaLink) formulaLink.href = resolveRepoRelativePath('index_formulas.html');
+  }
+
+  bindRepoSafeLinks();
+
   // ===== DATA CONFIG & LOADING =====
-  const GITHUB_TMR_URL = './tmr.geojson';
-  const GITHUB_GOLDCOAST_URL = './goldcoast.geojson';
-  const GITHUB_IPSWICH_URL = './Ipswich.geojson';
-  const GITHUB_LOGAN_URL = './logan.geojson';
-  const GITHUB_TOOWOOMBA_URL = './toowoomba.geojson';
+  const GITHUB_TMR_URL = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/tmr.geojson';
+  const GITHUB_GOLDCOAST_URL = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/goldcoast.geojson';
+  const GITHUB_IPSWICH_URL = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/Ipswich.geojson';
+  const GITHUB_LOGAN_URL = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/logan.geojson';
+  const GITHUB_TOOWOOMBA_URL = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/toowoomba.geojson';
+  const GITHUB_TEWANTIN_URL = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/tewantin.geojson';
   const GITHUB_CACHE_PREFIX = 'crompton_tia_cache_v3:';
   const GITHUB_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-  const GITHUB_FETCH_TIMEOUT_MS = 15000;
+  const GITHUB_FETCH_TIMEOUT_MS = 60000;
   const githubRefreshInflight = new Map();
 
   let macroSitesData = {};
@@ -8991,6 +9011,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
   }
 
+  async function fetchDatasetWithFallback(primaryUrl, fallbackUrl, sourceLabel) {
+    const primary = await fetchGitHubData(primaryUrl);
+    if (primary) return primary;
+
+    console.warn(`[Data Load] ${sourceLabel} primary source failed. Falling back to local file: ${fallbackUrl}`);
+    if (!fallbackUrl || fallbackUrl === primaryUrl) return null;
+    return fetchGitHubData(fallbackUrl);
+  }
+
   function parseMacroTrafficData(jsonData, sourceName = 'TMR') {
     const sites = {};
     const features = jsonData.features || [];
@@ -9573,13 +9602,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       
       console.log('[Data Load] Fetching data from GitHub...');
       setLoadingState('Downloading live records...', 'Fetching TMR and council traffic feeds.', 42);
-      const [tmrData, goldCoastData, ipswichData, loganData, toowoombaData] = await Promise.all([
-        fetchGitHubData(GITHUB_TMR_URL),
-        fetchGitHubData(GITHUB_GOLDCOAST_URL),
-        fetchGitHubData(GITHUB_IPSWICH_URL),
-        fetchGitHubData(GITHUB_LOGAN_URL),
-        fetchGitHubData(GITHUB_TOOWOOMBA_URL)
-      ]);
+      const tmrData = await fetchDatasetWithFallback(GITHUB_TMR_URL, './tmr.geojson', 'TMR');
+      setLoadingState('Downloading live records...', 'Fetched TMR traffic feed.', 46);
+      const goldCoastData = await fetchDatasetWithFallback(GITHUB_GOLDCOAST_URL, './goldcoast.geojson', 'Gold Coast');
+      setLoadingState('Downloading live records...', 'Fetched Gold Coast traffic feed.', 50);
+      const ipswichData = await fetchDatasetWithFallback(GITHUB_IPSWICH_URL, './Ipswich.geojson', 'Ipswich');
+      setLoadingState('Downloading live records...', 'Fetched Ipswich traffic feed.', 54);
+      const loganData = await fetchDatasetWithFallback(GITHUB_LOGAN_URL, './logan.geojson', 'Logan');
+      setLoadingState('Downloading live records...', 'Fetched Logan traffic feed.', 58);
+      const toowoombaData = await fetchDatasetWithFallback(GITHUB_TOOWOOMBA_URL, './toowoomba.geojson', 'Toowoomba');
+      setLoadingState('Downloading live records...', 'Fetched Toowoomba traffic feed.', 62);
+      const tewantinData = await fetchDatasetWithFallback(GITHUB_TEWANTIN_URL, './tewantin.geojson', 'Tewantin');
       console.log('[Data Load] GitHub data fetched');
 
       const tmrSites = tmrData ? parseMacroTrafficData(tmrData, 'TMR') : {};
@@ -9587,10 +9620,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const ipswichSites = ipswichData ? parseMacroTrafficData(ipswichData, 'Ipswich') : (console.warn('ipswichData is null/falsy'), {});
       const loganSites = loganData ? parseMacroTrafficData(loganData, 'Logan') : {};
       const toowoomSites = toowoombaData ? parseMacroTrafficData(toowoombaData, 'Toowoomba') : {};
+      const tewantinSites = tewantinData ? parseMacroTrafficData(tewantinData, 'Tewantin') : {};
       setLoadingState('Processing records...', 'Normalizing dataset schema and deriving direction labels.', 58);
       console.log('[Data Load] Parsed site data');
 
-      baseMacroSitesData = mergeMacroSites(tmrSites, goldCoastSites, ipswichSites, loganSites, toowoomSites);
+      baseMacroSitesData = mergeMacroSites(tmrSites, goldCoastSites, ipswichSites, loganSites, toowoomSites, tewantinSites);
       macroSitesData = mergeMacroSites(baseMacroSitesData, customUploadedSitesData);
       window.macroSitesData = macroSitesData;
       setLoadingState('Applying directional inference...', 'Processing directional splits in responsive batches.', 64);
@@ -9616,7 +9650,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
       const mapInfo = document.getElementById('macroMapInfo');
       if (mapInfo) {
-        mapInfo.textContent = `${Object.keys(macroSitesData).length} combined sites loaded (TMR + Gold Coast + Ipswich + Logan + Toowoomba). Click a marker to select a site.`;
+        mapInfo.textContent = `${Object.keys(macroSitesData).length} combined sites loaded (TMR + Gold Coast + Ipswich + Logan + Toowoomba + Tewantin). Click a marker to select a site.`;
       }
       
       // Hide loading overlay (only if was shown)
@@ -20880,7 +20914,7 @@ const LoganTrafficEngine = (function() {
 
 })();
 </script>
-<script src="Cromton%20Traffic%20Impact%20Asssessment/tia-shared-sync.js"></script>
+<script src="tia-shared-sync.js"></script>
 </body>
 </html>
 

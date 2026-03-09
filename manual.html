@@ -5,49 +5,269 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TIA User Manual</title>
   <style>
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #4b5563;
+      --brand: #1f5e63;
+      --brand-dark: #0f2f32;
+      --line: #dbe2ea;
+      --ok-bg: #ecfdf5;
+      --ok-text: #166534;
+      --warn-bg: #fff7ed;
+      --warn-text: #9a3412;
+    }
+
     body {
       margin: 0;
       font-family: "Segoe UI", Tahoma, sans-serif;
-      background: #f6f8fa;
-      color: #1f2937;
+      background: radial-gradient(circle at 0% 0%, #eef6f7 0%, transparent 40%), var(--bg);
+      color: var(--text);
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
       display: grid;
-      place-items: center;
-      min-height: 100vh;
-      padding: 24px;
+      gap: 16px;
     }
+
     .card {
-      width: min(760px, 100%);
-      background: #ffffff;
-      border: 1px solid #d1d5db;
+      background: var(--card);
+      border: 1px solid var(--line);
       border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(15, 47, 50, 0.08);
     }
+
+    h1, h2 {
+      margin: 0 0 12px;
+      color: var(--brand-dark);
+    }
+
     h1 {
-      margin-top: 0;
-      color: #0f2f32;
+      font-size: 1.7rem;
     }
-    a {
-      color: #1f5e63;
-      font-weight: 600;
+
+    h2 {
+      font-size: 1.2rem;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+    }
+
+    p {
+      margin: 8px 0;
+      color: var(--muted);
+    }
+
+    ul, ol {
+      margin: 8px 0 0 20px;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .btn {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+      color: #fff;
       text-decoration: none;
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
     }
-    a:hover {
-      text-decoration: underline;
+
+    .note {
+      border-left: 4px solid #22c55e;
+      background: var(--ok-bg);
+      color: var(--ok-text);
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+
+    .warn {
+      border-left: 4px solid #f59e0b;
+      background: var(--warn-bg);
+      color: var(--warn-text);
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+
+    code {
+      background: #eef2f7;
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: #1e293b;
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    .shot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .shot {
+      border: 1px dashed #94a3b8;
+      border-radius: 10px;
+      background: #f8fafc;
+      padding: 12px;
+    }
+
+    .shot h3 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+      color: #1f3340;
+    }
+
+    .shot p {
+      margin: 0;
+      font-size: 0.92rem;
+    }
+
+    .faq-item {
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+      margin-top: 10px;
+    }
+
+    .faq-item:first-of-type {
+      border-top: none;
+      margin-top: 0;
+      padding-top: 0;
+    }
+
+    .faq-q {
+      font-weight: 700;
+      color: var(--brand-dark);
+      margin: 0 0 4px;
     }
   </style>
 </head>
 <body>
-  <main class="card">
-    <h1>Traffic Impact Assessment User Manual</h1>
-    <p>The detailed manual content has not yet been added to this standalone package.</p>
-    <p>You can still use the calculator and formula views normally.</p>
-    <p>
-      Open:
-      <a href="index.html">Main View</a>
-      |
-      <a href="index_formulas.html">Formula View</a>
-    </p>
+  <main class="wrap">
+    <section class="card">
+      <h1>Traffic Impact Assessment User Manual</h1>
+      <p>Use this guide to run the calculator, load traffic datasets, build report outputs, and troubleshoot common issues.</p>
+      <div class="nav-links">
+        <a class="btn" href="./index.html">Open Main View</a>
+        <a class="btn" href="./index_formulas.html">Open Formula View</a>
+      </div>
+      <div class="note">Formula View keeps formulas and calculation steps visible throughout the report workflow.</div>
+    </section>
+
+    <section class="card">
+      <h2>1. Getting Started</h2>
+      <ol>
+        <li>Open <code>index.html</code> for the standard calculator or <code>index_formulas.html</code> for formula trace mode.</li>
+        <li>Sign in through the login prompt.</li>
+        <li>Wait for traffic datasets to load. The top badge shows <code>Sites Loaded</code>.</li>
+        <li>Search and select a site from the map or site search field.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>2. Core Workflow</h2>
+      <ol>
+        <li>Confirm site metadata: road name, directions, and counter details.</li>
+        <li>Set analysis inputs: base year, target year, growth rate, lane settings, and assumptions.</li>
+        <li>Review traffic split inputs for each direction (D1 and D2).</li>
+        <li>Run calculations to generate hourly volumes, VCR, queue lengths, and peak period outputs.</li>
+        <li>Check map markers, chart trends, and table values for consistency.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>3. Report and Export</h2>
+      <ul>
+        <li>Switch to report mode to generate printable output.</li>
+        <li>Use print preview before exporting PDF.</li>
+        <li>Use share options where needed for report distribution.</li>
+        <li>In Formula View, formulas and step traces remain visible in report sections.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>4. Data Sources</h2>
+      <p>The app loads datasets from raw GitHub sources and falls back to local files if a source is unavailable.</p>
+      <ul>
+        <li>TMR</li>
+        <li>Gold Coast</li>
+        <li>Ipswich</li>
+        <li>Logan</li>
+        <li>Toowoomba</li>
+        <li>Tewantin</li>
+      </ul>
+      <div class="warn">If <code>Sites Loaded</code> is low or zero, reload the page with <code>Ctrl+F5</code> to bypass stale cache.</div>
+    </section>
+
+    <section class="card">
+      <h2>5. Troubleshooting</h2>
+      <ul>
+        <li>No sites loaded: hard refresh the page and ensure internet access to raw GitHub files.</li>
+        <li>Map not visible: wait for library load and verify no browser extensions are blocking scripts.</li>
+        <li>Unexpected values: verify direction split, growth rate, heavy vehicle percentage, and year inputs.</li>
+        <li>Formula details missing: open <code>index_formulas.html</code> and regenerate the report.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>6. Screenshots (Placeholders)</h2>
+      <p>Replace these placeholders with actual screenshots for faster user onboarding.</p>
+      <div class="shot-grid">
+        <div class="shot">
+          <h3>Screenshot A: Login and Load</h3>
+          <p>Capture login prompt and the <code>Sites Loaded</code> badge after data is ready.</p>
+        </div>
+        <div class="shot">
+          <h3>Screenshot B: Site Selection</h3>
+          <p>Show map marker selection and selected site details panel.</p>
+        </div>
+        <div class="shot">
+          <h3>Screenshot C: Inputs and Calculations</h3>
+          <p>Show growth inputs, directional values, and generated results tables.</p>
+        </div>
+        <div class="shot">
+          <h3>Screenshot D: Report Output</h3>
+          <p>Show report mode with print preview and PDF export controls.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>7. FAQ</h2>
+      <div class="faq-item">
+        <p class="faq-q">Q: Why does the app show 0 sites loaded?</p>
+        <p>A: Reload with <code>Ctrl+F5</code>. If still zero, check internet access and confirm raw GitHub dataset links are reachable.</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q">Q: Which page should I use for calculations with visible formulas?</p>
+        <p>A: Use <code>index_formulas.html</code>. It enforces formula/step visibility in the output workflow.</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q">Q: Can I still use the tool if one online dataset fails?</p>
+        <p>A: Yes. The loader attempts raw GitHub data first, then falls back to local dataset files in this folder.</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q">Q: How do I create a final report PDF?</p>
+        <p>A: Enter report mode, review the sections, run print preview, then choose Print / Save PDF.</p>
+      </div>
+    </section>
   </main>
 </body>
 </html>

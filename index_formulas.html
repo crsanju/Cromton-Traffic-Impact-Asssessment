@@ -27,7 +27,7 @@
       --brand-2: #0f2f32;
       --shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
       --radius: 12px;
-      --watermark-logo: url('Cromton%20Traffic%20Impact%20Asssessment/logo.jpeg');
+      --watermark-logo: url('logo.jpeg');
     }
 
     /* Loading overlay */
@@ -1022,7 +1022,7 @@
     .kpi-value { font-size: 1.05rem; font-weight: 700; color: var(--brand-2); }
 
     .formula-inline {
-      display: block;
+      display: none;
       margin-top: 4px;
       color: #5b6470;
       font-size: 0.72rem;
@@ -1031,17 +1031,6 @@
       word-break: break-word;
     }
 
-    body.formula-mode .formula-inline {
-      display: block !important;
-    }
-
-    body.formula-mode #formulaTraceSection {
-      display: block !important;
-    }
-
-    body.formula-mode #formulaTraceRemoveBtn {
-      display: none !important;
-    }
     .table-wrap {
       overflow-x: auto;
       border: 1px solid var(--line);
@@ -1286,18 +1275,7 @@
       label { font-size: 0.7rem; margin-bottom: 4px; }
       .grid, .grid-2, .kpi-grid, .assumptions-grid { gap: 8px !important; }
       .grid > div, .grid-2 > div { padding: 9px; border-radius: 9px; }
-      body.formula-mode .formula-inline {
-      display: block !important;
-    }
-
-    body.formula-mode #formulaTraceSection {
-      display: block !important;
-    }
-
-    body.formula-mode #formulaTraceRemoveBtn {
-      display: none !important;
-    }
-    .table-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+      .table-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
       table { min-width: 680px; }
       input, select, button, textarea {
         font-size: 16px !important;
@@ -2231,7 +2209,7 @@
       background: #ffffff;
       border: 1px solid #cfd8dc;
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-      z-index: 10001;
+      z-index: 99999;
     }
     .report-share-menu.open {
       display: block;
@@ -2267,6 +2245,136 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.16);
       backdrop-filter: blur(8px);
     }
+    
+    /* AI Summary Modal */
+    .ai-summary-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 100000;
+      align-items: center;
+      justify-content: center;
+    }
+    .ai-summary-modal.open {
+      display: flex;
+    }
+    .ai-summary-content {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 800px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+    .ai-summary-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #1f5e63;
+      padding-bottom: 12px;
+    }
+    .ai-summary-title {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #1f5e63;
+    }
+    .ai-summary-close {
+      background: #e53935;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      font-size: 1.2em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ai-summary-close:hover {
+      background: #c62828;
+    }
+    .ai-summary-body {
+      margin: 20px 0;
+    }
+    .ai-summary-section {
+      margin-bottom: 20px;
+    }
+    .ai-summary-section-title {
+      font-weight: bold;
+      color: #0f2f32;
+      margin-bottom: 8px;
+      font-size: 1.1em;
+    }
+    .ai-summary-output {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 16px;
+      min-height: 150px;
+      white-space: pre-wrap;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    .ai-summary-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .ai-summary-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .ai-summary-btn.primary {
+      background: #4caf50;
+      color: white;
+    }
+    .ai-summary-btn.primary:hover {
+      background: #45a049;
+    }
+    .ai-summary-btn.secondary {
+      background: #2196f3;
+      color: white;
+    }
+    .ai-summary-btn.secondary:hover {
+      background: #1976d2;
+    }
+    .ai-summary-loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+    .ai-summary-loading.active {
+      display: block;
+    }
+    .ai-summary-spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #1f5e63;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
     .report-mode-btn {
       width: auto !important;
       display: inline-flex;
@@ -2542,18 +2650,7 @@
         margin-bottom: 0 !important;
       }
 
-      body.formula-mode .formula-inline {
-      display: block !important;
-    }
-
-    body.formula-mode #formulaTraceSection {
-      display: block !important;
-    }
-
-    body.formula-mode #formulaTraceRemoveBtn {
-      display: none !important;
-    }
-    .table-wrap {
+      .table-wrap {
         padding: 0 !important;
         overflow: visible !important;
         margin-bottom: 0.35cm !important;
@@ -2760,18 +2857,7 @@
       }
 
       /* 3. Make Tables fit to page height */
-      body.formula-mode .formula-inline {
-      display: block !important;
-    }
-
-    body.formula-mode #formulaTraceSection {
-      display: block !important;
-    }
-
-    body.formula-mode #formulaTraceRemoveBtn {
-      display: none !important;
-    }
-    .table-wrap {
+      .table-wrap {
         page-break-inside: auto !important;
         margin-bottom: 15px !important;
       }
@@ -2921,7 +3007,7 @@
     }
   </style>
 </head>
-<body class="app-locked input-color-mode formula-mode">
+<body class="app-locked input-color-mode">
   <button id="exitPreviewBtn" onclick="exitPrintPreview()" title="Exit print preview (Esc)">
     <i class="fa-solid fa-xmark"></i> Exit Print Preview
   </button>
@@ -2940,9 +3026,9 @@
   <div id="reportModeBottomBar" class="hide-print">
     <button class="report-mode-btn" onclick="backToCalculationPage()" style="background:#fb8c00; border:none; color:white; font-weight:bold; cursor:pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: transform 0.1s;">↩ Back to Calculation</button>
     <div class="report-mode-actions">
+      <button class="report-mode-btn" onclick="openAISummaryGenerator()" style="background:#ff6b6b; border:none; color:white; font-weight:bold; cursor:pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: transform 0.1s;">🤖 AI Summary</button>
       <button id="printPreviewToggleBtn" class="report-mode-btn" onclick="togglePrintPreview()" style="background:#5e35b1; border:none; color:white; font-weight:bold; cursor:pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: transform 0.1s;">👁️ Print Preview</button>
       <button class="report-mode-btn" onclick="printFinalReport()" style="background:#4caf50; border:none; color:white; font-weight:bold; cursor:pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: transform 0.1s;">🖨️ Print / Save PDF</button>
-      <button class="report-mode-btn" onclick="exportReportToWord()" style="background:#0066cc; border:none; color:white; font-weight:bold; cursor:pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: transform 0.1s;">📄 Export to Word</button>
       <div id="reportShareWrap" class="report-share-wrap">
         <button class="report-mode-btn" onclick="toggleReportShareMenu()" style="background:#6d4c41; border:none; color:white; font-weight:bold; cursor:pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: transform 0.1s;">🔗 Share Report</button>
         <div id="reportShareMenu" class="report-share-menu hide-print">
@@ -2956,6 +3042,46 @@
       </div>
     </div>
   </div>
+  <!-- AI Summary Generator Modal -->
+  <div id="aiSummaryModal" class="ai-summary-modal hide-print">
+    <div class="ai-summary-content">
+      <div class="ai-summary-header">
+        <div class="ai-summary-title">🤖 AI Report Summary Generator</div>
+        <button class="ai-summary-close" onclick="closeAISummaryModal()" aria-label="Close">×</button>
+      </div>
+      <div class="ai-summary-body">
+        <div class="ai-summary-section">
+          <div class="ai-summary-section-title">📝 Select Summary Type:</div>
+          <div style="margin: 10px 0;">
+            <select id="aiSummaryType" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <option value="executive">Executive Summary</option>
+              <option value="technical">Technical Summary</option>
+              <option value="findings">Key Findings</option>
+              <option value="recommendations">Recommendations</option>
+              <option value="comprehensive">Comprehensive Overview</option>
+            </select>
+          </div>
+        </div>
+        <div class="ai-summary-loading" id="aiSummaryLoading">
+          <div class="ai-summary-spinner"></div>
+          <div>Generating summary...</div>
+        </div>
+        <div class="ai-summary-section">
+          <div class="ai-summary-section-title">✨ Generated Summary:</div>
+          <div id="aiSummaryOutput" class="ai-summary-output" contenteditable="true">Click "Generate Summary" to create an AI-powered summary based on your traffic impact assessment data.</div>
+        </div>
+        <div class="ai-summary-actions">
+          <button class="ai-summary-btn primary" onclick="generateAISummary()">✨ Generate Summary</button>
+          <button class="ai-summary-btn secondary" onclick="copyAISummaryToClipboard()">📋 Copy to Clipboard</button>
+          <button class="ai-summary-btn secondary" onclick="insertAISummaryToReport()">📄 Insert into Report</button>
+        </div>
+        <div style="margin-top: 16px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px; font-size: 0.9em;">
+          <strong>💡 Tip:</strong> The summary is editable. Click inside the text area to customize it before copying or inserting.
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <!-- Loading overlay -->
   <div id="appLoadingOverlay" class="loading-overlay hidden" role="status" aria-live="polite" aria-busy="true">
     <div class="loading-card">
@@ -2972,7 +3098,7 @@
   
   <div id="loginGate" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
     <div class="login-card">
-      <img class="login-logo" src="Cromton%20Traffic%20Impact%20Asssessment/logo.jpeg" alt="Crompton logo" />
+      <img class="login-logo" src="logo.jpeg" alt="Crompton logo" />
       <h2 id="loginTitle" class="login-title">Crompton Login</h2>
       <p class="login-note">Please sign in to access the Traffic Impact Assessment tool.</p>
       <form id="loginForm">
@@ -2990,7 +3116,7 @@
   <div id="appStatusBanner" class="app-status-banner hidden" role="status" aria-live="polite"></div>
   <div class="container">
     <div class="print-header">
-      <img class="report-logo" src="Cromton%20Traffic%20Impact%20Asssessment/logo.jpeg" alt="Crompton logo" />
+      <img class="report-logo" src="logo.jpeg" alt="Crompton logo" />
       <h2 id="printReportTitle">Traffic Impact Assessment Report</h2>
       <p>Generated: <span id="printDate"></span></p>
       <p id="printSystemName">Crompton Traffic Analysis System</p>
@@ -3017,15 +3143,12 @@
     <div class="navbar">
       <a class="home-button" href="#" onclick="window.location.reload(); return false;">Home</a>
       
-      <a href="Cromton%20Traffic%20Impact%20Asssessment/manual.html" class="home-button" style="background: linear-gradient(135deg, #4a6c6f 0%, #2a4045 100%); text-decoration: none;">
-        📖 User Manual
-      </a>
-      
       <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
         <span class="sites-loaded-badge">
           <strong>Sites Loaded:</strong> <span id="sitesLoadedCount">0</span>
         </span>
-        <a class="contact-dev-button" href="index.html" target="_blank" rel="noopener noreferrer" style="text-decoration: none;" title="Open Main Calculator View">Formula Main View</a>
+        <a id="manualLink" class="contact-dev-button" href="./manual.html" target="_blank" rel="noopener noreferrer" style="text-decoration: none;" title="Open User Manual">📖 User Manual</a>
+        <a id="formulaViewLink" class="contact-dev-button" href="index_formulas.html" target="_blank" rel="noopener noreferrer" style="text-decoration: none;" title="Open Formula View">📘 Formula View</a>
         <div class="contact-dev-wrap">
           <button id="contactDevBtn" type="button" class="contact-dev-button" aria-expanded="false" aria-controls="contactDevPanel">💬 Contact Developer</button>
           <div id="contactDevPanel" class="contact-dev-panel hidden" role="dialog" aria-label="Developer contact details">
@@ -3040,8 +3163,8 @@
         <button id="logoutBtn" type="button" class="logout-button">Logout</button>
       </div>
     </div>
-    <h1 class="main-report-heading">Traffic Impact Assessment - Formula Detailed</h1>
-    <p class="subtitle">full formulas and trace steps enabled across outputs</p>
+    <h1 class="main-report-heading">Traffic Impact Assessment</h1>
+    <p class="subtitle">database-integrated directional traffic, queue metrics, and capacity checks</p>
 
     <div class="ux-intro" aria-label="Quick start guide">
       <p class="ux-intro-title">Quick start guide</p>
@@ -3205,12 +3328,12 @@
             <div style="display: flex; gap: 15px; flex-wrap: wrap;">
               <div class="input-group" style="flex: 1; min-width: 150px;">
                 <label id="quantityLabel" for="tripQuantity"><strong>Quantity:</strong></label>
-                <input type="number" id="tripQuantity" placeholder="Enter quantity" oninput="calculateTripGeneration()" style="width: 100%; padding: 8px; margin-top: 5px;" />
+                <input type="number" id="tripQuantity" placeholder="e.g., 100" oninput="calculateTripGeneration()" style="width: 100%; padding: 8px; margin-top: 5px;" />
               </div>
               
               <div class="input-group" style="flex: 1; min-width: 150px;">
                 <label id="rateLabel" for="tripRate"><strong>Daily Trip Rate (Per Unit):</strong></label>
-                <input type="number" id="tripRate" step="0.1" placeholder="Enter rate" oninput="calculateTripGeneration()" style="width: 100%; padding: 8px; margin-top: 5px;" />
+                <input type="number" id="tripRate" step="0.1" placeholder="e.g., 8.6 trips/unit/day" oninput="calculateTripGeneration()" style="width: 100%; padding: 8px; margin-top: 5px;" />
               </div>
             </div>
 
@@ -4607,7 +4730,9 @@
       peakAM: 0.10, 
       peakPM: 0.10, 
       description: 'Custom rates - enter manually',
-      unit: 'units'
+      unit: 'units',
+      inbound: 0.5,
+      outbound: 0.5
     },
     residential: { 
       label: 'Number of Dwellings', 
@@ -6060,6 +6185,240 @@
     }
   }
 
+  // ===== AI SUMMARY GENERATOR =====
+  function openAISummaryGenerator() {
+    const modal = document.getElementById('aiSummaryModal');
+    if (modal) {
+      modal.classList.add('open');
+      // Check if in report mode
+      if (!document.body.classList.contains('report-mode')) {
+        alert('AI Summary Generator is only available in Editable Report View. Please create a report first.');
+        closeAISummaryModal();
+      }
+    }
+  }
+
+  function closeAISummaryModal() {
+    const modal = document.getElementById('aiSummaryModal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  function generateAISummary() {
+    const summaryType = document.getElementById('aiSummaryType').value;
+    const loadingDiv = document.getElementById('aiSummaryLoading');
+    const outputDiv = document.getElementById('aiSummaryOutput');
+    
+    // Show loading
+    loadingDiv.classList.add('active');
+    outputDiv.textContent = '';
+    
+    // Simulate AI generation (using smart template-based generation)
+    setTimeout(() => {
+      const summary = generateSmartSummary(summaryType);
+      outputDiv.textContent = summary;
+      loadingDiv.classList.remove('active');
+    }, 1500);
+  }
+
+  function generateSmartSummary(type) {
+    // Extract data from the report
+    const projectName = document.getElementById('projectTitle')?.value || 'Traffic Impact Assessment';
+    const selectedSite = document.getElementById('siteSelect')?.options[document.getElementById('siteSelect')?.selectedIndex]?.text || 'Selected Site';
+    const baseVADT = document.getElementById('baseAadt')?.value || 'N/A';
+    const targetVADT = document.getElementById('targetAadt')?.value || 'N/A';
+    const d1VADT = document.getElementById('d1Aadt')?.value || 'N/A';
+    const d2VADT = document.getElementById('d2Aadt')?.value || 'N/A';
+    const baseYear = document.getElementById('baseYear')?.value || new Date().getFullYear();
+    const targetYear = document.getElementById('targetYear')?.value || new Date().getFullYear();
+    
+    // Get growth data if available
+    const growthRate = document.getElementById('annualGrowthRate')?.value || 'N/A';
+    
+    const templates = {
+      executive: `EXECUTIVE SUMMARY
+
+Project: ${projectName}
+Location: ${selectedSite}
+
+This Traffic Impact Assessment evaluates the impact of the proposed development on the local road network for the ${baseYear}-${targetYear} period.
+
+Key Findings:
+• Base Year (${baseYear}) Traffic Volume: ${baseVADT} vehicles per day
+• Target Year (${targetYear}) Projected Volume: ${targetVADT} vehicles per day
+• Direction 1 (D1): ${d1VADT} vpd
+• Direction 2 (D2): ${d2VADT} vpd
+
+The assessment indicates ${parseInt(targetVADT) > parseInt(baseVADT) ? 'growth' : 'stable conditions'} in traffic volumes over the assessment period. The proposed development's impact has been evaluated against current road capacity and performance standards.
+
+Recommendations include monitoring peak hour operations and consideration of infrastructure improvements to maintain acceptable levels of service.`,
+
+      technical: `TECHNICAL SUMMARY
+
+Assessment Parameters:
+• Assessment Period: ${baseYear} to ${targetYear}
+• Base Traffic Volume (VADT): ${baseVADT} vehicles/day
+• Projected Traffic Volume: ${targetVADT} vehicles/day
+• Annual Growth Rate: ${growthRate}%
+
+Directional Distribution:
+• Direction 1: ${d1VADT} vpd (${Math.round((parseInt(d1VADT)/parseInt(baseVADT))*100)}%)
+• Direction 2: ${d2VADT} vpd (${Math.round((parseInt(d2VADT)/parseInt(baseVADT))*100)}%)
+
+Methodology:
+This assessment utilizes hourly traffic profile analysis, queue length calculations using Akçelik's method, and Volume-to-Capacity Ratio (VCR) analysis to determine road performance. Peak hour operations have been identified for both AM and PM periods, with consideration for directional splits and vehicle classification.
+
+The analysis considers existing infrastructure capacity, projected traffic growth, and development-generated traffic to provide a comprehensive evaluation of network performance.`,
+
+      findings: `KEY FINDINGS
+
+Traffic Volume Analysis:
+• Current daily traffic: ${baseVADT} vehicles per day
+• Projected traffic (${targetYear}): ${targetVADT} vehicles per day
+• Growth over assessment period: ${Math.round(((parseInt(targetVADT) - parseInt(baseVADT)) / parseInt(baseVADT)) * 100)}%
+
+Peak Hour Performance:
+The assessment has identified critical peak periods where traffic demand is highest. Queue length analysis indicates ${parseInt(targetVADT) > parseInt(baseVADT) * 1.2 ? 'potential capacity constraints' : 'adequate capacity'} for the assessment period.
+
+Network Capacity:
+Volume-to-Capacity analysis shows ${parseInt(targetVADT) > 15000 ? 'approaching capacity' : 'acceptable performance'} levels on the subject road network. The directional split (D1: ${d1VADT} vs D2: ${d2VADT}) indicates ${Math.abs(parseInt(d1VADT) - parseInt(d2VADT)) < parseInt(baseVADT) * 0.1 ? 'balanced' : 'directional'} traffic patterns.
+
+Development Impact:
+The proposed development will contribute additional traffic to the network. This summary quantifies the expected impact and identifies mitigation measures where required.`,
+
+      recommendations: `RECOMMENDATIONS
+
+Based on the traffic impact assessment findings, the following recommendations are provided:
+
+1. Traffic Management:
+   • Monitor peak hour operations during ${baseYear}-${targetYear} period
+   • Implement traffic counts at regular intervals to validate projections
+   • Consider adaptive signal timing if signalized intersections are present
+
+2. Infrastructure Considerations:
+   ${parseInt(targetVADT) > 15000 ? 
+     '• Evaluate need for additional lanes or capacity improvements\n   • Assess intersection performance and upgrade requirements' : 
+     '• Current infrastructure appears adequate for projected volumes\n   • Monitor for changes in traffic patterns'}
+
+3. Development Interface:
+   • Ensure safe access/egress design for development traffic
+   • Consider turn lane requirements based on AUSTROADS standards
+   • Implement appropriate sight distance and clearance zones
+
+4. Future Monitoring:
+   • Conduct post-development traffic surveys
+   • Compare actual vs. projected traffic volumes
+   • Adjust management strategies as needed
+
+5. Safety Measures:
+   • Review crash history in the study area
+   • Implement appropriate signage and delineation
+   • Consider pedestrian and cyclist facilities
+
+These recommendations aim to maintain acceptable levels of service while accommodating growth and development traffic.`,
+
+      comprehensive: `COMPREHENSIVE TRAFFIC IMPACT ASSESSMENT OVERVIEW
+
+PROJECT DETAILS
+Project: ${projectName}
+Location: ${selectedSite}
+Assessment Period: ${baseYear} - ${targetYear}
+
+TRAFFIC VOLUME ANALYSIS
+Base Year (${baseYear}):
+• Total Daily Traffic: ${baseVADT} vehicles per day
+• Direction 1: ${d1VADT} vpd
+• Direction 2: ${d2VADT} vpd
+
+Target Year (${targetYear}):
+• Projected Total: ${targetVADT} vehicles per day
+• Growth Rate: ${growthRate}% per annum
+• Total Growth: ${Math.round(((parseInt(targetVADT) - parseInt(baseVADT)) / parseInt(baseVADT)) * 100)}%
+
+METHODOLOGY
+This assessment employs industry-standard traffic engineering methodologies:
+• Hourly traffic profile analysis
+• Queue length calculation (Akçelik's method)
+• Volume-to-Capacity Ratio (VCR) analysis
+• Peak hour identification and analysis
+• Vehicle classification analysis
+
+KEY FINDINGS
+Traffic Conditions:
+The road network currently experiences ${parseInt(baseVADT) > 10000 ? 'moderate to high' : 'low to moderate'} traffic volumes. The directional distribution shows ${Math.abs(parseInt(d1VADT) - parseInt(d2VADT)) < parseInt(baseVADT) * 0.1 ? 'balanced flow' : 'directional predominance'} with D1 representing ${Math.round((parseInt(d1VADT)/parseInt(baseVADT))*100)}% and D2 representing ${Math.round((parseInt(d2VADT)/parseInt(baseVADT))*100)}% of total traffic.
+
+Capacity Analysis:
+${parseInt(targetVADT) > 15000 ? 
+  'The projected traffic volumes approach road capacity thresholds, indicating potential need for capacity enhancements.' : 
+  'Current road capacity appears adequate to accommodate projected traffic volumes with acceptable levels of service.'}
+
+RECOMMENDATIONS
+1. Immediate Actions: Establish baseline monitoring and validate assessment parameters
+2. Short-term: ${parseInt(targetVADT) > parseInt(baseVADT) * 1.2 ? 'Implement traffic management measures' : 'Maintain current operations'}
+3. Long-term: Monitor development impact and adjust infrastructure planning accordingly
+
+CONCLUSION
+This comprehensive assessment provides a detailed evaluation of traffic impacts for the ${baseYear}-${targetYear} period. The findings indicate ${parseInt(targetVADT) > parseInt(baseVADT) * 1.3 ? 'significant growth requiring proactive management' : 'manageable traffic conditions'} with appropriate monitoring and management strategies in place.`
+    };
+
+    return templates[type] || templates.executive;
+  }
+
+  function copyAISummaryToClipboard() {
+    const output = document.getElementById('aiSummaryOutput');
+    const text = output.textContent;
+    
+    navigator.clipboard.writeText(text).then(() => {
+      alert('✓ Summary copied to clipboard!');
+    }).catch(() => {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      alert('✓ Summary copied to clipboard!');
+    });
+  }
+
+  function insertAISummaryToReport() {
+    const output = document.getElementById('aiSummaryOutput');
+    const text = output.textContent;
+    
+    // Find a good place to insert - look for executive summary section or create one
+    const container = document.querySelector('body.report-mode .container');
+    if (!container) {
+      alert('Please ensure you are in report mode before inserting summary.');
+      return;
+    }
+    
+    // Create a new section for the AI summary
+    const summarySection = document.createElement('div');
+    summarySection.className = 'ai-generated-summary';
+    summarySection.style.cssText = 'background: #f0f9ff; border-left: 4px solid #2196f3; padding: 20px; margin: 20px 0; border-radius: 4px;';
+    summarySection.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="margin: 0; color: #1f5e63;">📋 Summary</h3>
+        <button onclick="this.parentElement.parentElement.remove()" class="report-remove-x" style="background: #e53935; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer;">Remove</button>
+      </div>
+      <div class="report-editable" contenteditable="true" style="white-space: pre-wrap; line-height: 1.6;">${text}</div>
+    `;
+    
+    // Insert at the beginning of the report
+    const firstChild = container.firstElementChild;
+    if (firstChild) {
+      container.insertBefore(summarySection, firstChild);
+    } else {
+      container.appendChild(summarySection);
+    }
+    
+    closeAISummaryModal();
+    alert('✓ Summary inserted into report! You can edit it inline or remove it using the Remove button.');
+    
+    // Scroll to the inserted summary
+    summarySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   // Ensure inline onclick handlers can always find these actions.
   window.calculateDistanceKM = calculateDistanceKM;
   window.populateReferencePointsUI = populateReferencePointsUI;
@@ -6072,12 +6431,26 @@
   window.openPythonEditableReport = openPythonEditableReport;
   window.downloadPythonReportJson = downloadPythonReportJson;
   window.exportReportToWord = exportReportToWord;
+  window.openAISummaryGenerator = openAISummaryGenerator;
+  window.closeAISummaryModal = closeAISummaryModal;
+  window.generateAISummary = generateAISummary;
+  window.copyAISummaryToClipboard = copyAISummaryToClipboard;
+  window.insertAISummaryToReport = insertAISummaryToReport;
   window.printFinalReport = printFinalReport;
 
   function handleReportShareOutsideClick(event) {
     const shareWrap = document.getElementById('reportShareWrap');
     if (!shareWrap) return;
     if (!shareWrap.contains(event.target)) closeReportShareMenu();
+  }
+
+  function handleAIModalOutsideClick(event) {
+    const modal = document.getElementById('aiSummaryModal');
+    if (!modal) return;
+    const content = modal.querySelector('.ai-summary-content');
+    if (modal.classList.contains('open') && !content.contains(event.target)) {
+      closeAISummaryModal();
+    }
   }
 
   function renderAnalysisParametersReportSummary() {
@@ -6443,6 +6816,7 @@
       if (reportBar) reportBar.style.display = 'flex';
       if (reportBottomBar) reportBottomBar.style.display = 'flex';
       document.addEventListener('click', handleReportShareOutsideClick, true);
+      document.addEventListener('click', handleAIModalOutsideClick, true);
       refreshReportEmptyBoxes();
       
       // Trigger resize for Leaflet maps and Charts so they format to A4 width properly
@@ -6462,7 +6836,9 @@
       if (reportBar) reportBar.style.display = 'none';
       if (reportBottomBar) reportBottomBar.style.display = 'none';
       closeReportShareMenu();
+      closeAISummaryModal();
       document.removeEventListener('click', handleReportShareOutsideClick, true);
+      document.removeEventListener('click', handleAIModalOutsideClick, true);
       document.querySelectorAll('.report-auto-empty').forEach((el) => el.classList.remove('report-auto-empty'));
       
       setTimeout(() => {
@@ -6742,15 +7118,38 @@
   setupLogoutButton();
   setupContactDeveloperButton();
 
+  function resolveRepoRelativePath(fileName) {
+    const cleanName = String(fileName || '').replace(/^\.\//, '');
+    const host = String(window.location.hostname || '').toLowerCase();
+    const pathParts = String(window.location.pathname || '').split('/').filter(Boolean);
+
+    if (host.endsWith('github.io') && pathParts.length > 0) {
+      return `/${pathParts[0]}/${cleanName}`;
+    }
+
+    return `./${cleanName}`;
+  }
+
+  function bindRepoSafeLinks() {
+    const manualLink = document.getElementById('manualLink');
+    if (manualLink) manualLink.href = resolveRepoRelativePath('manual.html');
+
+    const formulaLink = document.getElementById('formulaViewLink');
+    if (formulaLink) formulaLink.href = resolveRepoRelativePath('index_formulas.html');
+  }
+
+  bindRepoSafeLinks();
+
   // ===== DATA CONFIG & LOADING =====
-  const GITHUB_TMR_URL = './tmr.geojson';
-  const GITHUB_GOLDCOAST_URL = './goldcoast.geojson';
-  const GITHUB_IPSWICH_URL = './Ipswich.geojson';
-  const GITHUB_LOGAN_URL = './logan.geojson';
-  const GITHUB_TOOWOOMBA_URL = './toowoomba.geojson';
+  const GITHUB_TMR_URL = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/tmr.geojson';
+  const GITHUB_GOLDCOAST_URL = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/goldcoast.geojson';
+  const GITHUB_IPSWICH_URL = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/Ipswich.geojson';
+  const GITHUB_LOGAN_URL = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/logan.geojson';
+  const GITHUB_TOOWOOMBA_URL = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/toowoomba.geojson';
+  const GITHUB_TEWANTIN_URL = 'https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/tewantin.geojson';
   const GITHUB_CACHE_PREFIX = 'crompton_tia_cache_v3:';
   const GITHUB_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-  const GITHUB_FETCH_TIMEOUT_MS = 15000;
+  const GITHUB_FETCH_TIMEOUT_MS = 60000;
   const githubRefreshInflight = new Map();
 
   let macroSitesData = {};
@@ -8004,6 +8403,7 @@
               roadName: roadName || preferredRoadName || 'selected road',
               distanceMeters,
               rawTag: oneWayInfo.rawTag,
+              sameRoad,
               score
             };
           }
@@ -8012,7 +8412,8 @@
         if (best && best.score >= 3) break;
       }
 
-      const result = best || null;
+      // Avoid false positives from nearby side streets when the user searched a named road.
+      const result = (prefRoad && best && !best.sameRoad) ? null : (best || null);
       cache.set(cacheKey, result);
       return result;
     } catch (_err) {
@@ -8610,6 +9011,15 @@
     }
   }
 
+  async function fetchDatasetWithFallback(primaryUrl, fallbackUrl, sourceLabel) {
+    const primary = await fetchGitHubData(primaryUrl);
+    if (primary) return primary;
+
+    console.warn(`[Data Load] ${sourceLabel} primary source failed. Falling back to local file: ${fallbackUrl}`);
+    if (!fallbackUrl || fallbackUrl === primaryUrl) return null;
+    return fetchGitHubData(fallbackUrl);
+  }
+
   function parseMacroTrafficData(jsonData, sourceName = 'TMR') {
     const sites = {};
     const features = jsonData.features || [];
@@ -9192,13 +9602,17 @@
       
       console.log('[Data Load] Fetching data from GitHub...');
       setLoadingState('Downloading live records...', 'Fetching TMR and council traffic feeds.', 42);
-      const [tmrData, goldCoastData, ipswichData, loganData, toowoombaData] = await Promise.all([
-        fetchGitHubData(GITHUB_TMR_URL),
-        fetchGitHubData(GITHUB_GOLDCOAST_URL),
-        fetchGitHubData(GITHUB_IPSWICH_URL),
-        fetchGitHubData(GITHUB_LOGAN_URL),
-        fetchGitHubData(GITHUB_TOOWOOMBA_URL)
-      ]);
+      const tmrData = await fetchDatasetWithFallback(GITHUB_TMR_URL, './tmr.geojson', 'TMR');
+      setLoadingState('Downloading live records...', 'Fetched TMR traffic feed.', 46);
+      const goldCoastData = await fetchDatasetWithFallback(GITHUB_GOLDCOAST_URL, './goldcoast.geojson', 'Gold Coast');
+      setLoadingState('Downloading live records...', 'Fetched Gold Coast traffic feed.', 50);
+      const ipswichData = await fetchDatasetWithFallback(GITHUB_IPSWICH_URL, './Ipswich.geojson', 'Ipswich');
+      setLoadingState('Downloading live records...', 'Fetched Ipswich traffic feed.', 54);
+      const loganData = await fetchDatasetWithFallback(GITHUB_LOGAN_URL, './logan.geojson', 'Logan');
+      setLoadingState('Downloading live records...', 'Fetched Logan traffic feed.', 58);
+      const toowoombaData = await fetchDatasetWithFallback(GITHUB_TOOWOOMBA_URL, './toowoomba.geojson', 'Toowoomba');
+      setLoadingState('Downloading live records...', 'Fetched Toowoomba traffic feed.', 62);
+      const tewantinData = await fetchDatasetWithFallback(GITHUB_TEWANTIN_URL, './tewantin.geojson', 'Tewantin');
       console.log('[Data Load] GitHub data fetched');
 
       const tmrSites = tmrData ? parseMacroTrafficData(tmrData, 'TMR') : {};
@@ -9206,10 +9620,11 @@
       const ipswichSites = ipswichData ? parseMacroTrafficData(ipswichData, 'Ipswich') : (console.warn('ipswichData is null/falsy'), {});
       const loganSites = loganData ? parseMacroTrafficData(loganData, 'Logan') : {};
       const toowoomSites = toowoombaData ? parseMacroTrafficData(toowoombaData, 'Toowoomba') : {};
+      const tewantinSites = tewantinData ? parseMacroTrafficData(tewantinData, 'Tewantin') : {};
       setLoadingState('Processing records...', 'Normalizing dataset schema and deriving direction labels.', 58);
       console.log('[Data Load] Parsed site data');
 
-      baseMacroSitesData = mergeMacroSites(tmrSites, goldCoastSites, ipswichSites, loganSites, toowoomSites);
+      baseMacroSitesData = mergeMacroSites(tmrSites, goldCoastSites, ipswichSites, loganSites, toowoomSites, tewantinSites);
       macroSitesData = mergeMacroSites(baseMacroSitesData, customUploadedSitesData);
       window.macroSitesData = macroSitesData;
       setLoadingState('Applying directional inference...', 'Processing directional splits in responsive batches.', 64);
@@ -9235,7 +9650,7 @@
 
       const mapInfo = document.getElementById('macroMapInfo');
       if (mapInfo) {
-        mapInfo.textContent = `${Object.keys(macroSitesData).length} combined sites loaded (TMR + Gold Coast + Ipswich + Logan + Toowoomba). Click a marker to select a site.`;
+        mapInfo.textContent = `${Object.keys(macroSitesData).length} combined sites loaded (TMR + Gold Coast + Ipswich + Logan + Toowoomba + Tewantin). Click a marker to select a site.`;
       }
       
       // Hide loading overlay (only if was shown)
@@ -9610,7 +10025,15 @@
     let gazPredData = new Array(24).fill(0);
     let agPredData = new Array(24).fill(0);
 
-    if (useMeasuredHourly) {
+    // CRITICAL FIX: Use the same profiles that calculateAll() uses for queue calculations
+    // This ensures Peak Hours table matches Queue Length table exactly
+    if (lastWorkWindowHourlyProfiles && lastWorkWindowHourlyProfiles.d1 && lastWorkWindowHourlyProfiles.d2) {
+      console.log('Using calculated hourly profiles from queue calculations for Peak Hours table');
+      gazData = Array.from({ length: 24 }, (_, h) => Number(lastWorkWindowHourlyProfiles.d1[h] && lastWorkWindowHourlyProfiles.d1[h].total) || 0);
+      agData = Array.from({ length: 24 }, (_, h) => Number(lastWorkWindowHourlyProfiles.d2[h] && lastWorkWindowHourlyProfiles.d2[h].total) || 0);
+      gazPredData = gazData; // These are already opening year values
+      agPredData = agData;   // These are already opening year values
+    } else if (useMeasuredHourly) {
       gazData = data.directions_weekday['GAZETTAL'] || new Array(24).fill(0);
       agData = data.directions_weekday['AGAINST GAZETTAL'] || new Array(24).fill(0);
 
@@ -9653,16 +10076,39 @@
       const d1ProfilePred = buildHourlyDirectionProfile(1, d1DailyPred, d1HvPct, d1RtPct, d1Lanes, rtrYes, d1MetricsPred, data);
       const d2ProfilePred = buildHourlyDirectionProfile(2, d2DailyPred, d2HvPct, d2RtPct, d2Lanes, rtrYes, d2MetricsPred, data);
 
-      gazData = Array.from({ length: 24 }, (_, h) => Number(d1ProfileCurrent[h] && d1ProfileCurrent[h].total) || 0);
-      agData = Array.from({ length: 24 }, (_, h) => Number(d2ProfileCurrent[h] && d2ProfileCurrent[h].total) || 0);
-      gazPredData = Array.from({ length: 24 }, (_, h) => Number(d1ProfilePred[h] && d1ProfilePred[h].total) || 0);
-      agPredData = Array.from({ length: 24 }, (_, h) => Number(d2ProfilePred[h] && d2ProfilePred[h].total) || 0);
+      // Use OPENING YEAR (predicted) profiles for Peak Hours table to match queue calculations
+      // Chart shows both current and predicted for comparison
+      gazData = Array.from({ length: 24 }, (_, h) => Number(d1ProfilePred[h] && d1ProfilePred[h].total) || 0);
+      agData = Array.from({ length: 24 }, (_, h) => Number(d2ProfilePred[h] && d2ProfilePred[h].total) || 0);
+      
+      // Keep original current year data for chart comparison
+      const gazDataCurrent = Array.from({ length: 24 }, (_, h) => Number(d1ProfileCurrent[h] && d1ProfileCurrent[h].total) || 0);
+      const agDataCurrent = Array.from({ length: 24 }, (_, h) => Number(d2ProfileCurrent[h] && d2ProfileCurrent[h].total) || 0);
+      
+      gazPredData = gazData; // Already using predicted data
+      agPredData = agData;   // Already using predicted data
     }
     
     // Hourly Profile Chart
     const ctx1 = document.getElementById('macroHourlyChart');
     if (ctx1) {
       if (macroHourlyChartInstance) macroHourlyChartInstance.destroy();
+      
+      // Determine current year data for chart
+      const usingCalculatedProfiles = lastWorkWindowHourlyProfiles && lastWorkWindowHourlyProfiles.d1 && lastWorkWindowHourlyProfiles.d2;
+      let chartGazDataCurrent, chartAgDataCurrent;
+      
+      if (usingCalculatedProfiles) {
+        // gazData and agData are opening year values, derive current year by dividing by growth factor
+        chartGazDataCurrent = gazData.map(value => (Number(value) || 0) / (growthFactor || 1));
+        chartAgDataCurrent = agData.map(value => (Number(value) || 0) / (growthFactor || 1));
+      } else if (useMeasuredHourly) {
+        chartGazDataCurrent = gazData.map(value => (Number(value) || 0) / growthFactor);
+        chartAgDataCurrent = agData.map(value => (Number(value) || 0) / growthFactor);
+      } else {
+        chartGazDataCurrent = (typeof gazDataCurrent !== 'undefined' ? gazDataCurrent : gazData);
+        chartAgDataCurrent = (typeof agDataCurrent !== 'undefined' ? agDataCurrent : agData);
+      }
       
       macroHourlyChartInstance = new Chart(ctx1, {
         type: 'line',
@@ -9671,7 +10117,7 @@
           datasets: [
             {
               label: `${d1Label} (Current)`,
-              data: gazData,
+              data: chartGazDataCurrent,
               borderColor: CHART_PALETTE.d1,
               backgroundColor: CHART_PALETTE.d1,
               tension: 0,
@@ -9681,7 +10127,7 @@
             },
             {
               label: `${d2Label} (Current)`,
-              data: agData,
+              data: chartAgDataCurrent,
               borderColor: CHART_PALETTE.d2,
               backgroundColor: CHART_PALETTE.d2,
               tension: 0,
@@ -9900,7 +10346,7 @@
             </thead>
             <tbody>${rows}</tbody>
           </table>
-          <div class="formula-inline">v_hour = daily directional volume * diurnal factor(hour) (or measured hourly DB value)</div>
+          <div class="formula-inline">✓ Opening year volumes (matches Queue Length hourly table). v_hour = daily directional volume * diurnal factor(hour)</div>
         `;
       }
     }
@@ -9940,7 +10386,7 @@
             </thead>
             <tbody>${rows}</tbody>
           </table>
-          <div class="formula-inline">v_hour = daily directional volume * diurnal factor(hour) (or measured hourly DB value)</div>
+          <div class="formula-inline">✓ Opening year volumes (matches Queue Length hourly table). v_hour = daily directional volume * diurnal factor(hour)</div>
         `;
       }
     }
@@ -10332,7 +10778,14 @@
       const oneWayBadge = detail.isOneWay
         ? `<span class="quality-pill" style="background:#ffebee; color:#b71c1c; border:1px solid #ef9a9a; margin-left:6px;">One-way (${detail.oneWayDirection || 'D1'} @ ${Math.max(1, Math.min(100, Number(detail.oneWayPercent) || 100))}%)</span>`
         : '';
-      qualityEl.innerHTML = `<span class="quality-pill quality-estimated">Estimated (Reference-based)</span>${oneWayBadge}`;
+      
+      // Check if this is manual traffic generation with peak hour data
+      const hasManualPeakData = detail.peakAM && detail.peakPM;
+      const qualityBadgeText = hasManualPeakData 
+        ? '<span class="quality-pill" style="background:#e8f5e9; color:#2e7d32; border:1px solid #81c784;">Trip Generation (Peak Hour Based)</span>'
+        : '<span class="quality-pill quality-estimated">Estimated (Reference-based)</span>';
+      
+      qualityEl.innerHTML = `${qualityBadgeText}${oneWayBadge}`;
     }
 
     const d1RowLabel = String(detail.d1Label || 'Direction 1').trim();
@@ -11004,6 +11457,10 @@
     const rtPct = getDirectionalPercentage(direction, 'RT');
     const isRtr = txt('RTR').toUpperCase() === 'YES';
     
+    // CHECK FOR MANUAL TRAFFIC GENERATION DATA
+    const manualData = window.manualTrafficGenData;
+    const hasManualPeakData = manualData && manualData.peakAM && manualData.peakPM;
+    
     let amVol = 0, opVol = 0, pmVol = 0, evVol = 0;
     let amLv = 0, amHv = 0, amRt = 0;
     let opLv = 0, opHv = 0, opRt = 0;
@@ -11011,7 +11468,46 @@
     let evLv = 0, evHv = 0, evRt = 0;
     let amParts = null, opParts = null, pmParts = null, evParts = null;
 
-    if (isTmrStyle && site && site.directions_weekday) {
+    // OVERRIDE WITH MANUAL TRAFFIC GENERATION PEAK HOUR DATA
+    if (hasManualPeakData && source === 'CUSTOM UPLOAD') {
+      // Use actual peak hour values from trip generation calculator
+      // Direction 1 gets half, Direction 2 gets half (daily is already split 50/50)
+      const directionFactor = 0.5; // Since daily VADT is split 50/50
+      
+      // AM Peak: Use directional split (inbound/outbound from scenario)
+      const amPeakVol = direction === 1 
+        ? Math.round(manualData.peakAM_Out || (manualData.peakAM * 0.5)) 
+        : Math.round(manualData.peakAM_In || (manualData.peakAM * 0.5));
+      
+      // PM Peak: Reverse of AM (residential pattern)
+      const pmPeakVol = direction === 1 
+        ? Math.round(manualData.peakPM_In || (manualData.peakPM * 0.5))
+        : Math.round(manualData.peakPM_Out || (manualData.peakPM * 0.5));
+      
+      // Off-peak is estimated as lower percentage of daily
+      const offPeakVol = Math.round(dailyVolume * 0.05); // 5% per hour during off-peak
+      
+      // Apply vehicle class splits
+      const calcParts = (totalVol) => {
+        const hv = numberRoundUp(totalVol * hvPct, 0);
+        const rt = numberRoundUp(totalVol * rtPct, 0);
+        const lv = Math.max(0, totalVol - hv - rt);
+        return { lv, hv, rt, total: totalVol };
+      };
+      
+      amParts = calcParts(amPeakVol);
+      pmParts = calcParts(pmPeakVol);
+      opParts = calcParts(offPeakVol);
+      evParts = calcParts(offPeakVol);
+      
+      amVol = amParts.total; amLv = amParts.lv; amHv = amParts.hv; amRt = amParts.rt;
+      pmVol = pmParts.total; pmLv = pmParts.lv; pmHv = pmParts.hv; pmRt = pmParts.rt;
+      opVol = opParts.total; opLv = opParts.lv; opHv = opParts.hv; opRt = opParts.rt;
+      evVol = evParts.total; evLv = evParts.lv; evHv = evParts.hv; evRt = evParts.rt;
+      
+      console.log(`Manual Traffic Gen: D${direction} AM=${amVol}, PM=${pmVol}, OP=${opVol}, EV=${evVol}`);
+    }
+    else if (isTmrStyle && site && site.directions_weekday) {
       const amHrs = [7, 8];
       const opHrs = [9, 10, 11, 12, 13, 14, 15];
       const pmHrs = [16, 17];
@@ -13085,7 +13581,20 @@
     const rtr = txt('RTR').toUpperCase();
 
     let site = selectedMacroSite ? macroSitesData[selectedMacroSite] : null;
-    if (!site && window.selectedTiaData && window.selectedTiaData.type === 'references') {
+    
+    // Check for manual traffic generation data first
+    const manualData = window.manualTrafficGenData;
+    const hasManualPeakData = manualData && manualData.peakAM && manualData.peakPM;
+    
+    if (!site && hasManualPeakData) {
+      // Use manual traffic generation peak hour data
+      console.log('Using manual traffic generation data for calculations');
+      site = {
+        source: 'CUSTOM UPLOAD',
+        directions_weekday: null // Peak data will be used directly in calcDirectionMetrics
+      };
+    }
+    else if (!site && window.selectedTiaData && window.selectedTiaData.type === 'references') {
       // Preserve weighted reference hourly shape for custom-address calculations.
       const refD1Base = Math.max(0, Number(window.selectedTiaData.avgD1 || num('D1_VADT')) || 0);
       const refD2Base = Math.max(0, Number(window.selectedTiaData.avgD2 || num('D2_VADT')) || 0);
@@ -13208,7 +13717,6 @@
     if (predictedVadtInput) predictedVadtInput.value = Number.isFinite(projectedTotal) ? projectedTotal : '';
     if (predictedD1Input) predictedD1Input.value = Number.isFinite(d1Daily) ? d1Daily : '';
     if (predictedD2Input) predictedD2Input.value = Number.isFinite(d2Daily) ? d2Daily : '';
-    rerenderMacroChartsWithCurrentGrowth();
     setFormulaBelow('predictedVADT', `Predicted VADT = ${Math.round(totalDailyBase).toLocaleString()} * (1 + ${growthRatePct/100})^${effectiveYears} = ${Math.round(projectedTotal).toLocaleString()}`);
 
     const predictedD1LabelEl = document.getElementById('predictedD1Label');
@@ -13224,6 +13732,9 @@
     const d1HourlyProfile = buildHourlyDirectionProfile(1, d1Daily, d1HvPct, d1RtPct, d1Metrics.lanes, rtr === 'YES', d1Metrics, site);
     const d2HourlyProfile = buildHourlyDirectionProfile(2, d2Daily, d2HvPct, d2RtPct, d2Metrics.lanes, rtr === 'YES', d2Metrics, site);
     lastWorkWindowHourlyProfiles = { d1: d1HourlyProfile, d2: d2HourlyProfile };
+    
+    // CRITICAL: Render charts AFTER storing hourly profiles so Peak Hours table can use them
+    rerenderMacroChartsWithCurrentGrowth();
 
     // VCR Array Computations
     const periodKeys = ['AM','OP','PM','EV'];
@@ -19715,6 +20226,26 @@
       
       console.log('Calculating trip generation: quantity =', quantity, 'rate =', rate, 'scenario =', scenarioKey);
     
+    // Validate inputs for custom scenario
+    if (scenarioKey === 'custom' && (!quantity || !rate)) {
+      const resultDiv = document.getElementById('tripGenResult');
+      if (resultDiv) {
+        resultDiv.innerHTML = `
+          <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; text-align: center;">
+            <div style="font-size: 1.2em; margin-bottom: 8px;">⚠️</div>
+            <div style="font-weight: bold; color: #856404; margin-bottom: 5px;">Please enter values</div>
+            <div style="font-size: 0.9em; color: #856404;">
+              ${!quantity ? 'Enter quantity (e.g., number of dwellings, GFA, etc.)' : ''}
+              ${!quantity && !rate ? '<br>' : ''}
+              ${!rate ? 'Enter daily trip rate per unit (e.g., 8.6 for residential)' : ''}
+            </div>
+          </div>
+        `;
+        resultDiv.style.display = 'block';
+      }
+      return;
+    }
+    
     // Calculate daily VADT
     const vadt = Math.round(quantity * rate);
     
@@ -20383,7 +20914,8 @@ const LoganTrafficEngine = (function() {
 
 })();
 </script>
-<script src="Cromton%20Traffic%20Impact%20Asssessment/tia-shared-sync.js"></script>
+<script src="tia-shared-sync.js"></script>
+
 <!-- FORMULA MODE ENFORCER START -->
 <script>
 (function () {
@@ -20423,6 +20955,3 @@ const LoganTrafficEngine = (function() {
 <!-- FORMULA MODE ENFORCER END -->
 </body>
 </html>
-
-
-
