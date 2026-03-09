@@ -5542,6 +5542,28 @@
       return /[A-Za-z][A-Za-z0-9_\s]*=.+[+\-*/^()]/.test(t);
     }
 
+    function findNearbyTableHeading(tableEl) {
+      if (!tableEl) return '';
+      const headingSelector = 'h3, h4, h5, .table-title, .section-title, strong';
+      let node = tableEl;
+      for (let depth = 0; depth < 4 && node; depth += 1) {
+        let prev = node.previousElementSibling;
+        while (prev) {
+          if (prev.matches && prev.matches(headingSelector)) {
+            return normalizeCellText(prev.textContent);
+          }
+          const nested = prev.querySelector ? prev.querySelector(headingSelector) : null;
+          if (nested) {
+            return normalizeCellText(nested.textContent);
+          }
+          prev = prev.previousElementSibling;
+        }
+        if (node.classList && node.classList.contains('card')) break;
+        node = node.parentElement;
+      }
+      return '';
+    }
+
     function extractStructuredTable(tableEl) {
       const headerCells = Array.from(tableEl.querySelectorAll('thead th'));
       const bodyRows = Array.from(tableEl.querySelectorAll('tbody tr'));
@@ -5586,7 +5608,11 @@
       const card = tableEl.closest('.card');
       const cardTitle = card ? (card.querySelector('h2, h3, .card-title')?.textContent || '').trim() : '';
       const caption = (tableEl.querySelector('caption')?.textContent || '').trim();
-      const title = caption || cardTitle || `Table ${idx + 1}`;
+      const nearbyHeading = findNearbyTableHeading(tableEl);
+      const baseTitle = caption || cardTitle || `Table ${idx + 1}`;
+      const title = nearbyHeading && nearbyHeading.toLowerCase() !== baseTitle.toLowerCase()
+        ? `${baseTitle} - ${nearbyHeading}`
+        : baseTitle;
       const structured = extractStructuredTable(tableEl);
 
       if (/\bformula\b/i.test(title) && !structured.rows.some((row) => row.some((cell) => hasNumericValue(cell)))) {
