@@ -3147,8 +3147,8 @@
         <span class="sites-loaded-badge">
           <strong>Sites Loaded:</strong> <span id="sitesLoadedCount">0</span>
         </span>
-        <a id="manualLink" class="contact-dev-button" href="./manual.html" target="_blank" rel="noopener noreferrer" style="text-decoration: none;" title="Open User Manual">📖 User Manual</a>
-        <a id="formulaViewLink" class="contact-dev-button" href="index_formulas.html" target="_blank" rel="noopener noreferrer" style="text-decoration: none;" title="Open Formula View">📘 Formula View</a>
+        <button id="userManualBtn" type="button" class="contact-dev-button" aria-expanded="false" aria-controls="userManualModal">📖 User Manual</button>
+        <a id="formulaViewLink" class="contact-dev-button" href="/Cromton-Traffic-Impact-Asssessment/index_formulas.html" target="_blank" rel="noopener noreferrer" style="text-decoration: none;" title="Open Formula View">📘 Formula View</a>
         <div class="contact-dev-wrap">
           <button id="contactDevBtn" type="button" class="contact-dev-button" aria-expanded="false" aria-controls="contactDevPanel">💬 Contact Developer</button>
           <div id="contactDevPanel" class="contact-dev-panel hidden" role="dialog" aria-label="Developer contact details">
@@ -3163,6 +3163,64 @@
         <button id="logoutBtn" type="button" class="logout-button">Logout</button>
       </div>
     </div>
+
+    <div id="userManualModal" role="dialog" aria-modal="true" aria-label="Traffic Impact Assessment User Manual" class="hide-print" style="display:none; position:fixed; inset:0; background:rgba(15, 23, 42, 0.68); z-index:100000; padding:18px; overflow:auto;">
+      <div style="max-width:980px; margin:0 auto; background:#fff; border-radius:12px; border:1px solid #dbe2ea; box-shadow:0 16px 40px rgba(0,0,0,0.24); padding:18px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+          <h2 style="margin:0; color:#0f2f32;">Traffic Impact Assessment User Manual</h2>
+          <button id="closeUserManualBtn" type="button" class="contact-dev-button" style="background:#b91c1c;">Close</button>
+        </div>
+        <p style="margin-top:0; color:#475569;">Quick in-app guide to run the calculator and produce reports.</p>
+        <h3 style="margin-bottom:6px; color:#0f2f32;">1. Getting Started</h3>
+        <ol style="margin-top:0; color:#334155;">
+          <li>Sign in and wait for <strong>Sites Loaded</strong> to populate.</li>
+          <li>Search/select a site using the top search card or map marker.</li>
+          <li>Confirm direction labels and base traffic values before calculations.</li>
+        </ol>
+        <h3 style="margin-bottom:6px; color:#0f2f32;">2. Core Workflow</h3>
+        <ol style="margin-top:0; color:#334155;">
+          <li>Set base year, target year, growth rate, and lane assumptions.</li>
+          <li>Review D1/D2 splits and heavy vehicle percentages.</li>
+          <li>Run <strong>Calculate All Metrics</strong> to refresh all tables/charts together.</li>
+        </ol>
+        <h3 style="margin-bottom:6px; color:#0f2f32;">3. Report and Formula View</h3>
+        <ul style="margin-top:0; color:#334155;">
+          <li>Use <strong>Report Mode</strong> for printable output and PDF export.</li>
+          <li>Use <strong>Formula View</strong> to keep formulas and steps visible in outputs.</li>
+        </ul>
+        <h3 style="margin-bottom:6px; color:#0f2f32;">4. Troubleshooting</h3>
+        <ul style="margin-top:0; color:#334155;">
+          <li>If sites show zero, press <code>Ctrl+F5</code> for a hard refresh.</li>
+          <li>If map is blank, wait a moment for libraries/data to finish loading.</li>
+          <li>If values look off, recheck growth rate, splits, and year inputs.</li>
+        </ul>
+        <h3 style="margin-bottom:6px; color:#0f2f32;">5. Screenshot References</h3>
+        <ul style="margin-top:0; color:#334155;">
+          <li><strong>SNIP 2:</strong> Login</li>
+          <li><strong>SNIP 3:</strong> Site Selection</li>
+          <li><strong>SNIP 4:</strong> Inputs and Site Details</li>
+          <li><strong>SNIP 5:</strong> Inputs</li>
+          <li><strong>SNIP 6:</strong> Report Outputs</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="pythonSetupModal" role="dialog" aria-modal="true" aria-label="Python Report Setup Instructions" class="hide-print" style="display:none; position:fixed; inset:0; background:rgba(15, 23, 42, 0.68); z-index:100001; padding:18px; overflow:auto;">
+      <div style="max-width:900px; margin:0 auto; background:#fff; border-radius:12px; border:1px solid #dbe2ea; box-shadow:0 16px 40px rgba(0,0,0,0.24); padding:18px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+          <h2 style="margin:0; color:#0f2f32;">Python Report Setup Required</h2>
+          <button id="closePythonSetupBtn" type="button" class="contact-dev-button" style="background:#b91c1c;">Close</button>
+        </div>
+        <p id="pythonSetupReason" style="margin-top:0; color:#475569;">Python report service is not reachable.</p>
+        <p style="margin-bottom:8px; color:#334155;"><strong>Run these commands in a terminal:</strong></p>
+        <pre id="pythonSetupCommands" style="white-space:pre-wrap; word-break:break-word; margin:0; padding:12px; border:1px solid #dbe2ea; border-radius:8px; background:#f8fafc; color:#0f172a; font-family:Consolas, 'Courier New', monospace; font-size:13px;"></pre>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
+          <button id="copyPythonSetupBtn" type="button" class="contact-dev-button" style="background:#166534;">Copy Commands</button>
+          <button id="pythonSetupOkBtn" type="button" class="contact-dev-button">OK</button>
+        </div>
+      </div>
+    </div>
+
     <h1 class="main-report-heading">Traffic Impact Assessment</h1>
     <p class="subtitle">database-integrated directional traffic, queue metrics, and capacity checks</p>
 
@@ -5700,19 +5758,28 @@
   }
 
   function openBrowserEditableReportFallback(reasonText = '') {
-    if (typeof toggleReportMode === 'function') {
-      toggleReportMode(true);
-    }
+    showPythonReportSetupInstructions(reasonText || 'Python report service is unavailable.');
+  }
 
-    const msg = reasonText || 'Python report service unavailable. Opened browser editable report instead.';
-    if (typeof showNotification === 'function') {
-      showNotification(`ℹ ${msg}`);
-    }
+  function showPythonReportSetupInstructions(reasonText = '') {
+    const reason = reasonText || 'Python report service is not reachable.';
+    const commands = [
+      '# Install Python 3.11+ from https://www.python.org/downloads/',
+      'python -m venv .venv',
+      '.\\.venv\\Scripts\\activate',
+      'pip install fastapi uvicorn python-docx jinja2 pydantic',
+      'uvicorn report_service:app --host 127.0.0.1 --port 8060',
+      '# Then click "Python Report" again'
+    ].join('\n');
+
+    const modal = document.getElementById('pythonSetupModal');
+    const reasonEl = document.getElementById('pythonSetupReason');
+    const commandsEl = document.getElementById('pythonSetupCommands');
+    if (reasonEl) reasonEl.textContent = reason;
+    if (commandsEl) commandsEl.textContent = commands;
+    if (modal) modal.style.display = 'block';
     if (typeof setAppStatusBanner === 'function') {
-      setAppStatusBanner(`<strong>${msg}</strong>`, 'warning');
-      setTimeout(() => {
-        if (typeof clearAppStatusBanner === 'function') clearAppStatusBanner();
-      }, 2600);
+      setAppStatusBanner('<strong>Python Report unavailable:</strong> Install/start Python report service on 127.0.0.1:8060 and try again.', 'warning');
     }
   }
 
@@ -5740,7 +5807,7 @@
 
     const serviceAvailable = await isPythonReportServiceAvailable();
     if (!serviceAvailable) {
-      openBrowserEditableReportFallback('Python report service is offline. Opened browser editable report instead.');
+      showPythonReportSetupInstructions('Python report service is offline.');
       return;
     }
 
@@ -5752,19 +5819,19 @@
         body: JSON.stringify({ title, payload })
       });
     } catch (_) {
-      openBrowserEditableReportFallback('Python report service request failed. Opened browser editable report instead.');
+      showPythonReportSetupInstructions('Python report service request failed.');
       return;
     }
 
     if (!response.ok) {
-      openBrowserEditableReportFallback(`Python report service error (${response.status}). Opened browser editable report instead.`);
+      showPythonReportSetupInstructions(`Python report service error (${response.status}).`);
       return;
     }
 
     const data = await response.json();
     const editorPath = String((data && data.editor_url) || '');
     if (!editorPath) {
-      openBrowserEditableReportFallback('Python editor URL was not returned. Opened browser editable report instead.');
+      showPythonReportSetupInstructions('Python editor URL was not returned by the service.');
       return;
     }
 
@@ -6759,6 +6826,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   }
 
   function toggleReportMode(active, mode = 'detailed') {
+    const hasCalculationOutputsReady = () => {
+      const candidateIds = ['kpiWorstVcr', 'kpiD1PeakQueue', 'kpiD2PeakQueue', 'queue-result', 'VADT'];
+      return candidateIds.some((id) => {
+        const el = document.getElementById(id);
+        if (!el) return false;
+        const value = String((el.value ?? el.textContent ?? '')).trim();
+        if (!value || value === '-') return false;
+        return /\d/.test(value);
+      });
+    };
+
     const reportBar = document.getElementById('reportModeBar');
     const reportBottomBar = document.getElementById('reportModeBottomBar');
     const setPrintHeaderEditMode = (enabled) => {
@@ -6782,9 +6860,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     
     if (active) {
       // Check if calculations have been completed
-      if (!calculationsCompleted) {
+      if (!calculationsCompleted && !hasCalculationOutputsReady()) {
         alert('⚠️ Please click "🚀 Calculate All Metrics" first before generating a report.\n\nThis ensures all data in your report is up-to-date.');
         return;
+      }
+      if (!calculationsCompleted && hasCalculationOutputsReady()) {
+        calculationsCompleted = true;
       }
       // Setup the Print Header Variables
       const printDate = new Date().toLocaleDateString('en-AU', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -7114,9 +7195,84 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     });
   }
 
+  function setupUserManualModal() {
+    const manualBtn = document.getElementById('userManualBtn');
+    const manualModal = document.getElementById('userManualModal');
+    const closeManualBtn = document.getElementById('closeUserManualBtn');
+    if (!manualBtn || !manualModal || !closeManualBtn) return;
+
+    const openManual = () => {
+      manualModal.style.display = 'block';
+      manualBtn.setAttribute('aria-expanded', 'true');
+    };
+
+    const closeManual = () => {
+      manualModal.style.display = 'none';
+      manualBtn.setAttribute('aria-expanded', 'false');
+    };
+
+    manualBtn.addEventListener('click', openManual);
+    closeManualBtn.addEventListener('click', closeManual);
+
+    manualModal.addEventListener('click', (event) => {
+      if (event.target === manualModal) closeManual();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && manualModal.style.display !== 'none') {
+        closeManual();
+      }
+    });
+  }
+
+  function setupPythonSetupModal() {
+    const modal = document.getElementById('pythonSetupModal');
+    const closeBtn = document.getElementById('closePythonSetupBtn');
+    const okBtn = document.getElementById('pythonSetupOkBtn');
+    const copyBtn = document.getElementById('copyPythonSetupBtn');
+    const commandsEl = document.getElementById('pythonSetupCommands');
+    if (!modal || !closeBtn || !okBtn || !copyBtn || !commandsEl) return;
+
+    const closeModal = () => {
+      modal.style.display = 'none';
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    okBtn.addEventListener('click', closeModal);
+
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) closeModal();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && modal.style.display !== 'none') {
+        closeModal();
+      }
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const text = String(commandsEl.textContent || '').trim();
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        if (typeof showNotification === 'function') showNotification('Python setup commands copied.');
+      } catch (_) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (typeof showNotification === 'function') showNotification('Python setup commands copied.');
+      }
+    });
+  }
+
   setupLoginGate();
   setupLogoutButton();
   setupContactDeveloperButton();
+  setupUserManualModal();
+  setupPythonSetupModal();
 
   function resolveRepoRelativePath(fileName) {
     const cleanName = String(fileName || '').replace(/^\.\//, '');
@@ -7131,9 +7287,6 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   }
 
   function bindRepoSafeLinks() {
-    const manualLink = document.getElementById('manualLink');
-    if (manualLink) manualLink.href = resolveRepoRelativePath('manual.html');
-
     const formulaLink = document.getElementById('formulaViewLink');
     if (formulaLink) formulaLink.href = resolveRepoRelativePath('index_formulas.html');
   }
