@@ -3008,6 +3008,9 @@
   </style>
 </head>
 <body class="app-locked input-color-mode">
+  <div class="hide-print" style="position: fixed; right: 14px; top: 14px; z-index: 10001; background: linear-gradient(135deg, #8b1e3f 0%, #c62828 100%); color: #fff; border: 1px solid rgba(255,255,255,0.35); border-radius: 999px; padding: 7px 12px; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.4px; box-shadow: 0 6px 18px rgba(0,0,0,0.25);">
+    Developer Formula View
+  </div>
   <button id="exitPreviewBtn" onclick="exitPrintPreview()" title="Exit print preview (Esc)">
     <i class="fa-solid fa-xmark"></i> Exit Print Preview
   </button>
@@ -21156,6 +21159,16 @@ const LoganTrafficEngine = (function() {
       trace.style.display = 'block';
       trace.classList.remove('report-section-excluded');
       trace.open = true;
+
+      var container = document.querySelector('.container');
+      if (container) {
+        var printHeader = container.querySelector('.print-header');
+        if (printHeader) {
+          printHeader.insertAdjacentElement('afterend', trace);
+        } else {
+          container.insertAdjacentElement('afterbegin', trace);
+        }
+      }
     }
 
     document.querySelectorAll('details').forEach(function (d) {
