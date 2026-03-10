@@ -3276,17 +3276,13 @@
             <span id="quickTiaRoadModeStatus" style="align-self:center; font-size:0.8em; color:#37474f; font-weight:600;"></span>
           </div>
         </div>
-        <div id="quickTiaOneWaySettings" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
+        <div id="quickTiaOneWaySettings" style="display:grid; grid-template-columns:1fr; gap:8px; margin-top:8px;">
           <div>
-            <label style="display:block; font-size:0.8em; color:#8e0000; font-weight:700; margin-bottom:4px;">Active One-way Direction</label>
+            <label style="display:block; font-size:0.8em; color:#8e0000; font-weight:700; margin-bottom:4px;">🧭 Active One-way Direction</label>
             <select id="quickTiaOneWayDirection" style="width:100%; border:1px solid #ef9a9a; background:#fff5f5; color:#8e0000;">
-              <option value="D1" selected>D1 Active</option>
-              <option value="D2">D2 Active</option>
+              <option value="D1" selected>↔️ EAST (Primary)</option>
+              <option value="D2">↔️ WEST (Opposing)</option>
             </select>
-          </div>
-          <div>
-            <label style="display:block; font-size:0.8em; color:#8e0000; font-weight:700; margin-bottom:4px;">One-way AADT (% of selected datapoint)</label>
-            <input id="quickTiaOneWayPercent" type="number" min="1" max="100" step="1" value="100" style="width:100%; border:1px solid #ef9a9a; background:#fff5f5; color:#8e0000;" />
           </div>
         </div>
       </div>
@@ -3664,10 +3660,10 @@
             <p style="font-size: 0.78em; color: #666; margin: 4px 0 0 0;">Shown only when a direction has more than 2 lanes. Applied per direction where feasible.</p>
           </div>
           <div id="oneWayDirectionWrap" style="display:none; background: #ffebee; border: 1px solid #ef9a9a; border-radius: 6px; padding: 10px;">
-            <label style="color: #c30000; font-weight: bold;">Active One-way Direction *</label>
+            <label style="color: #c30000; font-weight: bold;">🧭 Active One-way Direction *</label>
             <select id="oneWayActiveDirection" style="border: 1px solid #e57373; background-color: #fff5f5; color: #b71c1c;">
-              <option value="D1" selected>D1</option>
-              <option value="D2">D2</option>
+              <option value="D1" selected>↔️ EAST (Primary)</option>
+              <option value="D2">↔️ WEST (Opposing)</option>
             </select>
           </div>
         </div>
@@ -4211,10 +4207,11 @@
           <table id="detourDetailedTable" style="width: 100%;">
             <thead>
               <tr>
-                <th style="background: #6a1b9a;">Period</th>
-                <th style="background: #6a1b9a;">Base Detour VCR</th>
-                <th style="background: #6a1b9a;">Added Diverted Vol</th>
-                <th style="background: #6a1b9a;">New Detour VCR</th>
+                <th style="background: #6a1b9a;">Metric</th>
+                <th style="background: #6a1b9a;">AM (7–9)</th>
+                <th style="background: #6a1b9a;">OP (9–16)</th>
+                <th style="background: #6a1b9a;">PM (16–18)</th>
+                <th style="background: #6a1b9a;">EV (18–7)</th>
               </tr>
             </thead>
             <tbody id="detourDetailedBody"></tbody>
@@ -11547,6 +11544,21 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       }
     }
 
+    // In one-way mode AM peak flow is always D1 (D2 is disabled/zero)
+    const amPeakDirEl = document.getElementById('amPeakDirection');
+    if (amPeakDirEl) {
+      if (isOneWayMode) {
+        amPeakDirEl.value = '1';
+        amPeakDirEl.disabled = true;
+        amPeakDirEl.style.opacity = '0.65';
+        amPeakDirEl.title = 'Locked to D1 — AM peak always uses D1 flow on one-way roads.';
+      } else {
+        amPeakDirEl.disabled = false;
+        amPeakDirEl.style.opacity = '';
+        if (amPeakDirEl.title && /locked to d1/i.test(amPeakDirEl.title)) amPeakDirEl.title = '';
+      }
+    }
+
     syncDirectionalAllocationControls();
   }
 
@@ -13961,6 +13973,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const d2OpenLanes = getEffectiveOpenLanes(d2Metrics.lanes);
     const d1OpenLaneExpr = d1Metrics.lanes > 1 ? `${d1Metrics.lanes} - ${d1Metrics.lanes - d1OpenLanes}` : '1';
     const d2OpenLaneExpr = d2Metrics.lanes > 1 ? `${d2Metrics.lanes} - ${d2Metrics.lanes - d2OpenLanes}` : '1';
+    const selectedClosureCount = getSelectedLaneClosureCount();
+    const d1CloseScenarios = Array.from({ length: Math.max(0, d1Metrics.lanes - 1) }, (_, i) => ({ closureCount: i + 1, openLanes: d1Metrics.lanes - i - 1, values: {} }));
+    const d2CloseScenarios = Array.from({ length: Math.max(0, d2Metrics.lanes - 1) }, (_, i) => ({ closureCount: i + 1, openLanes: d2Metrics.lanes - i - 1, values: {} }));
     const laneClosureAssumptionNoteEl = document.getElementById('laneClosureAssumptionNote');
     if (laneClosureAssumptionNoteEl) {
       if (d1Metrics.lanes === 1 && d2Metrics.lanes === 1) {
@@ -14003,6 +14018,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       } else {
         slrf[p] = null;
       }
+      // Compute VCR for every possible lane closure count (all scenarios shown in table)
+      const isTmrSrc = sourceUpper === 'TMR' || sourceUpper === 'GOLD COAST';
+      d1CloseScenarios.forEach(sc => { sc.values[p] = (m1.hourlyPerLane * d1Metrics.lanes / sc.openLanes) / (isTmrSrc ? maxDv : dv1); });
+      d2CloseScenarios.forEach(sc => { sc.values[p] = (m2.hourlyPerLane * d2Metrics.lanes / sc.openLanes) / (isTmrSrc ? maxDv : dv2); });
     });
 
     // Update section headers with intelligent direction labels
@@ -14207,11 +14226,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           <tr><td class="rowhead">Per 15 minutes Length (m)</td>${'<td>N/A</td>'.repeat(4)}<td>-</td></tr>
         `;
       } else {
+        // Closure scenario comparison rows: show scaled Per 5 min queue for each possible closure count
+        const d2QScaleFactor = d2Metrics.lanes > 1 ? (d2Metrics.lanes / d2OpenLanes) : 1;
+        const queueScenRowsD2 = d2CloseScenarios.map(sc => {
+          const isSel = sc.closureCount === selectedClosureCount;
+          const scenLbl = sc.closureCount === 1 ? `1 Lane Closed (${sc.openLanes} open)` : `${sc.closureCount} Lanes Closed (${sc.openLanes} open)`;
+          const sf = d2Metrics.lanes / sc.openLanes;
+          return { label: isSel ? `★ ${scenLbl} — Per 5 min` : `${scenLbl} — Per 5 min`, values: ['AM','OP','PM','EV'].map(p => (queuePeriodD2[p].q5 || 0) * sf), highlighted: isSel };
+        });
+        const queueFallbackD2 = d2CloseScenarios.length === 0 ? [{ label: 'Per 5 min (SLRF — 1 lane)', values: ['AM','OP','PM','EV'].map(k => queuePeriodD2[k].q5) }] : [];
         const queueRowsD2 = [
-          { label: 'Per 2 minutes', values: ['AM','OP','PM','EV'].map(k => queuePeriodD2[k].q2) },
-          { label: 'Per 5 minutes', values: ['AM','OP','PM','EV'].map(k => queuePeriodD2[k].q5) },
-          { label: 'Per 10 minutes', values: ['AM','OP','PM','EV'].map(k => queuePeriodD2[k].q10) },
-          { label: 'Per 15 minutes', values: ['AM','OP','PM','EV'].map(k => queuePeriodD2[k].q15) }
+          ...queueScenRowsD2,
+          ...queueFallbackD2,
+          { label: 'Per 2 min', values: ['AM','OP','PM','EV'].map(k => (queuePeriodD2[k].q2 || 0) * d2QScaleFactor) },
+          { label: 'Per 5 min', values: ['AM','OP','PM','EV'].map(k => (queuePeriodD2[k].q5 || 0) * d2QScaleFactor) },
+          { label: 'Per 10 min', values: ['AM','OP','PM','EV'].map(k => (queuePeriodD2[k].q10 || 0) * d2QScaleFactor) },
+          { label: 'Per 15 min', values: ['AM','OP','PM','EV'].map(k => (queuePeriodD2[k].q15 || 0) * d2QScaleFactor) }
         ];
 
         queueGroupedBodyD2.innerHTML = queueRowsD2.map(row => {
@@ -14222,9 +14252,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           };
           const formattedMax = Math.round(maxQueue);
           const maxDisplay = formattedMax < 30 ? `${formattedMax.toLocaleString()} <span style="color: #d97706; font-weight: 600;">ADOPT 30M</span>` : formattedMax.toLocaleString();
+          const trStyle = row.highlighted ? ' style="outline: 2px solid #1565c0; outline-offset: -2px;"' : '';
           return `
-            <tr>
-              <td class="rowhead">${row.label} Length (m)</td>
+            <tr${trStyle}>
+              <td class="rowhead">${row.label}</td>
               <td><div>${formatQueueValue(row.values[0])}</div><div class="formula-inline">${qFormulaStr}</div></td>
               <td><div>${formatQueueValue(row.values[1])}</div><div class="formula-inline">${qFormulaStr}</div></td>
               <td><div>${formatQueueValue(row.values[2])}</div><div class="formula-inline">${qFormulaStr}</div></td>
@@ -14246,11 +14277,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           <tr><td class="rowhead">Per 15 minutes Length (m)</td>${'<td>N/A</td>'.repeat(4)}<td>-</td></tr>
         `;
       } else {
+        // Closure scenario comparison rows: show scaled Per 5 min queue for each possible closure count
+        const d1QScaleFactor = d1Metrics.lanes > 1 ? (d1Metrics.lanes / d1OpenLanes) : 1;
+        const queueScenRowsD1 = d1CloseScenarios.map(sc => {
+          const isSel = sc.closureCount === selectedClosureCount;
+          const scenLbl = sc.closureCount === 1 ? `1 Lane Closed (${sc.openLanes} open)` : `${sc.closureCount} Lanes Closed (${sc.openLanes} open)`;
+          const sf = d1Metrics.lanes / sc.openLanes;
+          return { label: isSel ? `★ ${scenLbl} — Per 5 min` : `${scenLbl} — Per 5 min`, values: ['AM','OP','PM','EV'].map(p => (queuePeriodD1[p].q5 || 0) * sf), highlighted: isSel };
+        });
+        const queueFallbackD1 = d1CloseScenarios.length === 0 ? [{ label: 'Per 5 min (SLRF — 1 lane)', values: ['AM','OP','PM','EV'].map(k => queuePeriodD1[k].q5) }] : [];
         const queueRowsD1 = [
-          { label: 'Per 2 minutes', values: ['AM','OP','PM','EV'].map(k => queuePeriodD1[k].q2) },
-          { label: 'Per 5 minutes', values: ['AM','OP','PM','EV'].map(k => queuePeriodD1[k].q5) },
-          { label: 'Per 10 minutes', values: ['AM','OP','PM','EV'].map(k => queuePeriodD1[k].q10) },
-          { label: 'Per 15 minutes', values: ['AM','OP','PM','EV'].map(k => queuePeriodD1[k].q15) }
+          ...queueScenRowsD1,
+          ...queueFallbackD1,
+          { label: 'Per 2 min', values: ['AM','OP','PM','EV'].map(k => (queuePeriodD1[k].q2 || 0) * d1QScaleFactor) },
+          { label: 'Per 5 min', values: ['AM','OP','PM','EV'].map(k => (queuePeriodD1[k].q5 || 0) * d1QScaleFactor) },
+          { label: 'Per 10 min', values: ['AM','OP','PM','EV'].map(k => (queuePeriodD1[k].q10 || 0) * d1QScaleFactor) },
+          { label: 'Per 15 min', values: ['AM','OP','PM','EV'].map(k => (queuePeriodD1[k].q15 || 0) * d1QScaleFactor) }
         ];
 
         queueGroupedBodyD1.innerHTML = queueRowsD1.map(row => {
@@ -14261,9 +14303,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           };
           const formattedMax = Math.round(maxQueue);
           const maxDisplay = formattedMax < 30 ? `${formattedMax.toLocaleString()} <span style="color: #d97706; font-weight: 600;">ADOPT 30M</span>` : formattedMax.toLocaleString();
+          const trStyle = row.highlighted ? ' style="outline: 2px solid #1565c0; outline-offset: -2px;"' : '';
           return `
-            <tr>
-              <td class="rowhead">${row.label} Length (m)</td>
+            <tr${trStyle}>
+              <td class="rowhead">${row.label}</td>
               <td><div>${formatQueueValue(row.values[0])}</div><div class="formula-inline">${qFormulaStr}</div></td>
               <td><div>${formatQueueValue(row.values[1])}</div><div class="formula-inline">${qFormulaStr}</div></td>
               <td><div>${formatQueueValue(row.values[2])}</div><div class="formula-inline">${qFormulaStr}</div></td>
@@ -14300,23 +14343,24 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const vcrGroupedBodyD2 = document.getElementById('vcrGroupedBodyD2');
     if (vcrGroupedBodyD2) {
-      const rowsD2 = !isD2Active
-        ? [
-            { label: 'Design Volume (Capacity) *', values: null },
-            { label: 'Base VCR', values: null },
-            { label: 'Single Lane Closure', values: null },
-            { label: 'Single Lane Reversible Flow', values: null }
-          ]
-        : [
-            { label: `Design Volume (Capacity) * = ${Math.round(dv2).toLocaleString()}`, values: null },
-            { label: 'Base VCR', values: baseD2, formula: 'Base VCR = (Vol / Lanes) / DV' },
-            { label: laneClosureLabel, values: slcD2, formula: `${laneClosureLabel} VCR = (Vol / (${d2OpenLaneExpr})) / DV` },
-            { label: 'Single Lane Reversible Flow', values: slrf, formula: 'SLRF VCR = (D1_Vol + D2_Vol) / Max(DV1, DV2)' }
-          ];
+      const d2ScenRows = d2CloseScenarios.map(sc => {
+        const scenLabel = sc.closureCount === 1 ? `1 Lane Closed (${sc.openLanes} open)` : `${sc.closureCount} Lanes Closed (${sc.openLanes} open)`;
+        const isSel = sc.closureCount === selectedClosureCount;
+        return { label: isSel ? `★ ${scenLabel}` : scenLabel, values: isD2Active ? sc.values : null, formula: `VCR = (hourly/lane × ${d2Metrics.lanes} / ${sc.openLanes}) / DV`, highlighted: isSel };
+      });
+      const d2FallbackRows = d2CloseScenarios.length === 0 ? [{ label: 'Lane Closure (N/A — 1 lane)', values: null }] : [];
+      const rowsD2 = [
+        { label: isD2Active ? `Design Volume (Capacity) * = ${Math.round(dv2).toLocaleString()}` : 'Design Volume (Capacity) *', values: null },
+        { label: 'Base VCR', values: isD2Active ? baseD2 : null, formula: 'Base VCR = (Vol / Lanes) / DV' },
+        ...d2ScenRows,
+        ...d2FallbackRows,
+        { label: 'Single Lane Reversible Flow', values: isD2Active ? slrf : null, formula: 'SLRF VCR = (D1_Vol + D2_Vol) / Max(DV1, DV2)' }
+      ];
 
       vcrGroupedBodyD2.innerHTML = '';
       rowsD2.forEach(row => {
         const tr = document.createElement('tr');
+        if (row.highlighted) tr.style.cssText = 'outline: 2px solid #1565c0; outline-offset: -2px;';
         tr.innerHTML = `
           <td class="rowhead">${row.label}</td>
           <td class="vcr-cell"></td>
@@ -14342,23 +14386,24 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const vcrGroupedBodyD1 = document.getElementById('vcrGroupedBodyD1');
     if (vcrGroupedBodyD1) {
-      const rowsD1 = !isD1Active
-        ? [
-            { label: 'Design Volume (Capacity) *', values: null },
-            { label: 'Base VCR', values: null },
-            { label: 'Single Lane Closure', values: null },
-            { label: 'Single Lane Reversible Flow', values: null }
-          ]
-        : [
-            { label: `Design Volume (Capacity) * = ${Math.round(dv1).toLocaleString()}`, values: null },
-            { label: 'Base VCR', values: baseD1, formula: 'Base VCR = (Vol / Lanes) / DV' },
-            { label: laneClosureLabel, values: slcD1, formula: `${laneClosureLabel} VCR = (Vol / (${d1OpenLaneExpr})) / DV` },
-            { label: 'Single Lane Reversible Flow', values: slrf, formula: 'SLRF VCR = (D1_Vol + D2_Vol) / Max(DV1, DV2)' }
-          ];
+      const d1ScenRows = d1CloseScenarios.map(sc => {
+        const scenLabel = sc.closureCount === 1 ? `1 Lane Closed (${sc.openLanes} open)` : `${sc.closureCount} Lanes Closed (${sc.openLanes} open)`;
+        const isSel = sc.closureCount === selectedClosureCount;
+        return { label: isSel ? `★ ${scenLabel}` : scenLabel, values: isD1Active ? sc.values : null, formula: `VCR = (hourly/lane × ${d1Metrics.lanes} / ${sc.openLanes}) / DV`, highlighted: isSel };
+      });
+      const d1FallbackRows = d1CloseScenarios.length === 0 ? [{ label: 'Lane Closure (N/A — 1 lane)', values: null }] : [];
+      const rowsD1 = [
+        { label: isD1Active ? `Design Volume (Capacity) * = ${Math.round(dv1).toLocaleString()}` : 'Design Volume (Capacity) *', values: null },
+        { label: 'Base VCR', values: isD1Active ? baseD1 : null, formula: 'Base VCR = (Vol / Lanes) / DV' },
+        ...d1ScenRows,
+        ...d1FallbackRows,
+        { label: 'Single Lane Reversible Flow', values: isD1Active ? slrf : null, formula: 'SLRF VCR = (D1_Vol + D2_Vol) / Max(DV1, DV2)' }
+      ];
 
       vcrGroupedBodyD1.innerHTML = '';
       rowsD1.forEach(row => {
         const tr = document.createElement('tr');
+        if (row.highlighted) tr.style.cssText = 'outline: 2px solid #1565c0; outline-offset: -2px;';
         tr.innerHTML = `
           <td class="rowhead">${row.label}</td>
           <td class="vcr-cell"></td>
@@ -15935,6 +15980,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       baseVpd: Number(existing.baseVpd) || 0,
       baseVpdManual: !!existing.baseVpdManual,
       lanes: Math.max(1, Number(existing.lanes) || 2),
+      speedLimitKmh: existing.speedLimitKmh != null ? Math.max(10, Math.min(130, Number(existing.speedLimitKmh) || 60)) : 60,
+      tripGenVpd: (existing && typeof existing.tripGenVpd === 'object' && existing.tripGenVpd) ? existing.tripGenVpd : { EAST: 0, WEST: 0, NORTH: 0, SOUTH: 0 },
       refPercents: (existing && typeof existing.refPercents === 'object' && existing.refPercents) ? existing.refPercents : {},
       refEnabled: (existing && typeof existing.refEnabled === 'object' && existing.refEnabled) ? existing.refEnabled : {},
       estimateMeta: existing.estimateMeta || null
@@ -16125,6 +16172,42 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         </div>
       `;
 
+      // Add Manual Trip Generation section
+      const tripGenWrap = document.createElement('div');
+      tripGenWrap.style.cssText = 'grid-column: 1 / -1; margin-top: 8px; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 6px; padding: 10px;';
+      const tripGenTitle = document.createElement('div');
+      tripGenTitle.style.cssText = 'font-size: 0.76em; color: #6a1b9a; font-weight: 700; margin-bottom: 8px;';
+      tripGenTitle.innerHTML = '🚗 Manual Trip Generation by Direction (VPD added to Base VPD)';
+      tripGenWrap.appendChild(tripGenTitle);
+
+      const tripGenGrid = document.createElement('div');
+      tripGenGrid.style.cssText = 'display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;';
+      const directions = ['EAST', 'WEST', 'NORTH', 'SOUTH'];
+      const dirEmojis = { EAST: '➡️', WEST: '⬅️', NORTH: '⬆️', SOUTH: '⬇️' };
+      const tripGenData = (inputData && inputData.tripGenVpd) || { EAST: 0, WEST: 0, NORTH: 0, SOUTH: 0 };
+      
+      directions.forEach(dir => {
+        const dirDiv = document.createElement('div');
+        dirDiv.style.cssText = 'background: #fff; border: 1px solid #ce93d8; border-radius: 4px; padding: 6px;';
+        const dirLabel = document.createElement('label');
+        dirLabel.style.cssText = 'display: block; font-size: 0.73em; color: #6a1b9a; font-weight: 600; margin-bottom: 3px;';
+        dirLabel.textContent = `${dirEmojis[dir]} ${dir}`;
+        const dirInput = document.createElement('input');
+        dirInput.type = 'number';
+        dirInput.min = '0';
+        dirInput.step = '5';
+        dirInput.value = Math.max(0, Number(tripGenData[dir]) || 0);
+        dirInput.dataset.detourManualKey = key;
+        dirInput.dataset.detourManualField = `tripGen_${dir}`;
+        dirInput.style.cssText = 'width: 100%; border: 1px solid #ce93d8; padding: 4px; border-radius: 3px; font-size: 0.8em; background: #fff;';
+        dirDiv.appendChild(dirLabel);
+        dirDiv.appendChild(dirInput);
+        tripGenGrid.appendChild(dirDiv);
+      });
+      
+      tripGenWrap.appendChild(tripGenGrid);
+      row.appendChild(tripGenWrap);
+
       if (refArray.length) {
         const weights = (inputData && inputData.refPercents && typeof inputData.refPercents === 'object') ? inputData.refPercents : {};
         const enabledMap = (inputData && inputData.refEnabled && typeof inputData.refEnabled === 'object') ? inputData.refEnabled : {};
@@ -16243,11 +16326,19 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         let value = Number(inputEl.value);
         if (!Number.isFinite(value)) value = 0;
         if (field === 'lanes') value = Math.max(1, Math.round(value));
-        if (field === 'baseVpd') {
+        if (field === 'speedLimitKmh') value = Math.max(10, Math.min(130, Math.round(value)));
+        if (field.startsWith('tripGen_')) {
+          const dir = field.substring(8);
+          if (!existing.tripGenVpd) existing.tripGenVpd = { EAST: 0, WEST: 0, NORTH: 0, SOUTH: 0 };
+          value = Math.max(0, Math.round(value));
+          existing.tripGenVpd[dir] = value;
+        } else if (field === 'baseVpd') {
           value = Math.max(0, Math.round(value));
           existing.baseVpdManual = value > 0;
+          existing[field] = value;
+        } else {
+          existing[field] = value;
         }
-        existing[field] = value;
         window.detourManualRoadInputs[key] = existing;
         calculateDetourOverlay();
       };
@@ -17335,8 +17426,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
       const card = document.createElement('div');
       card.className = 'detour-card';
+      const roadInputData = getDetourManualRoadInput(roadName) || {};
+      const speedLimitKmh = Math.max(10, Number(roadInputData.speedLimitKmh) || 60);
       card.innerHTML = `
         <h4>🛣️ ${roadName}</h4>
+        <p><strong>Legal Speed Limit:</strong> ${speedLimitKmh} km/h</p>
         <p><strong>Base VPD:</strong> ${baseVpd.toLocaleString()}</p>
         <p><strong>Diverted VPD:</strong> +${divertedVpd.toLocaleString()}</p>
         <p><strong>Future VPD:</strong> ${futureVpd.toLocaleString()}</p>
@@ -17551,7 +17645,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           const manualInput = getDetourManualRoadInput(roadName) || {};
           const manualBaseVpd = Math.max(0, Number(manualInput.baseVpd) || 0);
           const counterBaseVpd = Math.max(0, Number(matchedSite.vadt) || 0);
-          const baseVpd = manualBaseVpd > 0 ? manualBaseVpd : counterBaseVpd;
+          const baseBefore = manualBaseVpd > 0 ? manualBaseVpd : counterBaseVpd;
+          const tripGenVpd = (manualInput && typeof manualInput.tripGenVpd === 'object' && manualInput.tripGenVpd) ? manualInput.tripGenVpd : { EAST: 0, WEST: 0, NORTH: 0, SOUTH: 0 };
+          const totalTripGenVpd = (Number(tripGenVpd.EAST) || 0) + (Number(tripGenVpd.WEST) || 0) + (Number(tripGenVpd.NORTH) || 0) + (Number(tripGenVpd.SOUTH) || 0);
+          const baseVpd = baseBefore + totalTripGenVpd;
 
           const sourceD1Profile = getDirectionalProfile(matchedSite, 'GAZETTAL', counterBaseVpd / 2);
           const sourceD2Profile = getDirectionalProfile(matchedSite, 'AGAINST GAZETTAL', counterBaseVpd / 2);
@@ -17672,12 +17769,48 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       };
     };
 
-    const periods = [
+    // Detect peak 2-hour windows for TMR sites
+    const detectPeak2HourWindow = (hourlyProfile, startHour, endHour) => {
+      if (!Array.isArray(hourlyProfile) || hourlyProfile.length < 24) return null;
+      let maxSum = 0;
+      let peakStartHour = startHour;
+      for (let h = startHour; h < endHour; h++) {
+        const twoHourSum = (Number(hourlyProfile[h]) || 0) + (Number(hourlyProfile[(h + 1) % 24]) || 0);
+        if (twoHourSum > maxSum) {
+          maxSum = twoHourSum;
+          peakStartHour = h;
+        }
+      }
+      return { startHour: peakStartHour, endHour: (peakStartHour + 1) % 24 };
+    };
+
+    // Build periods based on TMR data availability
+    let periods = [
       { key: 'AM (7-9)', hours: [7, 8] },
       { key: 'OP (9-16)', hours: [9, 10, 11, 12, 13, 14, 15] },
       { key: 'PM (16-18)', hours: [16, 17] },
       { key: 'EV (18-7)', hours: [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6] }
     ];
+
+    const hasTmrData = primarySite && primarySite.directions_weekday && 
+                       (Array.isArray(primarySite.directions_weekday['GAZETTAL']) || 
+                        Array.isArray(primarySite.directions_weekday['AGAINST GAZETTAL']));
+    if (hasTmrData && Array.isArray(primaryProfile) && primaryProfile.length === 24 && primaryProfile.reduce((a,b)=>a+b,0) > 0) {
+      const amPeak = detectPeak2HourWindow(primaryProfile, 5, 12);
+      const pmPeak = detectPeak2HourWindow(primaryProfile, 12, 22);
+      if (amPeak && pmPeak) {
+        const amStartHr = amPeak.startHour;
+        const amEndHr = amPeak.endHour;
+        const pmStartHr = pmPeak.startHour;
+        const pmEndHr = pmPeak.endHour;
+        periods = [
+          { key: `AM Peak (${amStartHr}-${amEndHr})`, hours: [amStartHr, amEndHr] },
+          { key: 'OP (9-16)', hours: [9, 10, 11, 12, 13, 14, 15] },
+          { key: `PM Peak (${pmStartHr}-${pmEndHr})`, hours: [pmStartHr, pmEndHr] },
+          { key: 'EV (18-7)', hours: [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6] }
+        ];
+      }
+    }
 
     const roadCapacityStatusByKey = {};
 
@@ -17687,6 +17820,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     let peakDivertedVol = 0;
     let peakRoadDemandPerLane = 0;
     let worstCapacitySnapshot = null;
+    const periodResults = [];
 
     const { d1Label, d2Label } = getCurrentDetourDirectionLabels();
     const closedDirectionLabel = closedDirection === 'D2' ? d2Label : d1Label;
@@ -17859,15 +17993,21 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
       if (newVcr > maxNewVcr) maxNewVcr = newVcr;
 
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="rowhead" data-label="Period">${p.key}</td>
-        <td data-label="Base Detour VCR">${formatVCR(baseVcr)}</td>
-        <td data-label="Added Diverted Vol" style="color: #6a1b9a;">+${Math.round(totalDivertedVol).toLocaleString()} vph<br><span style="font-size: 0.75em; color: #8e24aa;">${diversionBasisText}</span><br><span style="font-size: 0.74em; color: #7b1fa2;">D1 Base ${Math.round(debugMaxBaseD1).toLocaleString()} | D2 Base ${Math.round(debugMaxBaseD2).toLocaleString()} | +D1 ${Math.round(debugAddedD1).toLocaleString()} | +D2 ${Math.round(debugAddedD2).toLocaleString()}</span></td>
-        <td data-label="New Detour VCR">${formatVCR(newVcr)}</td>
-      `;
-      tbody.appendChild(tr);
+      periodResults.push({ key: p.key, baseVcr, newVcr, totalDivertedVol, debugMaxBaseD1, debugMaxBaseD2, debugAddedD1, debugAddedD2 });
     });
+
+    // Build transposed table: 3 metric rows × 4 period columns
+    const baseRow = document.createElement('tr');
+    baseRow.innerHTML = `<td class="rowhead" data-label="Metric">Base Detour VCR</td>${periodResults.map(r => `<td data-label="${r.key}">${formatVCR(r.baseVcr)}</td>`).join('')}`;
+    tbody.appendChild(baseRow);
+
+    const divRow = document.createElement('tr');
+    divRow.innerHTML = `<td class="rowhead" data-label="Metric">Added Diverted Vol<br><span style="font-size:0.74em;color:#8e24aa;font-weight:400;">${diversionBasisText}</span></td>${periodResults.map(r => `<td data-label="${r.key}" style="color: #6a1b9a;">+${Math.round(r.totalDivertedVol).toLocaleString()} vph<br><span style="font-size: 0.74em; color: #7b1fa2;">D1: ${Math.round(r.debugMaxBaseD1).toLocaleString()} | D2: ${Math.round(r.debugMaxBaseD2).toLocaleString()} | +D1: ${Math.round(r.debugAddedD1).toLocaleString()} | +D2: ${Math.round(r.debugAddedD2).toLocaleString()}</span></td>`).join('')}`;
+    tbody.appendChild(divRow);
+
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `<td class="rowhead" data-label="Metric">New Detour VCR</td>${periodResults.map(r => `<td data-label="${r.key}">${formatVCR(r.newVcr)}</td>`).join('')}`;
+    tbody.appendChild(newRow);
 
     const divertedVpdTotal = closureType === 'oneway'
       ? (closedDirection === 'D2' ? inputD2Vadt : inputD1Vadt)
