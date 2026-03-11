@@ -11196,6 +11196,16 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     // Initialize UI
     await initializeUIComponents();
+
+    // Render formula hints as soon as the UI is present (before heavy data loading completes).
+    if (typeof applyGlobalFormulaAnnotations === 'function') {
+      try {
+        applyGlobalFormulaAnnotations();
+        setTimeout(() => {
+          try { applyGlobalFormulaAnnotations(); } catch (_) {}
+        }, 120);
+      } catch (_) {}
+    }
     
     // Start data loading if not already started
     if (!dataLoadingPromise) {
@@ -11207,6 +11217,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       await dataLoadingPromise;
     } catch (error) {
       console.error('Data loading failed:', error);
+    }
+
+    // Re-apply after async data/layout updates so newly-rendered outputs get formulas immediately.
+    if (typeof applyGlobalFormulaAnnotations === 'function') {
+      try { applyGlobalFormulaAnnotations(); } catch (_) {}
     }
 
     if (typeof window.performQuickTIASearch !== 'function') {
@@ -16142,6 +16157,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return sum + ((percent / 100) * (typePercent / 100) * (Number(site.vadt) || 0));
     }, 0);
 
+    const adjustedWeightTotal = refs.reduce((sum, site) => {
+      const hasManual = manualRefPercents && Object.prototype.hasOwnProperty.call(manualRefPercents, site.siteId);
+      const selectedPercent = hasManual ? Number(manualRefPercents[site.siteId]) : Number(site.autoWeight);
+      const percent = Math.max(0, Math.min(100, selectedPercent || 0));
+      const typePercent = Math.max(0, Math.min(140, Number(site.typePercent) || 100));
+      return sum + ((percent / 100) * (typePercent / 100));
+    }, 0);
+
     const totalWeightPercent = refs.reduce((sum, site) => {
       const hasManual = manualRefPercents && Object.prototype.hasOwnProperty.call(manualRefPercents, site.siteId);
       const selectedPercent = hasManual ? Number(manualRefPercents[site.siteId]) : Number(site.autoWeight);
@@ -16149,16 +16172,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return sum + percent;
     }, 0);
 
-    // Calculate average of (slider% * VPD) for all reference points
-    // Formula: sum((slider%/100) * VPD) / number_of_datapoints
-    const sliderWeightedSum = refs.reduce((sum, site) => {
-      const hasManual = manualRefPercents && Object.prototype.hasOwnProperty.call(manualRefPercents, site.siteId);
-      const selectedPercent = hasManual ? Number(manualRefPercents[site.siteId]) : Number(site.autoWeight);
-      const percent = Math.max(0, Math.min(100, selectedPercent || 0));
-      return sum + ((percent / 100) * (Number(site.vadt) || 0));
-    }, 0);
-    const avgVadt = refs.length > 0 ? (sliderWeightedSum / refs.length) : 0;
-    const weightedAvgVADT = Math.round(avgVadt);
+    // Normalize by selected weight so partial selections (e.g. 3%) do not shrink the
+    // base VPD itself; they only control relative contribution among selected refs.
+    const weightedAvgVADT = adjustedWeightTotal > 0
+      ? Math.round(adjustedSum / adjustedWeightTotal)
+      : 0;
     const areaFactorPercent = Math.max(30, Math.min(130, Number(areaProfile.factorPercent) || 100));
     const finalAvgVADT = Math.max(0, Math.round(weightedAvgVADT * (areaFactorPercent / 100)));
 
@@ -16208,11 +16226,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const badgeEl = Array.from(queryContainer.querySelectorAll('[data-detour-ref-total-key]')).find((el) => String(el.dataset.detourRefTotalKey || '').trim() === manualKey);
       if (!badgeEl) return;
 
-      const isGood = total >= 95 && total <= 105;
-      badgeEl.textContent = `Total selected (Use only): ${Math.round(total)}%`;
-      badgeEl.style.background = isGood ? '#e8f5e9' : '#fff8e1';
-      badgeEl.style.borderColor = isGood ? '#66bb6a' : '#ffb300';
-      badgeEl.style.color = isGood ? '#1b5e20' : '#e65100';
+      const hasSelection = total > 0;
+      badgeEl.textContent = `Total selected (Normalized): ${Math.round(total)}%`;
+      badgeEl.style.background = hasSelection ? '#e8f5e9' : '#fff8e1';
+      badgeEl.style.borderColor = hasSelection ? '#66bb6a' : '#ffb300';
+      badgeEl.style.color = hasSelection ? '#1b5e20' : '#e65100';
     };
 
     cleanRoads.forEach((roadName) => {
@@ -16355,7 +16373,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const totalBadge = document.createElement('div');
         totalBadge.dataset.detourRefTotalKey = key;
         totalBadge.style.cssText = 'display: inline-block; font-size: 0.74em; font-weight: 700; margin: 0 0 6px 0; padding: 2px 8px; border-radius: 10px; border: 1px solid #ffb300; background: #fff8e1; color: #e65100;';
-        totalBadge.textContent = 'Total selected (Use only): 0%';
+        totalBadge.textContent = 'Total selected (Normalized): 0%';
         refsWrap.appendChild(totalBadge);
 
         const refTableWrap = document.createElement('div');
