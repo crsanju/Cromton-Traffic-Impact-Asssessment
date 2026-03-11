@@ -4166,9 +4166,11 @@
 
         <div id="detourManualVpdPanel" style="display: none; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
           <label style="color: #6a1b9a; font-weight: bold;">Manual Inputs for Selected Roads (when no nearby counter is found)</label>
-          <div style="font-size: 0.76em; color: #8e24aa; margin-top: 4px;">Estimated Base VPD is editable. You can manually adjust volume for each road. Use <strong>Recalculate Base VPD</strong> to refresh from nearby reference counters/weights.</div>
+          <div style="font-size: 0.76em; color: #8e24aa; margin-top: 4px;">Choose a <strong>Base VPD method</strong> for each road: <strong>📡 Nearby Datapoints</strong> uses weighted reference counters; <strong>🚗 Trip Generation</strong> uses calculated VADT. Base VPD is editable when using Datapoints method.</div>
           <div id="detourManualVpdRows" style="margin-top: 8px; display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
+
+        <div id="detourResolvedBaseVpd" style="display: none; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 6px; padding: 10px; margin-bottom: 10px;"></div>
 
         <div id="detourRoadVpdSummary" style="display: none; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 6px; padding: 10px; margin-bottom: 10px;"></div>
 
@@ -16224,6 +16226,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const vpdMethod = (inputData && inputData.vpdMethod) || 'datapoints';
       const safeKeyAttr = key.replace(/"/g, '&quot;');
       const safeKeyId = key.replace(/[^a-z0-9]/gi, '_');
+      const _tgData = (inputData && inputData.tripGenVpd) ? inputData.tripGenVpd : {};
+      const _totalTgVpd = ['EAST', 'WEST', 'NORTH', 'SOUTH'].reduce((s, d) => s + Math.max(0, Number(_tgData[d]) || 0), 0);
 
       const row = document.createElement('div');
       row.style.cssText = 'display: grid; grid-template-columns: 1.2fr 0.8fr 0.8fr 0.7fr; gap: 8px; align-items: end; background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;';
@@ -16242,8 +16246,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           <div style="font-size: 0.72em; color: ${hasEstimate ? '#8e24aa' : '#c62828'}; margin-top: 2px;">${hasEstimate ? `${String(estimateMeta.source || 'Estimated')} • ${Number(estimateMeta.refsCount) || 0} refs • ${String(estimateMeta.areaType || 'Mixed')} (${Number(estimateMeta.areaFactorPercent) || 100}%)` : 'No reference counters within 5 km to estimate Base VPD.'}</div>
         </div>
         <div data-datapoints-section="${safeKeyAttr}" style="${vpdMethod === 'tripgen' ? 'display:none;' : ''}">
-          <label style="color: ${hasEstimate ? '#6a1b9a' : '#c62828'}; font-size: 0.75em;">Estimated Base VPD (Editable)</label>
+          <label style="color: ${hasEstimate ? '#6a1b9a' : '#c62828'}; font-size: 0.75em;">Datapoints Base VPD (Editable)</label>
           <input type="number" class="detour-base-vpd-display" data-detour-base-key="${key}" data-detour-manual-key="${key}" data-detour-manual-field="baseVpd" value="${baseEstimate}" min="0" step="1" style="border: 1px solid ${hasEstimate ? '#ce93d8' : '#e53935'}; background: #fff; width: 100%;" />
+        </div>
+        <div data-tripgen-section="${safeKeyAttr}" style="${vpdMethod === 'tripgen' ? '' : 'display:none;'}">
+          <label style="color: #2a4045; font-size: 0.75em;">🚗 Trip Gen Base VPD (resolved)</label>
+          <div style="border: 1px solid ${_totalTgVpd > 0 ? '#66bb6a' : '#ffb300'}; background: ${_totalTgVpd > 0 ? '#e8f5e9' : '#fff8e1'}; border-radius: 4px; padding: 6px 8px; font-size: 0.9em; font-weight: 700; color: ${_totalTgVpd > 0 ? '#1b5e20' : '#856404'}; text-align: center;">${_totalTgVpd > 0 ? _totalTgVpd.toLocaleString() + ' vpd' : '— run calculator above'}</div>
         </div>
         <div>
           <label style="color: #6a1b9a; font-size: 0.75em;">Profile Logic</label>
@@ -17593,15 +17601,21 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       card.className = 'detour-card';
       const roadInputData = getDetourManualRoadInput(roadName) || {};
       const speedLimitKmh = Math.max(10, Number(roadInputData.speedLimitKmh) || 60);
+      const vpdMethodUsed = (roadInputData && roadInputData.vpdMethod) || 'datapoints';
+      const methodBadge = vpdMethodUsed === 'tripgen'
+        ? '<span style="font-size:0.72em; color:#2a4045; background:#e8f5e9; border:1px solid #a5d6a7; border-radius:8px; padding:1px 6px; margin-left:4px;">🚗 Trip Generation</span>'
+        : '<span style="font-size:0.72em; color:#4a148c; background:#f3e5f5; border:1px solid #ce93d8; border-radius:8px; padding:1px 6px; margin-left:4px;">📡 Datapoints</span>';
       card.innerHTML = `
         <h4>🛣️ ${roadName}</h4>
         <p><strong>Legal Speed Limit:</strong> ${speedLimitKmh} km/h</p>
-        <p><strong>Base VPD:</strong> ${baseVpd.toLocaleString()}</p>
-        <p><strong>Diverted VPD:</strong> +${divertedVpd.toLocaleString()}</p>
-        <p><strong>Future VPD:</strong> ${futureVpd.toLocaleString()}</p>
+        <p><strong>Base VPD</strong>${methodBadge}<strong>:</strong> ${baseVpd.toLocaleString()} vpd</p>
+        <p><strong>Base Peak Hour (80th):</strong> ${basePeakHourVol.toLocaleString()} vph</p>
+        <p><strong>Diverted VPD:</strong> +${divertedVpd.toLocaleString()} vpd</p>
         <p><strong>Diverted Peak Hour (80th):</strong> +${divertedPeakHourVol.toLocaleString()} vph</p>
-        <p><strong>Capacity:</strong> ${totalCapacity.toLocaleString()}</p>
-        <p><strong>Worst Hourly VCR:</strong> ${numberRoundUp(maxNewVcr, 2)}${worstPeriod !== '-' ? ` (${worstPeriod})` : ''}</p>
+        <p><strong>Future VPD:</strong> ${futureVpd.toLocaleString()} vpd</p>
+        <p><strong>Future Peak Hour (80th):</strong> ${futurePeakHourVol.toLocaleString()} vph</p>
+        <p><strong>Lane Capacity:</strong> ${totalCapacity.toLocaleString()} vph</p>
+        <p><strong>Worst Period VCR:</strong> ${numberRoundUp(maxNewVcr, 2)}${worstPeriod !== '-' ? ` (${worstPeriod})` : ''}</p>
         <p><strong>80th-Hour V/C:</strong> ${numberRoundUp(peakHourVc, 2)}</p>
         <p style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e1ded8;"><strong>${statusEmoji} 80th-Hour Capacity Status:</strong> ${statusText}</p>
       `;
@@ -17609,6 +17623,52 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     });
 
     summaryEl.appendChild(container);
+  }
+
+  function renderDetourResolvedBaseVpd(detourModels) {
+    const bannerEl = document.getElementById('detourResolvedBaseVpd');
+    if (!bannerEl) return;
+
+    if (!Array.isArray(detourModels) || !detourModels.length) {
+      bannerEl.style.display = 'none';
+      bannerEl.innerHTML = '';
+      return;
+    }
+
+    const uniqueRoads = [];
+    const seenRoads = new Set();
+    detourModels.forEach(model => {
+      const rn = String(model.roadName || (model.site && (model.site.road_name || model.site.description)) || 'Detour road').trim();
+      if (!seenRoads.has(rn)) { seenRoads.add(rn); uniqueRoads.push({ ...model, roadName: rn }); }
+    });
+
+    bannerEl.style.display = 'block';
+    let html = '<div style="font-weight:700; color:#1b5e20; margin-bottom:8px; font-size:0.9em;">📋 Resolved Base VPD (active method per road) — used for VCR calculation</div>';
+    html += '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px;">';
+
+    uniqueRoads.forEach(model => {
+      const roadName = model.roadName;
+      const roadInput = getDetourManualRoadInput(roadName) || {};
+      const vpdMethod = (roadInput && roadInput.vpdMethod) || 'datapoints';
+      const baseVpd = Math.max(0, Number(model.baseVpd) || 0);
+      const basePeakHour = convertDailyVpdTo80thHourly(baseVpd);
+      const isTrip = vpdMethod === 'tripgen';
+      const methodLabel = isTrip ? '🚗 Trip Generation' : '📡 Nearby Datapoints';
+      const borderColor = isTrip ? '#a5d6a7' : '#ce93d8';
+      const labelColor = isTrip ? '#1a2c2f' : '#4a148c';
+      const bgColor = isTrip ? '#f0faf2' : '#faf0ff';
+      html += `
+        <div style="background:${bgColor}; border:1px solid ${borderColor}; border-radius:6px; padding:8px;">
+          <div style="font-size:0.72em; font-weight:700; color:${labelColor}; margin-bottom:3px;">${methodLabel}</div>
+          <div style="font-size:0.73em; color:#555; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${roadName}">🛣️ ${roadName}</div>
+          <div style="font-size:1.05em; font-weight:700; color:#2e7d32;">${baseVpd.toLocaleString()} <span style="font-size:0.75em; font-weight:400; color:#555;">vpd</span></div>
+          <div style="font-size:0.78em; color:#388e3c; margin-top:2px;">80th hr peak: ${basePeakHour.toLocaleString()} vph</div>
+        </div>
+      `;
+    });
+
+    html += '</div>';
+    bannerEl.innerHTML = html;
   }
 
   // Per-road trip generation calculator for detour manual VPD panel
@@ -18120,70 +18180,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
         const d1Lanes = Math.max(1, Number(model.d1Lanes) || Math.ceil((Number(model.laneCount) || 1) / 2));
         const d2Lanes = Math.max(1, Number(model.d2Lanes) || Math.floor((Number(model.laneCount) || 1) / 2));
-        const d1FacilityType = d1Lanes >= 3 ? 'MULTI_LANE' : (d1Lanes === 1 ? 'LOCAL_STREET' : 'TWO_LANE');
-        const d2FacilityType = d2Lanes >= 3 ? 'MULTI_LANE' : (d2Lanes === 1 ? 'LOCAL_STREET' : 'TWO_LANE');
-        const isInterrupted = (controlledInts + uncontrolledInts) > 0;
 
-        const intersectionData = isInterrupted ? {
-          opposingVolume: maxPrimaryVol,
-          criticalGap: 4.0,
-          followUpHeadway: 2.2
-        } : null;
-
-        const baseEvalD1 = detourCapacityEngine.evaluateSegmentCapacity({
-          facilityType: d1FacilityType,
-          lanes: d1Lanes,
-          lengthKm: detourLengthKm,
-          grade: detourSegmentGrade,
-          vehicleMix: buildDetourVehicleMix(maxBaseD1, sourceHvShare, sourceRtShare),
-          isInterrupted,
-          intersectionData,
-          baseSpeed: detourAvgSpeedKmh,
-          adjustments: { lw: 0, lc: 0, m: 0, a: 0 }
-        });
-        const newEvalD1 = detourCapacityEngine.evaluateSegmentCapacity({
-          facilityType: d1FacilityType,
-          lanes: d1Lanes,
-          lengthKm: detourLengthKm,
-          grade: detourSegmentGrade,
-          vehicleMix: buildDetourVehicleMix(maxBaseD1 + addedD1, sourceHvShare, sourceRtShare),
-          isInterrupted,
-          intersectionData,
-          baseSpeed: detourAvgSpeedKmh,
-          adjustments: { lw: 0, lc: 0, m: 0, a: 0 }
-        });
-
-        const baseEvalD2 = detourCapacityEngine.evaluateSegmentCapacity({
-          facilityType: d2FacilityType,
-          lanes: d2Lanes,
-          lengthKm: detourLengthKm,
-          grade: detourSegmentGrade,
-          vehicleMix: buildDetourVehicleMix(maxBaseD2, sourceHvShare, sourceRtShare),
-          isInterrupted,
-          intersectionData,
-          baseSpeed: detourAvgSpeedKmh,
-          adjustments: { lw: 0, lc: 0, m: 0, a: 0 }
-        });
-        const newEvalD2 = detourCapacityEngine.evaluateSegmentCapacity({
-          facilityType: d2FacilityType,
-          lanes: d2Lanes,
-          lengthKm: detourLengthKm,
-          grade: detourSegmentGrade,
-          vehicleMix: buildDetourVehicleMix(maxBaseD2 + addedD2, sourceHvShare, sourceRtShare),
-          isInterrupted,
-          intersectionData,
-          baseSpeed: detourAvgSpeedKmh,
-          adjustments: { lw: 0, lc: 0, m: 0, a: 0 }
-        });
-
-        const base = Math.max(
-          Number(baseEvalD1.volumeToCapacityRatio) || 0,
-          Number(baseEvalD2.volumeToCapacityRatio) || 0
-        );
-        const updated = Math.max(
-          Number(newEvalD1.volumeToCapacityRatio) || 0,
-          Number(newEvalD2.volumeToCapacityRatio) || 0
-        );
+        // VCR = peak-hour demand / total lane capacity (simple demand/capacity ratio)
+        // Base VPD and diverted VPD are first converted to peak-hour (80th-highest-hour) volumes.
+        const effectiveCap = Math.max(1, Number(model.totalCapacity) || 1);
+        const base = (maxBaseD1 + maxBaseD2) / effectiveCap;
+        const updated = (maxBaseD1 + maxBaseD2 + addedD1 + addedD2) / effectiveCap;
 
         const roadKey = getDetourManualRoadKey(model.roadName) || String(model.roadName || '').trim();
         if (roadKey) {
@@ -18203,24 +18205,19 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           }
         }
 
-        const updatedDemandPerLane = Math.max(
-          (maxBaseD1 + addedD1) / d1Lanes,
-          (maxBaseD2 + addedD2) / d2Lanes
-        );
+        const laneCount = Math.max(1, Number(model.laneCount) || 1);
+        const updatedDemandPerLane = (maxBaseD1 + maxBaseD2 + addedD1 + addedD2) / laneCount;
         if (updatedDemandPerLane > peakRoadDemandPerLane) peakRoadDemandPerLane = updatedDemandPerLane;
         if (base > baseVcr) baseVcr = base;
         if (updated > newVcr) newVcr = updated;
 
-        const worstEval = (Number(newEvalD1.volumeToCapacityRatio) || 0) >= (Number(newEvalD2.volumeToCapacityRatio) || 0)
-          ? newEvalD1
-          : newEvalD2;
         if (!worstCapacitySnapshot || updated > worstCapacitySnapshot.vc) {
           worstCapacitySnapshot = {
             vc: updated,
-            risk: worstEval.flowBreakdownRisk,
-            operationalCapacity: Number(worstEval.operationalCapacity) || 0,
-            recommendedMaxDemand: Number(worstEval.recommendedMaxDemand) || 0,
-            delayHours: Number(worstEval.vehicleHoursDelay) || 0
+            risk: updated > 1.0 ? 'High' : (updated > 0.85 ? 'Moderate' : 'Low'),
+            operationalCapacity: effectiveCap,
+            recommendedMaxDemand: Math.round(effectiveCap * 0.85),
+            delayHours: 0
           };
         }
       });
@@ -18247,6 +18244,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       ? (closedDirection === 'D2' ? inputD2Vadt : inputD1Vadt)
       : inputVadt;
     renderDetourRoadVpdSummary(validDetourModels, divertedVpdTotal, roadCapacityStatusByKey);
+    renderDetourResolvedBaseVpd(validDetourModels);
 
     const travelTimeHours = detourAvgSpeedKmh > 0 ? (detourLengthKm / detourAvgSpeedKmh) : 0; // P67 = P61/P66
     const travelTimeSec = travelTimeHours * 60 * 60; // P68 = P67*60*60
