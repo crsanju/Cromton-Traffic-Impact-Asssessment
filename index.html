@@ -4547,6 +4547,40 @@
       </div>
     </div>
 
+    <!-- ECONOMIC DELAY COST CALCULATOR -->
+    <div class="card" id="economicCostCard" style="border: 2px solid #2e7d32; background: #f1f8e9;">
+      <h2 class="optional-card-title">
+        <span><span class="hide-print">💸</span> Economic Delay Cost (Road User Cost)</span>
+        <button type="button" class="print-toggle-btn" data-target-card="economicCostCard" aria-pressed="true">Include in Print: Yes</button>
+      </h2>
+      <p class="optional-card-note">
+        Calculates the estimated daily economic impact of the traffic delay using standard Austroads Value of Time (VoT) rates. Translates network delay hours into financial cost to the community/freight industry.
+      </p>
+
+      <div class="grid" style="margin-bottom: 12px;">
+        <div style="background: #ffffff; border: 1px solid #a5d6a7; border-radius: 6px; padding: 10px;">
+          <label style="color: #1b5e20;" class="tooltip" data-tip="Value of Time for Light Vehicles (Private/Commercial blend). Defaults to typical Austroads estimates.">VoT Light Vehicle ($/hr)</label>
+          <input type="number" id="ecoVoTLv" value="21.50" step="0.5" min="0" oninput="calculateEconomicCost()" style="border: 1px solid #a5d6a7;" />
+        </div>
+        <div style="background: #ffffff; border: 1px solid #a5d6a7; border-radius: 6px; padding: 10px;">
+          <label style="color: #1b5e20;" class="tooltip" data-tip="Value of Time for Heavy Vehicles/Freight. Defaults to typical Austroads estimates.">VoT Heavy Vehicle ($/hr)</label>
+          <input type="number" id="ecoVoTHv" value="58.25" step="0.5" min="0" oninput="calculateEconomicCost()" style="border: 1px solid #a5d6a7;" />
+        </div>
+        <div style="background: #ffffff; border: 1px solid #a5d6a7; border-radius: 6px; padding: 10px;">
+          <label style="color: #1b5e20;" class="tooltip" data-tip="Total estimated delay hours across the network per day (dynamically synced from the Speed Reduction module).">Network Delay (hrs/day)</label>
+          <input type="text" id="ecoTotalDelayHrs" value="0.00" readonly style="border: 1px solid #81c784; background-color: #e8f5e9; color: #1b5e20; font-weight: bold;" />
+        </div>
+      </div>
+
+      <div class="report-keep-two-col" style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px;">
+        <div style="background: #ffffff; border-left: 5px solid #2e7d32; padding: 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+          <div style="font-size: 0.8em; color: #666; font-weight: bold; text-transform: uppercase;">Total Daily Economic Cost to Community</div>
+          <div id="ecoTotalCost" style="font-size: 1.8em; font-weight: bold; color: #1b5e20; margin-top: 4px;">$0</div>
+          <div id="ecoCostBreakdown" style="font-size: 0.85em; color: #555; margin-top: 4px; font-weight: 600;">LV: $0 | HV/RT: $0</div>
+        </div>
+      </div>
+    </div>
+
     <div class="card" id="workWindowCard" style="display: none; border: 2px solid #1f5e63;">
       <h2 class="optional-card-title">
         ⏱️ Work Window Optimizer (Auto-Scheduler)
@@ -12612,22 +12646,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const rt = total5 * rtPct;
     const lv = Math.max(0, total5 - hv - rt);
 
-    let q2 = (lv * 2.4) + (hv * 8) + (rt * 25.2);
-    let q5 = (lv * 6) + (hv * 20) + (rt * 63);
-    let q10 = (lv * 12) + (hv * 40) + (rt * 126);
-    let q15 = (lv * 18) + (hv * 60) + (rt * 189);
+    // Aligned to SWT spacings (LV: 8m, HV: 24m, RT: 69m)
+    const spaceLV = 8, spaceHV = 24, spaceRT = 69;
+
+    // total5 is a 5-minute volume. To get 2-minute volume, multiply by (2/5) = 0.4
+    let q2 = (lv * 0.4 * spaceLV) + (hv * 0.4 * spaceHV) + (rt * 0.4 * spaceRT);
+    let q5 = (lv * 1.0 * spaceLV) + (hv * 1.0 * spaceHV) + (rt * 1.0 * spaceRT);
+    let q10 = (lv * 2.0 * spaceLV) + (hv * 2.0 * spaceHV) + (rt * 2.0 * spaceRT);
+    let q15 = (lv * 3.0 * spaceLV) + (hv * 3.0 * spaceHV) + (rt * 3.0 * spaceRT);
 
     const factor = isRtr ? 1.5 : 1;
-    q2 = q2 * factor;
-    q5 = q5 * factor;
-    q10 = q10 * factor;
-    q15 = q15 * factor;
 
     return {
-      q2: numberRoundUp(q2, 0),
-      q5: numberRoundUp(q5, 0),
-      q10: numberRoundUp(q10, 0),
-      q15: numberRoundUp(q15, 0)
+      q2: numberRoundUp(q2 * factor, 0),
+      q5: numberRoundUp(q5 * factor, 0),
+      q10: numberRoundUp(q10 * factor, 0),
+      q15: numberRoundUp(q15 * factor, 0)
     };
   }
 
@@ -12638,8 +12672,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const lv = Math.max(0, total5 - hv - rt);
     const factor = isRtr ? 1.5 : 1;
 
-    // Coefficients scale linearly from the existing AGTTM queue sets.
-    const q = ((lv * (1.2 * minutes)) + (hv * (4 * minutes)) + (rt * (12.6 * minutes))) * factor;
+    // Aligned spacing
+    const minRatio = minutes / 5;
+    const q = ((lv * (8 * minRatio)) + (hv * (24 * minRatio)) + (rt * (69 * minRatio))) * factor;
     return numberRoundUp(q, 0);
   }
 
@@ -14037,7 +14072,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       if (oneWayMode) {
         slrf[p] = null;
       } else if (d1Metrics.lanes === 1 && d2Metrics.lanes === 1) {
-        slrf[p] = (m1.total + m2.total) / maxDv;
+        // Use normalized hourly demand for period VCR (not multi-hour bucket total).
+        slrf[p] = ((m1.hourlyPerLane * d1Metrics.lanes) + (m2.hourlyPerLane * d2Metrics.lanes)) / maxDv;
       } else {
         slrf[p] = null;
       }
@@ -15031,6 +15067,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     calculateDetourOverlay();
     // Trigger Speed Reduction Impact
     calculateSpeedDelay();
+    // Trigger Economic Cost (New)
+    calculateEconomicCost();
     // Trigger Pedestrian Delay Calculator
     calculatePedestrianDelay();
     // Trigger AustRoads visualization refresh
@@ -15522,7 +15560,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     
     // Convert speed to m/s to find clearance time
     const speedMs = speedKmh / 3.6;
-    const clearanceTime = Math.ceil(length / speedMs);
+    // Added 3-second all-red safety buffer per Austroads/AGTTM guidance.
+    const clearanceTime = Math.ceil(length / speedMs) + 3;
     
     // We need 2 clearance phases per cycle (one for each direction to clear)
     const totalClearance = clearanceTime * 2;
@@ -18333,6 +18372,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       transitTextEl.textContent = 'No delay from speed reduction.';
       setFormulaBelow('srPerVehicle', 'Delay/vehicle = max(0, L/Vwork - L/Vnormal)');
       setFormulaBelow('srTotalHours', 'Total delay (h/day) = Delay/vehicle(s) * VADT / 3600');
+      calculateEconomicCost();
       return;
     }
 
@@ -18365,6 +18405,61 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     setFormulaBelow('srPerVehicle', `Delay/vehicle = (L/Vwork - L/Vnormal) = (${length}/${workSpeedMs.toFixed(3)} - ${length}/${normSpeedMs.toFixed(3)})s = ${Math.round(delaySec)}s`);
     setFormulaBelow('srTotalHours', `Total delay = (${Math.round(delaySec)} * ${Math.round(vadt)}) / 3600 = ${Math.round(totalDelayHours)} h/day`);
     applyGlobalFormulaAnnotations();
+    calculateEconomicCost(); // Sync Economic Cost with new delay data
+  }
+
+  // ===== ECONOMIC DELAY COST CALCULATOR LOGIC =====
+  function calculateEconomicCost() {
+    // 1. Re-calculate delay based on existing Speed module inputs (to guarantee sync)
+    const vadt = Number(document.getElementById('VADT').value) || 0;
+    const length = Number(document.getElementById('srLength').value) || 1000;
+    const normSpeedKmh = Number(document.getElementById('srNormSpeed').value) || 80;
+    const workSpeedKmh = Number(document.getElementById('srWorkSpeed').value) || 40;
+
+    let delaySec = 0;
+    if (workSpeedKmh < normSpeedKmh && workSpeedKmh > 0 && normSpeedKmh > 0) {
+      const normSpeedMs = normSpeedKmh / 3.6;
+      const workSpeedMs = workSpeedKmh / 3.6;
+      delaySec = (length / workSpeedMs) - (length / normSpeedMs);
+    }
+
+    // Total network delay hours per day
+    const totalDelayHours = delaySec > 0 ? (delaySec * vadt) / 3600 : 0;
+
+    // 2. Fetch Fleet Mix (Using global input values for a network average)
+    const hvPct = (Number(document.getElementById('HVP').value) || 0) / 100;
+    const rtPct = (Number(document.getElementById('RTP').value) || 0) / 100;
+    const combinedHeavyPct = Math.min(1.0, hvPct + rtPct);
+    const lvPct = Math.max(0, 1.0 - combinedHeavyPct);
+
+    // 3. Fetch Value of Time (VoT) rates
+    const votLv = Number(document.getElementById('ecoVoTLv').value) || 21.50;
+    const votHv = Number(document.getElementById('ecoVoTHv').value) || 58.25;
+
+    // 4. Calculate Financial Impact
+    const delayHoursLv = totalDelayHours * lvPct;
+    const delayHoursHv = totalDelayHours * combinedHeavyPct;
+
+    const costLv = delayHoursLv * votLv;
+    const costHv = delayHoursHv * votHv;
+    const totalCost = costLv + costHv;
+
+    // 5. Update the UI DOM Elements
+    const displayHoursEl = document.getElementById('ecoTotalDelayHrs');
+    const totalCostEl = document.getElementById('ecoTotalCost');
+    const breakdownEl = document.getElementById('ecoCostBreakdown');
+
+    if (displayHoursEl) displayHoursEl.value = totalDelayHours.toFixed(2);
+    if (totalCostEl) totalCostEl.textContent = '$' + Math.round(totalCost).toLocaleString();
+    if (breakdownEl) breakdownEl.textContent = `Light Vehicles: $${Math.round(costLv).toLocaleString()} | Heavy/Freight: $${Math.round(costHv).toLocaleString()}`;
+
+    // 6. Push formula text for report transparency
+    setFormulaBelow('ecoTotalCost', `Daily Cost = (LV_hrs × $${votLv.toFixed(2)}) + (HV_hrs × $${votHv.toFixed(2)}) = $${Math.round(totalCost).toLocaleString()}/day`);
+
+    // Ensure the global formula script picks this up
+    if (typeof applyGlobalFormulaAnnotations === 'function') {
+      applyGlobalFormulaAnnotations();
+    }
   }
 
   (function setupDetourNearbyRoadRadiusSlider() {
