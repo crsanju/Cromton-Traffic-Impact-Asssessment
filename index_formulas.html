@@ -16133,9 +16133,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       };
     }
 
-    const areaProfile = detectAreaProfile(roadName, refs);
     refs.forEach(site => {
-      site.typePercent = calcReferenceTypePercent(areaProfile.type, site.vadt);
+      site.typePercent = 100;
     });
 
     let totalInverseDist = 0;
@@ -16153,16 +16152,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const hasManual = manualRefPercents && Object.prototype.hasOwnProperty.call(manualRefPercents, site.siteId);
       const selectedPercent = hasManual ? Number(manualRefPercents[site.siteId]) : Number(site.autoWeight);
       const percent = Math.max(0, Math.min(100, selectedPercent || 0));
-      const typePercent = Math.max(0, Math.min(140, Number(site.typePercent) || 100));
-      return sum + ((percent / 100) * (typePercent / 100) * (Number(site.vadt) || 0));
-    }, 0);
-
-    const adjustedWeightTotal = refs.reduce((sum, site) => {
-      const hasManual = manualRefPercents && Object.prototype.hasOwnProperty.call(manualRefPercents, site.siteId);
-      const selectedPercent = hasManual ? Number(manualRefPercents[site.siteId]) : Number(site.autoWeight);
-      const percent = Math.max(0, Math.min(100, selectedPercent || 0));
-      const typePercent = Math.max(0, Math.min(140, Number(site.typePercent) || 100));
-      return sum + ((percent / 100) * (typePercent / 100));
+      return sum + ((percent / 100) * (Number(site.vadt) || 0));
     }, 0);
 
     const totalWeightPercent = refs.reduce((sum, site) => {
@@ -16172,20 +16162,16 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return sum + percent;
     }, 0);
 
-    // Normalize by selected weight so partial selections (e.g. 3%) do not shrink the
-    // base VPD itself; they only control relative contribution among selected refs.
-    const weightedAvgVADT = adjustedWeightTotal > 0
-      ? Math.round(adjustedSum / adjustedWeightTotal)
-      : 0;
-    const areaFactorPercent = Math.max(30, Math.min(130, Number(areaProfile.factorPercent) || 100));
-    const finalAvgVADT = Math.max(0, Math.round(weightedAvgVADT * (areaFactorPercent / 100)));
+    // Use user-entered percentages directly: Base VPD = sum((%/100) * reference VPD).
+    const weightedAvgVADT = Math.round(adjustedSum);
+    const finalAvgVADT = Math.max(0, Math.round(weightedAvgVADT));
 
     return {
       baseVpd: finalAvgVADT,
       source: sameRoadSites.length ? 'Estimated (same-road references)' : 'Estimated (nearby references)',
       refsCount: refs.length,
-      areaType: areaProfile.type,
-      areaFactorPercent,
+      areaType: 'User weighted only',
+      areaFactorPercent: 100,
       refs: refsAll.map(site => ({
         siteId: site.siteId,
         road: site.road,
@@ -16227,7 +16213,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       if (!badgeEl) return;
 
       const hasSelection = total > 0;
-      badgeEl.textContent = `Total selected (Normalized): ${Math.round(total)}%`;
+      badgeEl.textContent = `Total selected (Use only): ${Math.round(total)}%`;
       badgeEl.style.background = hasSelection ? '#e8f5e9' : '#fff8e1';
       badgeEl.style.borderColor = hasSelection ? '#66bb6a' : '#ffb300';
       badgeEl.style.color = hasSelection ? '#1b5e20' : '#e65100';
@@ -16261,7 +16247,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         <div>
           <label style="color: #6a1b9a; font-size: 0.75em;">Road</label>
           <input type="text" value="${roadName.replace(/"/g, '&quot;')}" readonly style="border: 1px solid #ce93d8; background: #f8f2fb; width: 100%;" />
-          <div style="font-size: 0.72em; color: ${hasEstimate ? '#8e24aa' : '#c62828'}; margin-top: 2px;">${hasEstimate ? `${String(estimateMeta.source || 'Estimated')} • ${Number(estimateMeta.refsCount) || 0} refs • ${String(estimateMeta.areaType || 'Mixed')} (${Number(estimateMeta.areaFactorPercent) || 100}%)` : 'No reference counters within 5 km to estimate Base VPD.'}</div>
+          <div style="font-size: 0.72em; color: ${hasEstimate ? '#8e24aa' : '#c62828'}; margin-top: 2px;">${hasEstimate ? `${String(estimateMeta.source || 'Estimated')} • ${Number(estimateMeta.refsCount) || 0} refs • user-entered % only` : 'No reference counters within 5 km to estimate Base VPD.'}</div>
         </div>
         <div data-datapoints-section="${safeKeyAttr}" style="${vpdMethod === 'tripgen' ? 'display:none;' : ''}">
           <label style="color: ${hasEstimate ? '#6a1b9a' : '#c62828'}; font-size: 0.75em;">Datapoints Base VPD (Editable)</label>
@@ -16367,13 +16353,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
         const refsTitle = document.createElement('div');
         refsTitle.style.cssText = 'font-size: 0.76em; color: #6a1b9a; font-weight: 700; margin-bottom: 6px;';
-        refsTitle.textContent = 'Nearby datapoints weight (%) — same custom-address weighted reference logic';
+        refsTitle.textContent = 'Nearby datapoints weight (%) — Base VPD uses only user-entered % values';
         refsWrap.appendChild(refsTitle);
 
         const totalBadge = document.createElement('div');
         totalBadge.dataset.detourRefTotalKey = key;
         totalBadge.style.cssText = 'display: inline-block; font-size: 0.74em; font-weight: 700; margin: 0 0 6px 0; padding: 2px 8px; border-radius: 10px; border: 1px solid #ffb300; background: #fff8e1; color: #e65100;';
-        totalBadge.textContent = 'Total selected (Normalized): 0%';
+        totalBadge.textContent = 'Total selected (Use only): 0%';
         refsWrap.appendChild(totalBadge);
 
         const refTableWrap = document.createElement('div');
@@ -16387,7 +16373,6 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
               <th style="padding:5px 6px; border:1px solid #e6d9f2; background:#f4ecfb; text-align:left;">Datapoint</th>
               <th style="padding:5px 6px; border:1px solid #e6d9f2; background:#f4ecfb; width:90px;">VPD</th>
               <th style="padding:5px 6px; border:1px solid #e6d9f2; background:#f4ecfb; width:70px;">Dist</th>
-              <th style="padding:5px 6px; border:1px solid #e6d9f2; background:#f4ecfb; width:72px;">Type %</th>
               <th style="padding:5px 6px; border:1px solid #e6d9f2; background:#f4ecfb; width:92px;">Use</th>
               <th style="padding:5px 6px; border:1px solid #e6d9f2; background:#f4ecfb; width:88px;">Weight %</th>
             </tr>
@@ -16414,7 +16399,6 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             <td style="padding:4px 6px; border:1px solid #efe5f8; color:#4a148c; text-align:left;">${refRoad}</td>
             <td style="padding:4px 6px; border:1px solid #efe5f8; text-align:right;">${Number(ref.vadt || 0).toLocaleString()}</td>
             <td style="padding:4px 6px; border:1px solid #efe5f8; text-align:center;">${distanceText}</td>
-            <td style="padding:4px 6px; border:1px solid #efe5f8; text-align:center;">${Math.round(Number(ref.typePercent) || 100)}%</td>
             <td style="padding:4px 6px; border:1px solid #efe5f8; text-align:center;">
               <select class="detour-ref-enabled" data-detour-manual-key="${key}" data-detour-manual-road="${roadName.replace(/"/g, '&quot;')}" data-ref-siteid="${refSiteId}" style="width: 82px; border: 1px solid #ce93d8; border-radius: 4px; padding: 2px 4px; font-size: 0.76em; color: #4a148c; background: #fff;">
                 <option value="true" ${enabled ? 'selected' : ''}>Use</option>
