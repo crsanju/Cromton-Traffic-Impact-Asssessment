@@ -551,7 +551,7 @@ def editor_page(draft_id: str) -> str:
     }}
 
     function buildChartMarkup(title, imageDataUrl, index) {{
-      const safeTitle = String(title || `Chart ${index + 1}`);
+      const safeTitle = String(title || `Chart ${{index + 1}}`);
       const figure = document.createElement('figure');
       figure.className = 'report-section report-block chart-block avoid-break';
       figure.innerHTML =
@@ -589,7 +589,7 @@ def editor_page(draft_id: str) -> str:
       chartWrap.innerHTML = '';
       if (charts.length > 0) {{
         charts.forEach((chart, index) => {{
-          chartWrap.appendChild(buildChartMarkup(chart.title || `Chart ${index + 1}`, chart.image_data_url, index));
+          chartWrap.appendChild(buildChartMarkup(chart.title || `Chart ${{index + 1}}`, chart.image_data_url, index));
         }});
       }} else {{
         chartWrap.appendChild(buildChartMarkup('Primary Chart', fallback, 0));
