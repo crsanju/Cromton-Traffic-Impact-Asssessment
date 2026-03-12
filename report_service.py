@@ -65,11 +65,12 @@ def _render_key_value_table(title: str, data: dict[str, Any]) -> str:
     for key, val in data.items():
         label = _escape(str(key).replace("_", " ").title())
         value = _escape(val)
-        rows.append(f"<tr><th>{label}</th><td>{value}</td></tr>")
+      rows.append(f"<tr><th contenteditable=\"true\">{label}</th><td contenteditable=\"true\">{value}</td></tr>")
 
     return (
-        f"<div class=\"report-section\">"
-        f"<h3>{_escape(title)}</h3>"
+      f"<div class=\"report-section report-block avoid-break\">"
+      f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Table</button></div>"
+      f"<h3 contenteditable=\"true\">{_escape(title)}</h3>"
         f"<table class=\"kv-table\"><tbody>{''.join(rows)}</tbody></table>"
         f"</div>"
     )
@@ -118,6 +119,12 @@ def _render_data_table(table_data: Any) -> str:
       txt = re.sub(r"\s+", " ", txt).strip()
       txt = _strip_explanatory_tail(txt)
 
+      # Prefer value text when formulas are embedded.
+      if "=" in txt:
+        rhs = txt.split("=")[-1].strip()
+        if rhs:
+          txt = rhs
+
       if is_first_col:
         hour_match = re.search(r"\b\d{2}:\d{2}-\d{2}:\d{2}\b", txt)
         if hour_match:
@@ -135,10 +142,8 @@ def _render_data_table(table_data: Any) -> str:
 
       if is_formula_like:
         numbers = re.findall(r"[-+]?\d+(?:,\d{3})*(?:\.\d+)?", txt)
-        if "=" in txt and numbers:
-          return numbers[0]
-        if numbers and not re.search(r"[A-Za-z]{2,}", txt):
-          return numbers[0]
+        if numbers:
+          return numbers[-1]
         if not numbers:
           return "-"
 
@@ -183,7 +188,7 @@ def _render_data_table(table_data: Any) -> str:
     head_html = ""
     normalized_columns = _normalize_columns(columns, rows, title)
     if normalized_columns:
-      head_html = "<thead><tr>" + "".join(f"<th>{_escape(col)}</th>" for col in normalized_columns) + "</tr></thead>"
+      head_html = "<thead><tr>" + "".join(f"<th contenteditable=\"true\">{_escape(col)}</th>" for col in normalized_columns) + "</tr></thead>"
 
     body_html_parts: list[str] = []
     cleaned_rows: list[list[str]] = []
@@ -194,7 +199,7 @@ def _render_data_table(table_data: Any) -> str:
             continue
         cleaned_row = [_clean_cell_value(cell, idx == 0) for idx, cell in enumerate(row)]
         cleaned_rows.append(cleaned_row)
-        rendered_cells = [f"<td>{_escape(cell)}</td>" for cell in cleaned_row]
+        rendered_cells = [f"<td contenteditable=\"true\">{_escape(cell)}</td>" for cell in cleaned_row]
         body_html_parts.append(f"<tr>{''.join(rendered_cells)}</tr>")
 
     body_html = "<tbody>" + "".join(body_html_parts) + "</tbody>"
@@ -230,8 +235,9 @@ def _render_data_table(table_data: Any) -> str:
       )
 
     return (
-        f"<div class=\"report-section avoid-break\">"
-        f"<h4>{title}</h4>"
+      f"<div class=\"report-section report-block avoid-break\">"
+      f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Table</button></div>"
+      f"<h4 contenteditable=\"true\">{title}</h4>"
         f"<div class=\"editable table-note table-note-top\" contenteditable=\"true\"><p>{_escape(informative_default)}</p></div>"
         f"<table>{head_html}{body_html}</table>"
         f"<div class=\"editable table-note table-note-bottom\" contenteditable=\"true\"><p>{_escape(summary_default)}</p></div>"
@@ -240,8 +246,45 @@ def _render_data_table(table_data: Any) -> str:
 
 
 def _render_charts(payload: dict[str, Any]) -> str:
-  # User requested no charts in the Python report.
-  return ""
+  raw_charts = payload.get("charts", []) if isinstance(payload.get("charts"), list) else []
+  chart_items: list[dict[str, str]] = []
+
+  for idx, chart in enumerate(raw_charts):
+    if not isinstance(chart, dict):
+      continue
+    image_data_url = _safe_text(chart.get("image_data_url"), "")
+    if not image_data_url.startswith("data:image/"):
+      continue
+    title = _safe_text(chart.get("title"), f"Chart {idx + 1}")
+    chart_items.append({"title": title, "image": image_data_url})
+
+  if not chart_items:
+    fallback = _safe_text(payload.get("chart_image_data_url"), "")
+    if fallback.startswith("data:image/"):
+      chart_items.append({"title": "Primary Chart", "image": fallback})
+
+  if not chart_items:
+    return (
+      "<div class=\"report-section avoid-break\">"
+      "<div class=\"editable\" contenteditable=\"true\"><p>No chart snapshots were available for this draft. "
+      "You can add commentary here or remove this section.</p></div>"
+      "</div>"
+    )
+
+  blocks: list[str] = []
+  for idx, item in enumerate(chart_items):
+    blocks.append(
+      "<figure class=\"report-section report-block chart-block avoid-break\">"
+      "<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Chart</button></div>"
+      f"<h4 class=\"chart-title\" contenteditable=\"true\">{_escape(item['title'], f'Chart {idx + 1}')}</h4>"
+      f"<img class=\"chart-img\" src=\"{item['image']}\" alt=\"{_escape(item['title'], f'Chart {idx + 1}')}\" />"
+      "<figcaption class=\"editable chart-caption\" contenteditable=\"true\">"
+      "Describe what this chart shows, assumptions, and interpretation for stakeholders."
+      "</figcaption>"
+      "</figure>"
+    )
+
+  return "".join(blocks)
 
 
 @app.get("/health")
@@ -376,6 +419,10 @@ def editor_page(draft_id: str) -> str:
     /* Interactive Elements & Editor Styles */
     .toolbar {{ display: flex; justify-content: flex-end; margin-bottom: 20px; }}
     .btn {{ background: var(--accent); color: white; border: none; padding: 10px 20px; font-size: 1rem; border-radius: 4px; cursor: pointer; font-weight: bold; }}
+    .no-print {{ display: block; }}
+    .section-controls {{ display: flex; justify-content: flex-end; margin: 4px 0 8px; }}
+    .mini-btn {{ background: #9a3412; color: #fff; border: none; border-radius: 6px; padding: 6px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; }}
+    .mini-btn:hover {{ filter: brightness(1.06); }}
     .editable {{ padding: 10px; border: 1px dashed var(--border); background: #fafafa; min-height: 80px; transition: border 0.3s; }}
     .editable:focus {{ border: 1px solid var(--accent); outline: none; background: #fff; }}
     .table-note {{ min-height: 48px; margin: 8px 0; }}
@@ -388,7 +435,10 @@ def editor_page(draft_id: str) -> str:
     .kpi-value {{ font-size: 1.4rem; font-weight: bold; color: var(--brand); }}
 
     /* Charts */
-    .chart-img {{ max-width: 100%; height: auto; border: 1px solid var(--border); display: block; margin: 10px auto; }}
+    .chart-block {{ width: 100%; max-width: 100%; margin: 0 0 16px; }}
+    .chart-title {{ margin-bottom: 8px; }}
+    .chart-img {{ width: 100%; max-width: 100%; height: auto; border: 1px solid var(--border); display: block; margin: 10px 0; object-fit: contain; }}
+    .chart-caption {{ min-height: 48px; }}
 
     /* Table of Contents Styles */
     .toc-container {{ margin: 2rem 0; padding: 20px; background: #ffffff; border: 1px solid var(--border); border-radius: 4px; }}
@@ -404,6 +454,7 @@ def editor_page(draft_id: str) -> str:
       body {{ background: #fff; }}
       .document-wrapper {{ box-shadow: none; margin: 0; padding: 0; max-width: 100%; }}
       .toolbar {{ display: none; }}
+      .no-print {{ display: none !important; }}
       .editable {{ border: none; background: transparent; padding: 0; }}
       .toc-container {{ border: none; padding: 0; }}
       .toc-link {{ border-bottom: none; }}
@@ -420,14 +471,14 @@ def editor_page(draft_id: str) -> str:
     <div class=\"cover-page\">
       {f'<img class="cover-logo" src="{logo_data_url}" alt="Company Logo" />' if logo_data_url else ''}
       <h1 contenteditable=\"true\">{project_name}</h1>
-      <div class=\"cover-subtitle\">Traffic Impact Assessment Report</div>
+      <div class=\"cover-subtitle\" contenteditable=\"true\">Traffic Impact Assessment Report</div>
 
       <div class=\"cover-details\">
         <table>
-          <tr><th>Location:</th><td>{location}</td></tr>
-          <tr><th>Date Prepared:</th><td>{report_date}</td></tr>
-          <tr><th>Prepared By:</th><td>{prepared_by}</td></tr>
-          <tr><th>Draft Reference:</th><td style=\"font-family: monospace; font-size: 0.8rem;\">{escape(draft_id)}</td></tr>
+          <tr><th contenteditable=\"true\">Location:</th><td contenteditable=\"true\">{location}</td></tr>
+          <tr><th contenteditable=\"true\">Date Prepared:</th><td contenteditable=\"true\">{report_date}</td></tr>
+          <tr><th contenteditable=\"true\">Prepared By:</th><td contenteditable=\"true\">{prepared_by}</td></tr>
+          <tr><th contenteditable=\"true\">Draft Reference:</th><td contenteditable=\"true\" style=\"font-family: monospace; font-size: 0.8rem;\">{escape(draft_id)}</td></tr>
         </table>
       </div>
     </div>
@@ -441,37 +492,39 @@ def editor_page(draft_id: str) -> str:
 
     <div class=\"page-break\"></div>
 
-    <h2>1. Executive Summary</h2>
+    <h2 contenteditable=\"true\">1. Executive Summary</h2>
     <div class=\"editable\" contenteditable=\"true\">
       <p>{_escape(summary_text)}</p>
       <p><em>Click here to edit and provide high-level context regarding the site impact, network performance, and mitigation requirements.</em></p>
     </div>
 
-    <h2 class=\"avoid-break\">2. Critical Performance Outcomes</h2>
+    <h2 class=\"avoid-break\" contenteditable=\"true\">2. Critical Performance Outcomes</h2>
     <div class=\"kpi-grid avoid-break\">
-      <div class=\"kpi-box\"><div class=\"kpi-title\">Worst VCR</div><div class=\"kpi-value\">{worst_vcr}</div></div>
-      <div class=\"kpi-box\"><div class=\"kpi-title\">Peak Queue Length</div><div class=\"kpi-value\">{queue_peak}</div></div>
-      <div class=\"kpi-box\"><div class=\"kpi-title\">Level of Service (LOS)</div><div class=\"kpi-value\">{los}</div></div>
-      <div class=\"kpi-box\"><div class=\"kpi-title\">Detour Recommended</div><div class=\"kpi-value\">{detour}</div></div>
+      <div class=\"kpi-box\"><div class=\"kpi-title\" contenteditable=\"true\">Worst VCR</div><div class=\"kpi-value\" contenteditable=\"true\">{worst_vcr}</div></div>
+      <div class=\"kpi-box\"><div class=\"kpi-title\" contenteditable=\"true\">Peak Queue Length</div><div class=\"kpi-value\" contenteditable=\"true\">{queue_peak}</div></div>
+      <div class=\"kpi-box\"><div class=\"kpi-title\" contenteditable=\"true\">Level of Service (LOS)</div><div class=\"kpi-value\" contenteditable=\"true\">{los}</div></div>
+      <div class=\"kpi-box\"><div class=\"kpi-title\" contenteditable=\"true\">Detour Recommended</div><div class=\"kpi-value\" contenteditable=\"true\">{detour}</div></div>
     </div>
 
-    <h2>3. Design & Traffic Inputs</h2>
+    <h2 contenteditable=\"true\">3. Design & Traffic Inputs</h2>
     {_render_key_value_table('Analysis Parameters', inputs)}
 
     <div class=\"page-break\"></div>
 
-    <h2>4. Traffic Analysis & Results</h2>
+    <h2 contenteditable=\"true\">4. Traffic Analysis & Results</h2>
     {_render_key_value_table('Summary of Computed Results', results)}
 
-    {chart_sections}
     {table_sections}
 
     <div class=\"page-break\"></div>
 
-    <h2>5. Engineering Observations & Notes</h2>
+    <h2 contenteditable=\"true\">5. Engineering Observations & Notes</h2>
     <ul>{notes_html}</ul>
 
-    <h2>6. Professional Commentary & Conclusion</h2>
+    <h2 contenteditable=\"true\">6. Charts</h2>
+    {chart_sections}
+
+    <h2 contenteditable=\"true\">7. Professional Commentary & Conclusion</h2>
     <div class=\"editable\" contenteditable=\"true\">
       <p>Enter your final engineering commentary, summary of impact, and mitigation recommendations here.</p>
     </div>
@@ -479,28 +532,39 @@ def editor_page(draft_id: str) -> str:
   </main>
 
   <script>
-    document.addEventListener("DOMContentLoaded", function() {{
+    function refreshToc() {{
       const tocContent = document.getElementById("toc-content");
-      const headers = document.querySelectorAll("main h2:not(.toc-title), main h3");
-
+      const headers = document.querySelectorAll("main h2:not(.toc-title), main h3, main h4.chart-title");
       if (!tocContent || headers.length === 0) return;
 
       let tocHTML = "";
-
       headers.forEach((header, index) => {{
         if (!header.id) {{
           const safeText = header.innerText.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
           header.id = "sec-" + index + "-" + safeText;
         }}
 
-        const levelClass = header.tagName.toLowerCase() === 'h2' ? 'toc-h2' : 'toc-h3';
-
+        let levelClass = 'toc-h3';
+        if (header.tagName.toLowerCase() === 'h2') levelClass = 'toc-h2';
         tocHTML += '<div class="toc-item ' + levelClass + '">' +
                      '<a href="#' + header.id + '" class="toc-link">' + header.innerText + '</a>' +
                    '</div>';
       }});
 
       tocContent.innerHTML = tocHTML;
+    }}
+
+    function removeReportBlock(btn) {{
+      const block = btn && btn.closest('.report-block');
+      if (!block) return;
+      block.remove();
+      refreshToc();
+    }}
+
+    document.addEventListener("DOMContentLoaded", function() {{
+      document.querySelectorAll('main ul li').forEach((el) => el.setAttribute('contenteditable', 'true'));
+      document.querySelectorAll('main table th, main table td').forEach((el) => el.setAttribute('contenteditable', 'true'));
+      refreshToc();
     }});
   </script>
 </body>

@@ -3216,7 +3216,7 @@
         <p style="margin-bottom:8px; color:#334155;"><strong>Step 3: Run these commands in Terminal/Command Prompt:</strong></p>
         <pre id="pythonSetupCommands" style="white-space:pre-wrap; word-break:break-word; margin:0; padding:12px; border:1px solid #dbe2ea; border-radius:8px; background:#f8fafc; color:#0f172a; font-family:Consolas, 'Courier New', monospace; font-size:13px;"></pre>
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
-          <a id="downloadPythonBtn" href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer" class="contact-dev-button" style="background:#1d4ed8; text-decoration:none; display:inline-flex; align-items:center;">Download Python</a>
+          <a id="downloadPythonBtn" href="https://apps.microsoft.com/detail/9NCVDN91XZQP" target="_blank" rel="noopener noreferrer" class="contact-dev-button" style="background:#1d4ed8; text-decoration:none; display:inline-flex; align-items:center;">Get Python from Microsoft Store</a>
           <a id="downloadReportServiceBtn" href="https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/report_service.py" target="_blank" rel="noopener noreferrer" class="contact-dev-button" style="background:#0f766e; text-decoration:none; display:inline-flex; align-items:center;">Download Report-Service</a>
           <button id="copyPythonSetupBtn" type="button" class="contact-dev-button" style="background:#166534;">Copy Commands</button>
           <button id="pythonSetupOkBtn" type="button" class="contact-dev-button">OK</button>
@@ -5834,7 +5834,7 @@
     const guideSteps = [
       'Keep this app page open.',
       'Click <strong>Copy Commands</strong> below.',
-      'If Python is not installed, click <strong>Download Python</strong> and install it first.',
+      'If Python is not installed, click <strong>Get Python from Microsoft Store</strong> and install it first.',
       'Open Command Prompt (Windows: press Win key, type "cmd", press Enter).',
       `Run the copied commands line by line. They will create <code>${serviceFolderHint}</code>, move into it, and check/download <code>report_service.py</code>.`,
       `If <code>report_service.py</code> is still missing, click <strong>Download Report-Service</strong> or use the raw link: <a href="${reportServiceDownloadUrl}" target="_blank" rel="noopener noreferrer">GitHub raw link</a>.`,
@@ -5853,7 +5853,7 @@
     ].join('');
 
     const commands = [
-      '# If Python is not installed, install from: https://www.python.org/downloads/',
+      '# If Python is not installed, install from Microsoft Store: https://apps.microsoft.com/detail/9NCVDN91XZQP',
       `mkdir "${serviceFolderHint}"`,
       `cd /d "${serviceFolderHint}"`,
       'dir report_service*',
