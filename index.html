@@ -3262,6 +3262,9 @@
       </div>
 
       <div id="quickTiaOneWayAlert" style="display:none; margin-bottom:12px; background:#eef7ff; border:2px solid #1565c0; border-left-width:8px; border-radius:6px; padding:10px; box-shadow:0 0 0 2px rgba(21,101,192,0.1) inset;">
+        <div id="quickTiaRoadModeDetectedText" style="margin-bottom:6px; padding:6px 8px; border:1px solid #90caf9; border-radius:4px; background:#e3f2fd; color:#0d47a1; font-size:0.86em; font-weight:700;">
+          TWO-WAY detected, confirm below.
+        </div>
         <div style="font-weight:800; color:#0d47a1; font-size:1.02em; letter-spacing:0.2px;">
           Confirm Road Operation Mode
         </div>
@@ -3270,11 +3273,11 @@
         </div>
         <div style="margin-top:8px; background:#f7fbff; border:1px solid #90caf9; border-radius:6px; padding:8px;">
           <div style="font-size:0.8em; color:#0d47a1; font-weight:700; margin-bottom:6px;">Confirm Selection (always required)</div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button id="quickTiaChooseOneWayBtn" type="button" onclick="applyQuickTiaRoadModeChoice('ONE-WAY')" style="border:1px solid #2e7d32; background:#2e7d32; color:#fff; border-radius:4px; padding:6px 12px; font-weight:700; cursor:pointer;">Use ONE-WAY</button>
-            <button id="quickTiaChooseTwoWayBtn" type="button" onclick="applyQuickTiaRoadModeChoice('TWO-WAY')" style="border:1px solid #1565c0; background:#fff; color:#1565c0; border-radius:4px; padding:6px 12px; font-weight:700; cursor:pointer;">Use TWO-WAY</button>
-            <span id="quickTiaRoadModeStatus" style="align-self:center; font-size:0.8em; color:#37474f; font-weight:600;"></span>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <button id="quickTiaChooseOneWayBtn" type="button" onclick="applyQuickTiaRoadModeChoice('ONE-WAY')" style="border:1px solid #2e7d32; background:#2e7d32; color:#fff; border-radius:4px; padding:6px 12px; font-weight:700; cursor:pointer; width:auto; margin-top:0;">Use ONE-WAY</button>
+            <button id="quickTiaChooseTwoWayBtn" type="button" onclick="applyQuickTiaRoadModeChoice('TWO-WAY')" style="border:1px solid #1565c0; background:#fff; color:#1565c0; border-radius:4px; padding:6px 12px; font-weight:700; cursor:pointer; width:auto; margin-top:0;">Use TWO-WAY</button>
           </div>
+          <span id="quickTiaRoadModeStatus" style="display:block; margin-top:6px; font-size:0.8em; color:#37474f; font-weight:600;"></span>
         </div>
         <div id="quickTiaOneWaySettings" style="display:grid; grid-template-columns:1fr; gap:8px; margin-top:8px;">
           <div>
@@ -19818,6 +19821,18 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   window.quickTiaOneWayDetected = false;
   window.quickTiaOneWayMeta = null;
 
+  function setQuickTiaRoadModeDetectedState(detectedMode) {
+    const detectedEl = document.getElementById('quickTiaRoadModeDetectedText');
+    if (!detectedEl) return;
+
+    const mode = String(detectedMode || '').toUpperCase() === 'ONE-WAY' ? 'ONE-WAY' : 'TWO-WAY';
+    const isOneWay = mode === 'ONE-WAY';
+    detectedEl.textContent = `${mode} detected, confirm below.`;
+    detectedEl.style.background = isOneWay ? '#e8f5e9' : '#e3f2fd';
+    detectedEl.style.borderColor = isOneWay ? '#81c784' : '#90caf9';
+    detectedEl.style.color = isOneWay ? '#1b5e20' : '#0d47a1';
+  }
+
   function setQuickTiaRoadModeButtonState(selectedMode) {
     const oneWayBtn = document.getElementById('quickTiaChooseOneWayBtn');
     const twoWayBtn = document.getElementById('quickTiaChooseTwoWayBtn');
@@ -19890,6 +19905,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       if (!Number.isFinite(parsed) || parsed <= 0) percentEl.value = '100';
     }
 
+    setQuickTiaRoadModeDetectedState(suggestedMode === 'ONE-WAY' ? 'ONE-WAY' : 'TWO-WAY');
+
     window.quickTiaOneWayMeta = detection || null;
     applyQuickTiaRoadModeChoice(suggestedMode === 'ONE-WAY' ? 'ONE-WAY' : 'TWO-WAY');
   }
@@ -19904,6 +19921,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const oneWaySettingsEl = document.getElementById('quickTiaOneWaySettings');
     if (alertEl) alertEl.style.display = 'none';
     if (textEl) textEl.textContent = 'Choose ONE-WAY or TWO-WAY for this road before using calculated values.';
+    setQuickTiaRoadModeDetectedState('TWO-WAY');
     if (oneWaySettingsEl) oneWaySettingsEl.style.opacity = '1';
 
     const directionEl = document.getElementById('quickTiaOneWayDirection');
@@ -19934,6 +19952,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     if (alertEl) alertEl.style.display = isOneWay ? 'block' : 'none';
     if (!isOneWay) return;
+
+    setQuickTiaRoadModeDetectedState('ONE-WAY');
 
     setQuickTiaRoadModeButtonState('ONE-WAY');
 
