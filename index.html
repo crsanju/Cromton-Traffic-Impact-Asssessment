@@ -4117,7 +4117,7 @@
           <div style="background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 6px; padding: 10px;">
             <label style="color: #6a1b9a; font-weight: bold;">Diversion Rate (%)</label>
             <input type="number" id="detourDiversionRate" value="80" step="5" min="0" max="100" oninput="calculateDetourOverlay()" style="border: 1px solid #ce93d8; background: #faf0e6; width: 100%;" />
-            <div style="font-size: 0.76em; color: #8e24aa; margin-top: 4px;">Auto-set by closure mode (full road or one-way closure).</div>
+            <div style="font-size: 0.76em; color: #8e24aa; margin-top: 4px;">User-defined diversion percentage (e.g., keep local/emergency access on the primary road).</div>
           </div>
 
           <div style="background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 6px; padding: 10px;">
@@ -17492,10 +17492,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (closedDirectionWrap) closedDirectionWrap.style.display = isOneWay ? 'block' : 'none';
 
     if (diversionRateEl) {
-      diversionRateEl.value = '100';
-      diversionRateEl.disabled = true;
-      diversionRateEl.style.opacity = '0.8';
-      diversionRateEl.style.cursor = 'not-allowed';
+      const parsedPct = Number(diversionRateEl.value);
+      const clampedPct = Number.isFinite(parsedPct) ? Math.max(0, Math.min(100, parsedPct)) : 80;
+      diversionRateEl.value = String(clampedPct);
+      diversionRateEl.disabled = false;
+      diversionRateEl.style.opacity = '1';
+      diversionRateEl.style.cursor = 'text';
     }
 
     if (closedDirectionEl) {
@@ -17789,7 +17791,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const closureType = String((document.getElementById('detourClosureType') && document.getElementById('detourClosureType').value) || 'oneway').toLowerCase();
     const closedDirection = String((document.getElementById('detourClosedDirection') && document.getElementById('detourClosedDirection').value) || 'D1').toUpperCase();
-    const diversionRate = 1; // business rule requested: divert 100% of affected traffic
+    const diversionRatePct = Number((document.getElementById('detourDiversionRate') && document.getElementById('detourDiversionRate').value) || 0);
+    const diversionRate = Math.max(0, Math.min(100, Number.isFinite(diversionRatePct) ? diversionRatePct : 0)) / 100;
     const resultsPanel = document.getElementById('detourResults');
     const delayEstimateEl = document.getElementById('detourDelayEstimate');
     
