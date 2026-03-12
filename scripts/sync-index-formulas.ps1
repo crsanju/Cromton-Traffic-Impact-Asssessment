@@ -24,6 +24,12 @@ $outputContent = [regex]::Replace(
   1
 )
 
+# Ensure formula page starts in formula-mode immediately on first paint.
+$outputContent = $outputContent.Replace(
+  '<body class="app-locked input-color-mode">',
+  '<body class="app-locked input-color-mode formula-mode">'
+)
+
 $existingFormulasContent = if (Test-Path $formulasPath) {
   Get-Content -Path $formulasPath -Raw
 } else {
@@ -40,6 +46,17 @@ if ($formulaBlockMatch.Success) {
 <!-- FORMULA MODE ENFORCER START -->
 <script>
 (function () {
+  var enforceScheduled = false;
+
+  function scheduleEnforce() {
+    if (enforceScheduled) return;
+    enforceScheduled = true;
+    requestAnimationFrame(function () {
+      enforceScheduled = false;
+      enforceFormulaView();
+    });
+  }
+
   function enforceFormulaView() {
     if (document.body) {
       document.body.classList.add('formula-mode');
@@ -64,13 +81,22 @@ if ($formulaBlockMatch.Success) {
     });
   }
 
+  enforceFormulaView();
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', enforceFormulaView);
-  } else {
-    enforceFormulaView();
+    document.addEventListener('DOMContentLoaded', enforceFormulaView, { once: true });
   }
 
-  setInterval(enforceFormulaView, 300000);
+  var observer = new MutationObserver(function () {
+    scheduleEnforce();
+  });
+  observer.observe(document.documentElement || document.body, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ['class', 'style', 'open']
+  });
+
+  setInterval(enforceFormulaView, 2000);
 })();
 </script>
 <!-- FORMULA MODE ENFORCER END -->

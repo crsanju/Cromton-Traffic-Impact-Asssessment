@@ -1254,6 +1254,37 @@
 
     #macroMap { height: 320px; width: 100%; border: 2px solid #0056b3; border-radius: 8px; margin-top: 10px; }
 
+    .leaflet-control-map-fullscreen {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #0f2f32;
+      text-decoration: none;
+      font-weight: 700;
+      background: #ffffff;
+      border-bottom: 1px solid #d4d4d4;
+    }
+
+    .leaflet-control-map-fullscreen:hover {
+      background: #f3f8f9;
+      color: #1f5e63;
+    }
+
+    #macroMap:fullscreen,
+    #detourMap:fullscreen,
+    #macroMap:-webkit-full-screen,
+    #detourMap:-webkit-full-screen {
+      width: 100vw !important;
+      height: 100vh !important;
+      margin: 0 !important;
+      border: none !important;
+      border-radius: 0 !important;
+      z-index: 99999;
+    }
+
     @media (max-width: 1180px) { .grid, .kpi-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); } }
     @media (max-width: 760px) {
       body { padding: 12px; }
@@ -3007,7 +3038,7 @@
     }
   </style>
 </head>
-<body class="app-locked input-color-mode">
+<body class="app-locked input-color-mode formula-mode">
   <button id="exitPreviewBtn" onclick="exitPrintPreview()" title="Exit print preview (Esc)">
     <i class="fa-solid fa-xmark"></i> Exit Print Preview
   </button>
@@ -9178,6 +9209,93 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
   }
 
+  function getActiveFullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+  }
+
+  function requestElementFullscreen(element) {
+    if (!element) return Promise.resolve();
+    if (element.requestFullscreen) return element.requestFullscreen();
+    if (element.webkitRequestFullscreen) {
+      element.webkitRequestFullscreen();
+      return Promise.resolve();
+    }
+    if (element.msRequestFullscreen) {
+      element.msRequestFullscreen();
+      return Promise.resolve();
+    }
+    return Promise.resolve();
+  }
+
+  function exitDocumentFullscreen() {
+    if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+      return Promise.resolve();
+    }
+    if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+      return Promise.resolve();
+    }
+    return Promise.resolve();
+  }
+
+  function addMapFullscreenControl(mapInstance, mapElementId) {
+    if (!mapInstance || typeof L === 'undefined') return;
+    if (mapInstance._cromptonFullscreenControl) return;
+
+    const targetElement = document.getElementById(mapElementId);
+    if (!targetElement) return;
+
+    const FullscreenControl = L.Control.extend({
+      options: { position: 'topleft' },
+      onAdd: function () {
+        const container = L.DomUtil.create('div', 'leaflet-bar');
+        const button = L.DomUtil.create('a', 'leaflet-control-map-fullscreen', container);
+        button.href = '#';
+        button.setAttribute('role', 'button');
+        button.setAttribute('aria-label', 'Toggle map fullscreen');
+
+        const updateButtonState = () => {
+          const active = getActiveFullscreenElement();
+          const isActive = !!(active && (active === targetElement || targetElement.contains(active)));
+          button.textContent = isActive ? '✕' : '⛶';
+          button.title = isActive ? 'Exit fullscreen map' : 'Fullscreen map';
+        };
+
+        const invalidateAfterChange = () => {
+          updateButtonState();
+          setTimeout(() => {
+            try { mapInstance.invalidateSize(); } catch (_) {}
+          }, 120);
+        };
+
+        ['fullscreenchange', 'webkitfullscreenchange', 'MSFullscreenChange'].forEach((evtName) => {
+          document.addEventListener(evtName, invalidateAfterChange);
+        });
+
+        L.DomEvent.on(button, 'click', async (event) => {
+          L.DomEvent.stop(event);
+          const active = getActiveFullscreenElement();
+          const isActive = !!(active && (active === targetElement || targetElement.contains(active)));
+          try {
+            if (isActive) await exitDocumentFullscreen();
+            else await requestElementFullscreen(targetElement);
+          } catch (_) {
+            // Ignore fullscreen API permission errors to keep UX stable.
+          }
+          invalidateAfterChange();
+        });
+
+        updateButtonState();
+        return container;
+      }
+    });
+
+    mapInstance._cromptonFullscreenControl = new FullscreenControl();
+    mapInstance._cromptonFullscreenControl.addTo(mapInstance);
+  }
+
   function getFilteredMacroSiteEntries() {
     const entries = Object.entries(macroSitesData);
     if (macroSourceFilter === 'ALL') return entries;
@@ -9202,6 +9320,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       maxBounds: [[-29, 138], [-10, 154]], // Queensland bounds
       restrictBounds: true
     }).setView([-27.55, 152.95], 8);
+    addMapFullscreenControl(macroMapInstance, 'macroMap');
     addBaseLayerToMap(macroMapInstance);
     macroSiteLayer = L.layerGroup().addTo(macroMapInstance);
     console.log('[Map Init] Macro map initialized');
@@ -9222,6 +9341,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return;
     }
     detourMapInstance = L.map('detourMap').setView([-27.55, 152.95], 8);
+    addMapFullscreenControl(detourMapInstance, 'detourMap');
     addBaseLayerToMap(detourMapInstance);
     detourMapLayer = L.layerGroup().addTo(detourMapInstance);
     detourRoadPreviewLayer = L.layerGroup().addTo(detourMapInstance);
@@ -22146,6 +22266,17 @@ const LoganTrafficEngine = (function() {
 <!-- FORMULA MODE ENFORCER START -->
 <script>
 (function () {
+  var enforceScheduled = false;
+
+  function scheduleEnforce() {
+    if (enforceScheduled) return;
+    enforceScheduled = true;
+    requestAnimationFrame(function () {
+      enforceScheduled = false;
+      enforceFormulaView();
+    });
+  }
+
   function enforceFormulaView() {
     if (document.body) {
       document.body.classList.add('formula-mode');
@@ -22180,14 +22311,25 @@ const LoganTrafficEngine = (function() {
     });
   }
 
-  // Body already has formula-mode class from the start; run enforcer now and also on DOMContentLoaded
-  // to catch any dynamically added elements (e.g. formulaTraceSection reordering)
+  // Run immediately, then keep formula mode pinned during async UI updates.
   enforceFormulaView();
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', enforceFormulaView);
+    document.addEventListener('DOMContentLoaded', enforceFormulaView, { once: true });
   }
 
-  setInterval(enforceFormulaView, 300000);
+  // Watch for dynamic DOM updates that may hide formulas again.
+  var observer = new MutationObserver(function () {
+    scheduleEnforce();
+  });
+  observer.observe(document.documentElement || document.body, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ['class', 'style', 'open']
+  });
+
+  // Lightweight periodic fallback in case observers miss a style mutation path.
+  setInterval(enforceFormulaView, 2000);
 })();
 </script>
 <!-- FORMULA MODE ENFORCER END -->
