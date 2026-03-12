@@ -279,6 +279,16 @@ def editor_page(draft_id: str) -> str:
     summary_text = _safe_text(payload.get("auto_summary"), "[Insert executive summary details here...]")
     logo_data_url = _load_logo_data_url()
 
+    variant_raw = _safe_text(payload.get("report_variant"), "").lower()
+    title_hint = _safe_text(draft.get("title", "")).lower()
+    if variant_raw == "short" or "short report" in title_hint:
+      report_mode_label = "Python Short Report"
+    elif variant_raw == "detailed" or "detailed report" in title_hint:
+      report_mode_label = "Detailed Python Report"
+    else:
+      report_mode_label = "Python Report"
+    report_mode_label_escaped = _escape(report_mode_label)
+
     project_name = _escape(project.get("name", title))
     location = _escape(project.get("location", "Location Not Specified"))
     report_date = _escape(project.get("report_date", datetime.now().strftime("%B %d, %Y")))
@@ -312,7 +322,7 @@ def editor_page(draft_id: str) -> str:
 <head>
   <meta charset=\"UTF-8\" />
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />
-  <title>{project_name} - Engineering Report</title>
+  <title>{project_name} - {report_mode_label_escaped}</title>
   <style>
     /* Professional Engineering Document Variables */
     :root {{
@@ -438,12 +448,13 @@ def editor_page(draft_id: str) -> str:
     <div class=\"cover-page\">
       {f'<img class="cover-logo" src="{logo_data_url}" alt="Company Logo" />' if logo_data_url else ''}
       <h1 contenteditable=\"true\">{project_name}</h1>
-      <div class=\"cover-subtitle\" contenteditable=\"true\">Traffic Impact Assessment Report</div>
+        <div class="cover-subtitle" contenteditable="true">Traffic Impact Assessment Report - {report_mode_label_escaped}</div>
 
       <div class=\"cover-details\">
         <table>
           <tr><th contenteditable=\"true\">Location:</th><td contenteditable=\"true\">{location}</td></tr>
           <tr><th contenteditable=\"true\">Date Prepared:</th><td contenteditable=\"true\">{report_date}</td></tr>
+            <tr><th contenteditable="true">Report Mode:</th><td contenteditable="true">{report_mode_label_escaped}</td></tr>
           <tr><th contenteditable=\"true\">Prepared By:</th><td contenteditable=\"true\">{prepared_by}</td></tr>
           <tr><th contenteditable=\"true\">Draft Reference:</th><td contenteditable=\"true\" style=\"font-family: monospace; font-size: 0.8rem;\">{escape(draft_id)}</td></tr>
         </table>

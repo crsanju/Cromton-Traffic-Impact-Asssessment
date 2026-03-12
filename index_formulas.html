@@ -4793,8 +4793,8 @@
     <div class="report-actions" style="display:flex; flex-wrap:nowrap; gap:6px; align-items:center; overflow-x:auto;">
       <button class="print-btn" onclick="toggleReportMode(true, 'detailed')" style="background: linear-gradient(135deg, #6a1b9a 0%, #4a148c 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">📝 Detailed Report</button>
       <button class="print-btn" onclick="toggleReportMode(true, 'short')" style="background: linear-gradient(135deg, #8e24aa 0%, #6a1b9a 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">📄 Short Report</button>
-      <button class="print-btn" onclick="openPythonEditableReport()" style="background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">🐍 Python Report</button>
-      <button class="print-btn" onclick="downloadPythonReportJson()" style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">⬇ Export JSON</button>
+      <button class="print-btn" onclick="openPythonEditableReport('detailed')" style="background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">🐍 Detailed Python Report</button>
+      <button class="print-btn" onclick="openPythonEditableReport('short')" style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">🐍 Python Short Report</button>
     </div>
   </div>
 
@@ -5849,7 +5849,7 @@
       'Confirm the import-check command prints <code>import ok</code>.',
       'If you see "Could not import module report_service", re-run the download/check commands and confirm the file name is exactly <code>report_service.py</code>.',
       'Keep that Command Prompt window running (do not close it).',
-      'Return to this app (GitHub link) and click "Python Report" again.'
+      'Return to this app (GitHub link) and click "Detailed Python Report" or "Python Short Report" again.'
     ];
 
     const guide = [
@@ -5874,7 +5874,7 @@
       'python -c "import os, pathlib; p=pathlib.Path(\'report_service.py\'); print(\'cwd=\', os.getcwd()); print(\'exists=\', p.exists()); print(\'size=\', p.stat().st_size if p.exists() else 0)"',
       'python -c "import report_service; print(\'import ok\')"',
       'python -m uvicorn --app-dir . report_service:app --host 127.0.0.1 --port 8060',
-      '# Then click "Python Report" again'
+      '# Then click "Detailed Python Report" or "Python Short Report" again'
     ].join('\n');
 
     const modal = document.getElementById('pythonSetupModal');
@@ -5908,9 +5908,33 @@
     }
   }
 
-  async function openPythonEditableReport() {
+  async function buildShortEditableReportPayload() {
+    const body = document.body;
+    if (!body) return buildEditableReportPayload();
+
+    const hadShortMode = body.classList.contains('report-mode-short');
+    if (!hadShortMode) body.classList.add('report-mode-short');
+
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
     const payload = buildEditableReportPayload();
-    const title = (payload && payload.project && payload.project.name) || 'TIA Report';
+    payload.report_variant = 'short';
+
+    if (!hadShortMode) body.classList.remove('report-mode-short');
+    return payload;
+  }
+
+  async function openPythonEditableReport(mode = 'detailed') {
+    const normalizedMode = String(mode || 'detailed').toLowerCase() === 'short' ? 'short' : 'detailed';
+    const payload = normalizedMode === 'short'
+      ? await buildShortEditableReportPayload()
+      : buildEditableReportPayload();
+
+    payload.report_variant = normalizedMode;
+    const baseTitle = (payload && payload.project && payload.project.name) || 'TIA Report';
+    const title = normalizedMode === 'short'
+      ? `${baseTitle} - Short Report`
+      : `${baseTitle} - Detailed Report`;
 
     const serviceAvailable = await isPythonReportServiceAvailable();
     if (!serviceAvailable) {
@@ -5946,46 +5970,9 @@
     window.open(editorUrl, '_blank', 'noopener');
   }
 
-  function downloadPythonReportJson() {
-    const payload = buildEditableReportPayload();
-    const reportData = {
-      siteId: payload?.raw_js_results?.site_id || 'N/A',
-      baseYear: payload?.raw_js_results?.base_year || 'N/A',
-      vadt: payload?.raw_js_results?.vadt ?? payload?.inputs?.aadt ?? 0,
-      growthRate: payload?.raw_js_results?.growth_rate_percent ?? payload?.inputs?.growth_rate_percent ?? 0,
-      worstVcr: payload?.raw_js_results?.worst_vcr ?? payload?.results?.worst_vcr ?? null,
-      d1Queue: payload?.raw_js_results?.d1_queue_peak_m ?? null,
-      d2Queue: payload?.raw_js_results?.d2_queue_peak_m ?? null,
-      queuePeak: payload?.raw_js_results?.queue_peak_m ?? payload?.results?.queue_peak_m ?? null,
-      chartImage: payload?.chart_image || '',
-      chartImageCanvasId: payload?.chart_image_canvas_id || '',
-      chartImageDataUrl: payload?.chart_image_data_url || '',
-      inputs: payload?.inputs || {},
-      results: payload?.results || {},
-      raw_js_results: payload?.raw_js_results || {},
-      tables: payload?.tables || [],
-      charts: payload?.charts || [],
-      notes: payload?.notes || [],
-      exportedAt: new Date().toISOString()
-    };
-
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    const siteLabel = String(reportData.siteId || 'site').replace(/[^a-z0-9_-]+/gi, '_');
-    link.href = url;
-    link.download = `traffic_report_data_${siteLabel}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    if (typeof setAppStatusBanner === 'function') {
-      setAppStatusBanner('<strong>Report JSON exported successfully.</strong>', 'info');
-      setTimeout(() => {
-        if (typeof clearAppStatusBanner === 'function') clearAppStatusBanner();
-      }, 2200);
-    }
+  // Backward-compatible alias: old JSON export action now opens the short Python report.
+  async function downloadPythonReportJson() {
+    await openPythonEditableReport('short');
   }
 
   function exportReportToWord() {
