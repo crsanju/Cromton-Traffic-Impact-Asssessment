@@ -65,12 +65,15 @@ def _render_key_value_table(title: str, data: dict[str, Any]) -> str:
     for key, val in data.items():
         label = _escape(str(key).replace("_", " ").title())
         value = _escape(val)
-      rows.append(f"<tr><th contenteditable=\"true\">{label}</th><td contenteditable=\"true\">{value}</td></tr>")
+        rows.append(
+            f"<tr><th class=\"editable-text editable-cell\" contenteditable=\"true\">{label}</th>"
+            f"<td class=\"editable-text editable-cell\" contenteditable=\"true\">{value}</td></tr>"
+        )
 
     return (
-      f"<div class=\"report-section report-block avoid-break\">"
-      f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Table</button></div>"
-      f"<h3 contenteditable=\"true\">{_escape(title)}</h3>"
+        f"<div class=\"report-section report-block avoid-break\">"
+        f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Table</button></div>"
+        f"<h3 class=\"editable-text\" contenteditable=\"true\">{_escape(title)}</h3>"
         f"<table class=\"kv-table\"><tbody>{''.join(rows)}</tbody></table>"
         f"</div>"
     )
@@ -78,8 +81,8 @@ def _render_key_value_table(title: str, data: dict[str, Any]) -> str:
 
 def _render_notes(notes: Any) -> str:
     if not isinstance(notes, list) or not notes:
-        return "<li>No supplementary notes provided.</li>"
-    return "".join(f"<li>{_escape(item)}</li>" for item in notes)
+    return "<li class=\"editable-text\" contenteditable=\"true\">No supplementary notes provided.</li>"
+  return "".join(f"<li class=\"editable-text\" contenteditable=\"true\">{_escape(item)}</li>" for item in notes)
 
 
 def _render_data_table(table_data: Any) -> str:
@@ -188,7 +191,7 @@ def _render_data_table(table_data: Any) -> str:
     head_html = ""
     normalized_columns = _normalize_columns(columns, rows, title)
     if normalized_columns:
-      head_html = "<thead><tr>" + "".join(f"<th contenteditable=\"true\">{_escape(col)}</th>" for col in normalized_columns) + "</tr></thead>"
+      head_html = "<thead><tr>" + "".join(f"<th class=\"editable-text editable-cell\" contenteditable=\"true\">{_escape(col)}</th>" for col in normalized_columns) + "</tr></thead>"
 
     body_html_parts: list[str] = []
     cleaned_rows: list[list[str]] = []
@@ -199,7 +202,7 @@ def _render_data_table(table_data: Any) -> str:
             continue
         cleaned_row = [_clean_cell_value(cell, idx == 0) for idx, cell in enumerate(row)]
         cleaned_rows.append(cleaned_row)
-        rendered_cells = [f"<td contenteditable=\"true\">{_escape(cell)}</td>" for cell in cleaned_row]
+        rendered_cells = [f"<td class=\"editable-text editable-cell\" contenteditable=\"true\">{_escape(cell)}</td>" for cell in cleaned_row]
         body_html_parts.append(f"<tr>{''.join(rendered_cells)}</tr>")
 
     body_html = "<tbody>" + "".join(body_html_parts) + "</tbody>"
@@ -235,9 +238,9 @@ def _render_data_table(table_data: Any) -> str:
       )
 
     return (
-      f"<div class=\"report-section report-block avoid-break\">"
-      f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Table</button></div>"
-      f"<h4 contenteditable=\"true\">{title}</h4>"
+        f"<div class=\"report-section report-block avoid-break\">"
+        f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Table</button></div>"
+        f"<h4 class=\"editable-text\" contenteditable=\"true\">{title}</h4>"
         f"<div class=\"editable table-note table-note-top\" contenteditable=\"true\"><p>{_escape(informative_default)}</p></div>"
         f"<table>{head_html}{body_html}</table>"
         f"<div class=\"editable table-note table-note-bottom\" contenteditable=\"true\"><p>{_escape(summary_default)}</p></div>"
@@ -245,46 +248,46 @@ def _render_data_table(table_data: Any) -> str:
     )
 
 
-def _render_charts(payload: dict[str, Any]) -> str:
-  raw_charts = payload.get("charts", []) if isinstance(payload.get("charts"), list) else []
-  chart_items: list[dict[str, str]] = []
+def _render_chart_blocks(payload: dict[str, Any]) -> str:
+    raw_charts = payload.get("charts", []) if isinstance(payload.get("charts"), list) else []
+    chart_items: list[dict[str, str]] = []
 
-  for idx, chart in enumerate(raw_charts):
-    if not isinstance(chart, dict):
-      continue
-    image_data_url = _safe_text(chart.get("image_data_url"), "")
-    if not image_data_url.startswith("data:image/"):
-      continue
-    title = _safe_text(chart.get("title"), f"Chart {idx + 1}")
-    chart_items.append({"title": title, "image": image_data_url})
+    for idx, chart in enumerate(raw_charts):
+        if not isinstance(chart, dict):
+            continue
+        image_data_url = _safe_text(chart.get("image_data_url"), "")
+        if not image_data_url.startswith("data:image/"):
+            continue
+        title = _safe_text(chart.get("title"), f"Chart {idx + 1}")
+        chart_items.append({"title": title, "image": image_data_url})
 
-  if not chart_items:
-    fallback = _safe_text(payload.get("chart_image_data_url"), "")
-    if fallback.startswith("data:image/"):
-      chart_items.append({"title": "Primary Chart", "image": fallback})
+    if not chart_items:
+        fallback = _safe_text(payload.get("chart_image_data_url"), "")
+        if fallback.startswith("data:image/"):
+            chart_items.append({"title": "Primary Chart", "image": fallback})
 
-  if not chart_items:
-    return (
-      "<div class=\"report-section avoid-break\">"
-      "<div class=\"editable\" contenteditable=\"true\"><p>No chart snapshots were available for this draft. "
-      "You can add commentary here or remove this section.</p></div>"
-      "</div>"
-    )
+    if not chart_items:
+        return (
+            "<div class=\"report-section avoid-break\">"
+            "<div class=\"editable\" contenteditable=\"true\"><p>No chart snapshots were available for this draft. "
+            "You can add commentary here or remove this section.</p></div>"
+            "</div>"
+        )
 
-  blocks: list[str] = []
-  for idx, item in enumerate(chart_items):
-    blocks.append(
-      "<figure class=\"report-section report-block chart-block avoid-break\">"
-      "<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Chart</button></div>"
-      f"<h4 class=\"chart-title\" contenteditable=\"true\">{_escape(item['title'], f'Chart {idx + 1}')}</h4>"
-      f"<img class=\"chart-img\" src=\"{item['image']}\" alt=\"{_escape(item['title'], f'Chart {idx + 1}')}\" />"
-      "<figcaption class=\"editable chart-caption\" contenteditable=\"true\">"
-      "Describe what this chart shows, assumptions, and interpretation for stakeholders."
-      "</figcaption>"
-      "</figure>"
-    )
+    blocks: list[str] = []
+    for idx, item in enumerate(chart_items):
+        blocks.append(
+            "<figure class=\"report-section report-block chart-block avoid-break\">"
+            "<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Chart</button></div>"
+            f"<h4 class=\"chart-title editable-text\" contenteditable=\"true\">{_escape(item['title'], f'Chart {idx + 1}')}</h4>"
+            f"<img class=\"chart-img\" src=\"{item['image']}\" alt=\"{_escape(item['title'], f'Chart {idx + 1}')}\" />"
+            "<figcaption class=\"editable chart-caption editable-text\" contenteditable=\"true\">"
+            "Describe what this chart shows, assumptions, and interpretation for stakeholders."
+            "</figcaption>"
+            "</figure>"
+        )
 
-  return "".join(blocks)
+    return "".join(blocks)
 
 
 @app.get("/health")
@@ -343,7 +346,8 @@ def editor_page(draft_id: str) -> str:
 
     prioritized_tables = sorted(tables, key=_table_priority)
     table_sections = "".join(_render_data_table(t) for t in prioritized_tables)
-    chart_sections = _render_charts(payload)
+    chart_sections = _render_chart_blocks(payload)
+    payload_json = escape(json.dumps(payload))
 
     return f"""<!DOCTYPE html>
 <html lang=\"en\">
@@ -425,6 +429,9 @@ def editor_page(draft_id: str) -> str:
     .mini-btn:hover {{ filter: brightness(1.06); }}
     .editable {{ padding: 10px; border: 1px dashed var(--border); background: #fafafa; min-height: 80px; transition: border 0.3s; }}
     .editable:focus {{ border: 1px solid var(--accent); outline: none; background: #fff; }}
+    .editable-text, [contenteditable="true"] {{ cursor: text; user-select: text; -webkit-user-modify: read-write; }}
+    th[contenteditable="true"], td[contenteditable="true"] {{ min-width: 48px; background-clip: padding-box; }}
+    th[contenteditable="true"]:focus, td[contenteditable="true"]:focus, .editable-text:focus {{ outline: 2px solid rgba(31, 94, 99, 0.22); outline-offset: -2px; background: #fffef7; }}
     .table-note {{ min-height: 48px; margin: 8px 0; }}
     .table-note p {{ margin: 0; text-align: left; }}
 
@@ -522,7 +529,7 @@ def editor_page(draft_id: str) -> str:
     <ul>{notes_html}</ul>
 
     <h2 contenteditable=\"true\">6. Charts</h2>
-    {chart_sections}
+    <div id=\"chartSectionContent\">{chart_sections}</div>
 
     <h2 contenteditable=\"true\">7. Professional Commentary & Conclusion</h2>
     <div class=\"editable\" contenteditable=\"true\">
@@ -531,7 +538,79 @@ def editor_page(draft_id: str) -> str:
 
   </main>
 
+  <script id=\"reportPayloadData\" type=\"application/json\">{payload_json}</script>
   <script>
+    function getEmbeddedReportPayload() {{
+      const el = document.getElementById('reportPayloadData');
+      if (!el) return null;
+      try {{
+        return JSON.parse(el.textContent || '{{}}');
+      }} catch (_err) {{
+        return null;
+      }}
+    }}
+
+    function buildChartMarkup(title, imageDataUrl, index) {{
+      const safeTitle = String(title || `Chart ${index + 1}`);
+      const figure = document.createElement('figure');
+      figure.className = 'report-section report-block chart-block avoid-break';
+      figure.innerHTML =
+        '<div class="section-controls no-print"><button type="button" class="mini-btn" onclick="removeReportBlock(this)">Remove Chart</button></div>' +
+        '<h4 class="chart-title editable-text" contenteditable="true"></h4>' +
+        '<img class="chart-img" alt="" />' +
+        '<figcaption class="editable chart-caption editable-text" contenteditable="true">Describe what this chart shows, assumptions, and interpretation for stakeholders.</figcaption>';
+      const titleEl = figure.querySelector('h4');
+      const imgEl = figure.querySelector('img');
+      if (titleEl) titleEl.textContent = safeTitle;
+      if (imgEl) {{
+        imgEl.src = imageDataUrl;
+        imgEl.alt = safeTitle;
+      }}
+      return figure;
+    }}
+
+    function hydrateChartsFromPayload() {{
+      const chartWrap = document.getElementById('chartSectionContent');
+      if (!chartWrap) return;
+
+      const existingImages = chartWrap.querySelectorAll('img.chart-img');
+      if (existingImages.length > 0) return;
+
+      const payload = getEmbeddedReportPayload();
+      if (!payload || typeof payload !== 'object') return;
+
+      const charts = Array.isArray(payload.charts)
+        ? payload.charts.filter((item) => item && String(item.image_data_url || '').startsWith('data:image/'))
+        : [];
+      const fallback = String(payload.chart_image_data_url || '');
+
+      if (charts.length === 0 && !fallback.startsWith('data:image/')) return;
+
+      chartWrap.innerHTML = '';
+      if (charts.length > 0) {{
+        charts.forEach((chart, index) => {{
+          chartWrap.appendChild(buildChartMarkup(chart.title || `Chart ${index + 1}`, chart.image_data_url, index));
+        }});
+      }} else {{
+        chartWrap.appendChild(buildChartMarkup('Primary Chart', fallback, 0));
+      }}
+    }}
+
+    function enableStrongEditability() {{
+      const editableSelectors = [
+        'main h1', 'main h2:not(.toc-title)', 'main h3', 'main h4',
+        'main p', 'main li', 'main span', 'main div.kpi-title', 'main div.kpi-value',
+        'main th', 'main td', 'main figcaption', 'main .cover-subtitle'
+      ];
+
+      document.querySelectorAll(editableSelectors.join(',')).forEach((el) => {{
+        if (!el || el.closest('.section-controls') || el.closest('.toolbar')) return;
+        if (el.tagName && el.tagName.toLowerCase() === 'img') return;
+        el.setAttribute('contenteditable', 'true');
+        el.classList.add('editable-text');
+      }});
+    }}
+
     function refreshToc() {{
       const tocContent = document.getElementById("toc-content");
       const headers = document.querySelectorAll("main h2:not(.toc-title), main h3, main h4.chart-title");
@@ -562,8 +641,8 @@ def editor_page(draft_id: str) -> str:
     }}
 
     document.addEventListener("DOMContentLoaded", function() {{
-      document.querySelectorAll('main ul li').forEach((el) => el.setAttribute('contenteditable', 'true'));
-      document.querySelectorAll('main table th, main table td').forEach((el) => el.setAttribute('contenteditable', 'true'));
+      hydrateChartsFromPayload();
+      enableStrongEditability();
       refreshToc();
     }});
   </script>
