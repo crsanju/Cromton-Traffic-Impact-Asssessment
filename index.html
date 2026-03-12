@@ -5569,6 +5569,13 @@
       return String(text || '').replace(/\s+/g, ' ').trim();
     }
 
+    function getCellPlainText(cellEl) {
+      if (!cellEl) return '';
+      const clone = cellEl.cloneNode(true);
+      clone.querySelectorAll('.formula-inline, [data-formula-for], .no-print').forEach((node) => node.remove());
+      return normalizeCellText(clone.textContent || '');
+    }
+
     function hasNumericValue(text) {
       return /\d/.test(String(text || ''));
     }
@@ -5607,14 +5614,14 @@
       const bodyRows = Array.from(tableEl.querySelectorAll('tbody tr'));
       const fallbackRows = bodyRows.length ? bodyRows : Array.from(tableEl.querySelectorAll('tr'));
 
-      const columns = headerCells.map((cell) => normalizeCellText(cell.textContent));
+      const columns = headerCells.map((cell) => getCellPlainText(cell));
       const rows = [];
 
       fallbackRows.forEach((rowEl) => {
         const cellEls = Array.from(rowEl.querySelectorAll('th, td'));
         if (!cellEls.length) return;
 
-        const row = cellEls.map((cellEl) => normalizeCellText(cellEl.textContent));
+        const row = cellEls.map((cellEl) => getCellPlainText(cellEl));
         const joined = row.join(' | ');
         const hasNumber = row.some((cell) => hasNumericValue(cell));
 
