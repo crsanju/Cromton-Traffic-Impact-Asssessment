@@ -11393,8 +11393,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           }
 
           const userSearchString = location.road || searchInput;
-          const matchResult = findBestReferencePoints(userSearchString, Number(location.lat), Number(location.lon), macroSitesData);
+          const rawMatchResult = findBestReferencePoints(userSearchString, Number(location.lat), Number(location.lon), macroSitesData);
+          const accessAwareResult = await applySmartReferenceConnectivityFilter(rawMatchResult, Number(location.lat), Number(location.lon), userSearchString);
+          const matchResult = accessAwareResult.matchResult;
+          const excludedRefs = Array.isArray(accessAwareResult.excludedRefs) ? accessAwareResult.excludedRefs : [];
+          const exclusionSummary = String(accessAwareResult.summary || '').trim();
           const radiusLabel = Number.isFinite(Number(matchResult.usedRadiusKm)) ? Number(matchResult.usedRadiusKm).toFixed(1) : '1.5';
+
+          if (excludedRefs.length && exclusionSummary && errEl) {
+            errEl.innerHTML = `<strong>Note:</strong> ${exclusionSummary}<br><span style="font-size:0.9em;">Alternative reachable references are listed below.</span>`;
+            errEl.style.display = 'block';
+          }
 
           if (matchResult.type === 'NO_MATCH') {
             if (errEl) {
@@ -11415,11 +11424,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
               displayQuickTiaExactMatch(selected[0].id, selected[0].data);
             } else {
               const formatted = selected.map(s => [s.id, s.data, Number(s.distanceMeters) || Number(s.dist) || 0, 'Nearby']);
-              displayQuickTiaMultipleRefs(userSearchString, formatted, location.lat, location.lon, true);
+              displayQuickTiaMultipleRefs(userSearchString, formatted, location.lat, location.lon, true, { excludedRefs, exclusionSummary });
             }
           } else if (matchResult.type === 'SPATIAL_SNAP' && typeof displayQuickTiaMultipleRefs === 'function') {
             const nearest = matchResult.nearbyMatches.slice(0, 5).map(s => [s.id, s.data, Number(s.distanceMeters) || Number(s.dist) || 0, 'Nearby']);
-            displayQuickTiaMultipleRefs(searchInput, nearest, location.lat, location.lon, false);
+            displayQuickTiaMultipleRefs(searchInput, nearest, location.lat, location.lon, false, { excludedRefs, exclusionSummary });
           } else {
             const nearest = sites[0];
             const d1 = Number(nearest.data.d1_vadt) || 0;
@@ -20175,6 +20184,214 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     };
   }
 
+  function parseNumericLayerTag(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function isControlledAccessHighway(tags) {
+    const highway = String(tags && tags.highway ? tags.highway : '').toLowerCase();
+    const motorroad = String(tags && tags.motorroad ? tags.motorroad : '').toLowerCase();
+    return /^(motorway|motorway_link|trunk|trunk_link)$/.test(highway) || motorroad === 'yes';
+  }
+
+  function isElevatedOrTunnelRoad(tags) {
+    const bridge = String(tags && tags.bridge ? tags.bridge : '').toLowerCase();
+    const tunnel = String(tags && tags.tunnel ? tags.tunnel : '').toLowerCase();
+    const embankment = String(tags && tags.embankment ? tags.embankment : '').toLowerCase();
+    const layer = parseNumericLayerTag(tags && tags.layer);
+    const elevatedBridge = bridge && bridge !== 'no';
+    const underground = tunnel && tunnel !== 'no';
+    const elevatedLayer = layer >= 1;
+    const depressedLayer = layer <= -1;
+    return elevatedBridge || underground || elevatedLayer || depressedLayer || embankment === 'yes';
+  }
+
+  function isLikelyLocalRoadClass(highwayTag) {
+    const h = String(highwayTag || '').toLowerCase();
+    if (!h) return false;
+    return /^(residential|living_street|tertiary|tertiary_link|secondary|secondary_link|primary|primary_link|unclassified|service)$/.test(h);
+  }
+
+  async function fetchOsmRoadElementsNear(lat, lon, radiusMeters = 240) {
+    const safeLat = Number(lat);
+    const safeLon = Number(lon);
+    const safeRadius = Math.max(60, Math.round(Number(radiusMeters) || 240));
+    if (!Number.isFinite(safeLat) || !Number.isFinite(safeLon)) return [];
+
+    const cache = window.__osmRoadElementsCache || (window.__osmRoadElementsCache = new Map());
+    const cacheKey = `${safeLat.toFixed(5)},${safeLon.toFixed(5)}:${safeRadius}`;
+    if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+    const query = `[out:json][timeout:12];way(around:${safeRadius},${safeLat},${safeLon})[highway];out tags center 120;`;
+    try {
+      const data = await fetchOverpassJson(query, {
+        cacheKey: `roadcontext:${cacheKey}`,
+        ttlMs: OVERPASS_CACHE_TTL_MS
+      });
+      const elements = Array.isArray(data && data.elements) ? data.elements : [];
+      cache.set(cacheKey, elements);
+      return elements;
+    } catch (_err) {
+      return [];
+    }
+  }
+
+  function pickBestRoadElementForContext(elements, preferredRoadName, originLat, originLon) {
+    const pref = String(preferredRoadName || '').trim();
+    let best = null;
+    let bestScore = -1;
+
+    (Array.isArray(elements) ? elements : []).forEach((el) => {
+      const tags = el && el.tags ? el.tags : {};
+      const roadName = String(tags.name || '').trim();
+      const centerLat = Number(el && el.center && el.center.lat);
+      const centerLon = Number(el && el.center && el.center.lon);
+      const hasCenter = Number.isFinite(centerLat) && Number.isFinite(centerLon);
+      const dist = hasCenter && Number.isFinite(Number(originLat)) && Number.isFinite(Number(originLon))
+        ? haversineDistance(Number(originLat), Number(originLon), centerLat, centerLon)
+        : 9999;
+      const sameRoad = pref && roadName ? isSameRoad(pref, roadName) : false;
+      const nameScore = sameRoad ? 2.2 : (roadName ? 0.6 : 0);
+      const proximityScore = Math.max(0, 1 - (Math.min(dist, 500) / 500));
+      const score = nameScore + proximityScore;
+      if (score > bestScore) {
+        bestScore = score;
+        best = el;
+      }
+    });
+
+    return best;
+  }
+
+  async function classifyReferenceConnectivityToAddress(userLat, userLon, userRoadName, candidate) {
+    const result = {
+      exclude: false,
+      reason: '',
+      isElevatedOrTunnel: false,
+      isControlledAccess: false
+    };
+
+    const cLat = Number(candidate && (candidate.lat ?? candidate.latitude));
+    const cLon = Number(candidate && (candidate.lon ?? candidate.longitude));
+    if (!Number.isFinite(cLat) || !Number.isFinite(cLon)) return result;
+
+    const candidateRoad = String(candidate && (candidate.roadName || candidate.road_name || candidate.Description || candidate.description) || '').trim();
+    const [targetEls, candidateEls] = await Promise.all([
+      fetchOsmRoadElementsNear(userLat, userLon, 260),
+      fetchOsmRoadElementsNear(cLat, cLon, 180)
+    ]);
+
+    const targetRoadSet = new Set();
+    let hasLocalRoadNearTarget = false;
+    (Array.isArray(targetEls) ? targetEls : []).forEach((el) => {
+      const tags = el && el.tags ? el.tags : {};
+      const rName = String(tags.name || '').trim();
+      if (rName) targetRoadSet.add(standardizeRoadName(rName));
+      if (isLikelyLocalRoadClass(tags.highway)) hasLocalRoadNearTarget = true;
+    });
+
+    const best = pickBestRoadElementForContext(candidateEls, candidateRoad || userRoadName, cLat, cLon);
+    if (!best || !best.tags) return result;
+
+    const tags = best.tags;
+    const matchedRoadName = String(tags.name || candidateRoad || '').trim();
+    const matchedRoadStd = standardizeRoadName(matchedRoadName);
+    const roadTouchesTargetArea = !!(matchedRoadStd && targetRoadSet.has(matchedRoadStd));
+    const sameAsSearchRoad = !!(userRoadName && matchedRoadName && isSameRoad(userRoadName, matchedRoadName));
+
+    result.isElevatedOrTunnel = isElevatedOrTunnelRoad(tags);
+    result.isControlledAccess = isControlledAccessHighway(tags);
+
+    const noLikelyIngress = result.isElevatedOrTunnel
+      && result.isControlledAccess
+      && hasLocalRoadNearTarget
+      && !roadTouchesTargetArea
+      && !sameAsSearchRoad;
+
+    if (noLikelyIngress) {
+      const structureHint = String(tags.tunnel || '').toLowerCase() === 'yes'
+        ? 'tunnel motorway segment'
+        : 'elevated motorway segment';
+      result.exclude = true;
+      result.reason = `${matchedRoadName || 'This reference'} appears to be on a ${structureHint} without clear local ingress to the searched address roads.`;
+    }
+
+    return result;
+  }
+
+  async function applySmartReferenceConnectivityFilter(matchResult, userLat, userLon, userRoadName) {
+    const base = matchResult || {};
+    const exact = Array.isArray(base.exactMatches) ? base.exactMatches : [];
+    const nearby = Array.isArray(base.nearbyMatches) ? base.nearbyMatches : [];
+    const pool = [...exact, ...nearby].slice(0, 12);
+
+    if (!pool.length) {
+      return {
+        matchResult: base,
+        excludedRefs: [],
+        summary: ''
+      };
+    }
+
+    const decisions = await Promise.all(pool.map(async (entry) => {
+      const access = await classifyReferenceConnectivityToAddress(userLat, userLon, userRoadName, entry);
+      const key = String(entry && entry.id ? entry.id : '');
+      return {
+        key,
+        entry,
+        access
+      };
+    }));
+
+    const excludedMap = new Map();
+    const excludedRefs = [];
+    decisions.forEach((d) => {
+      if (!d || !d.access || !d.access.exclude) return;
+      if (!d.key) return;
+      excludedMap.set(d.key, d.access);
+      excludedRefs.push({
+        siteId: d.entry.id,
+        road: String(d.entry.roadName || d.entry.Description || d.entry.description || ''),
+        distanceMeters: Number(d.entry.distanceMeters) || Math.round((Number(d.entry.distanceKm) || 0) * 1000),
+        reason: String(d.access.reason || 'Reference excluded by elevated/tunnel accessibility logic.')
+      });
+    });
+
+    const filterEntries = (list) => list.filter((entry) => {
+      const key = String(entry && entry.id ? entry.id : '');
+      if (!key) return true;
+      return !excludedMap.has(key);
+    });
+
+    const exactFiltered = filterEntries(exact);
+    const nearbyFiltered = filterEntries(nearby);
+
+    let type = base.type;
+    if (exactFiltered.length) type = 'EXACT';
+    else if (nearbyFiltered.length) type = 'SPATIAL_SNAP';
+    else type = 'NO_MATCH';
+
+    const point = exactFiltered[0] || nearbyFiltered[0] || null;
+    const payload = point ? buildSafeSimulationPayload(point) : null;
+    const summary = excludedRefs.length
+      ? `${excludedRefs.length} elevated/tunnel controlled-access reference point(s) excluded due to low likelihood of traffic ingress to the searched address.`
+      : '';
+
+    return {
+      matchResult: {
+        ...base,
+        type,
+        point,
+        payload,
+        exactMatches: exactFiltered,
+        nearbyMatches: nearbyFiltered
+      },
+      excludedRefs,
+      summary
+    };
+  }
+
   function getNearbyRoadRadiusMeters() {
     const sliderEl = document.getElementById('quickTiaNearbyRoadsRadius');
     const radiusMeters = Number(sliderEl && sliderEl.value ? sliderEl.value : 200);
@@ -20347,12 +20564,24 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     showQuickTiaRoadModeConfirmation(detectionForUi, isOneWayConfirmed ? 'ONE-WAY' : 'TWO-WAY');
 
     const userSearchString = targetRoad || searchInput;
-    const matchResult = findBestReferencePoints(userSearchString, Number(location.lat), Number(location.lon), macroSitesData);
+    const rawMatchResult = findBestReferencePoints(userSearchString, Number(location.lat), Number(location.lon), macroSitesData);
+    const accessAwareResult = await applySmartReferenceConnectivityFilter(rawMatchResult, Number(location.lat), Number(location.lon), userSearchString);
+    const matchResult = accessAwareResult.matchResult;
+    const excludedRefs = Array.isArray(accessAwareResult.excludedRefs) ? accessAwareResult.excludedRefs : [];
+    const exclusionSummary = String(accessAwareResult.summary || '').trim();
 
     const radiusLabel = Number.isFinite(Number(matchResult.usedRadiusKm)) ? Number(matchResult.usedRadiusKm).toFixed(1) : '1.5';
 
+    if (excludedRefs.length && exclusionSummary) {
+      document.getElementById('quickTiaError').innerHTML = `<strong>Note:</strong> ${exclusionSummary}<br><span style="font-size:0.9em;">Alternative reachable references are listed below.</span>`;
+      document.getElementById('quickTiaError').style.display = 'block';
+    }
+
     if (matchResult.type === 'NO_MATCH') {
-      document.getElementById('quickTiaError').innerHTML = `<strong>⚠ Address found, but no nearby counters within ${radiusLabel}km.</strong><br><span style="font-size:0.9em;">Try a closer road segment or broaden the address context.</span>`;
+      const extraLine = excludedRefs.length
+        ? '<br><span style="font-size:0.9em;">Nearby references were detected but excluded as elevated/tunnel controlled-access links with low local ingress relevance.</span>'
+        : '';
+      document.getElementById('quickTiaError').innerHTML = `<strong>⚠ Address found, but no nearby counters within ${radiusLabel}km.</strong><br><span style="font-size:0.9em;">Try a closer road segment or broaden the address context.</span>${extraLine}`;
       document.getElementById('quickTiaError').style.display = 'block';
     } else {
       const simulationData = LoganTrafficEngine.executeSimulation(matchResult.payload);
@@ -20367,13 +20596,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         showNotification(`✓ Exact data found on ${selected[0].roadName || selected[0].Description || 'matched road'}!`);
       } else {
         const formattedArray = selected.map((s) => [s.id, s.data, Number(s.distanceMeters) || Number(s.dist) || 0, s.direction || 'Nearby']);
-        displayQuickTiaMultipleRefs(targetRoad, formattedArray, location.lat, location.lon, true);
+        displayQuickTiaMultipleRefs(targetRoad, formattedArray, location.lat, location.lon, true, { excludedRefs, exclusionSummary });
         showNotification(`📍 Found ${formattedArray.length} traffic counters along ${targetRoad} (within ${radiusLabel}km).`);
       }
       } else if (matchResult.type === 'SPATIAL_SNAP' && matchResult.nearbyMatches.length) {
       const nearest = matchResult.nearbyMatches.slice(0, 5);
       const nearbyArray = nearest.map((s) => [s.id, s.data, Number(s.distanceMeters) || Number(s.dist) || 0, s.direction || 'Nearby']);
-      displayQuickTiaMultipleRefs(searchInput, nearbyArray, location.lat, location.lon, false);
+      displayQuickTiaMultipleRefs(searchInput, nearbyArray, location.lat, location.lon, false, { excludedRefs, exclusionSummary });
       showNotification(`⚠ No fuzzy road-name matches. Using nearest counters within ${radiusLabel}km.`);
       }
     }
@@ -20522,8 +20751,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     document.getElementById('quickTiaPanel').style.display = 'block';
   }
 
-  function displayQuickTiaMultipleRefs(searchTerm, nearbyArray, centerLat, centerLon, isSameRoadMatch = false) {
+  function displayQuickTiaMultipleRefs(searchTerm, nearbyArray, centerLat, centerLon, isSameRoadMatch = false, options = {}) {
     window.lastSearchedAddress = String(searchTerm || '').trim();
+    const excludedRefs = Array.isArray(options && options.excludedRefs) ? options.excludedRefs : [];
+    const exclusionSummary = String(options && options.exclusionSummary ? options.exclusionSummary : '').trim();
     
     const displayEl = document.getElementById('lastSearchedAddressDisplay');
     const textEl = document.getElementById('lastSearchedAddressText');
@@ -20729,7 +20960,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             source: ref.source,
             countYear: ref.countYear
           }, ref.distance, ref.direction]);
-          displayQuickTiaMultipleRefs(searchTerm, rebuilt, centerLat, centerLon, isSameRoadMatch);
+          displayQuickTiaMultipleRefs(searchTerm, rebuilt, centerLat, centerLon, isSameRoadMatch, {
+            excludedRefs: (window.selectedTiaData && window.selectedTiaData.excludedReferences) || [],
+            exclusionSummary: (window.selectedTiaData && window.selectedTiaData.exclusionSummary) || ''
+          });
         });
       }
 
@@ -20744,9 +20978,33 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       }
     });
 
+    if (excludedRefs.length) {
+      const excludedWrap = document.createElement('div');
+      excludedWrap.style.cssText = 'margin-top:10px; padding:10px; border:1px solid #ffccbc; border-radius:6px; background:#fff3e0;';
+      const summaryText = exclusionSummary || `${excludedRefs.length} reference point(s) excluded by elevated/tunnel accessibility checks.`;
+      excludedWrap.innerHTML = `<div style="font-weight:700; color:#bf360c; margin-bottom:6px;">Excluded Reference Points</div><div style="font-size:0.84em; color:#5d4037; margin-bottom:6px;">${summaryText}</div>`;
+
+      const list = document.createElement('div');
+      list.style.cssText = 'display:grid; gap:6px;';
+      excludedRefs.slice(0, 5).forEach((ref, idx) => {
+        const row = document.createElement('div');
+        const distanceMeters = Number(ref && ref.distanceMeters);
+        const distanceLabel = Number.isFinite(distanceMeters)
+          ? (distanceMeters < 1000 ? `${Math.round(distanceMeters)}m` : `${(distanceMeters / 1000).toFixed(1)}km`)
+          : '-';
+        row.style.cssText = 'padding:8px; border:1px solid #ffe0b2; border-radius:4px; background:#fffaf5;';
+        row.innerHTML = `<div style="font-weight:700; color:#6d4c41;">${idx + 1}. ${String((ref && ref.road) || 'Unnamed reference')}</div><div style="font-size:0.8em; color:#795548;">Distance: ${distanceLabel} | ${String((ref && ref.reason) || 'Excluded by accessibility logic.')}</div>`;
+        list.appendChild(row);
+      });
+      excludedWrap.appendChild(list);
+      refList.appendChild(excludedWrap);
+    }
+
     window.selectedTiaData = {
       type: 'references',
       references: refArray,
+      excludedReferences: excludedRefs,
+      exclusionSummary,
       avgVADT: 0,
       avgD1: 0,
       avgD2: 0,
