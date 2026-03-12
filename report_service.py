@@ -100,56 +100,12 @@ def _render_data_table(table_data: Any) -> str:
     if not columns and not rows:
         return ""
 
-    def _strip_explanatory_tail(text: str) -> str:
-      cleaned = text
-      cleanup_patterns = [
-        r"\bHourly\s+value\s*=.*$",
-        r"\bPeak\s+value\s*=.*$",
-        r"\bDistance\s*-?\s*based\s+result\s*=.*$",
-        r"\bResult\s*=.*$",
-        r"\bqueue\s+vehicles\s*\*\s*spacing\b.*$",
-      ]
-      for pat in cleanup_patterns:
-        cleaned = re.sub(pat, "", cleaned, flags=re.IGNORECASE).strip()
-      return cleaned
-
-    def _clean_cell_value(cell: Any, is_first_col: bool = False) -> str:
+    def _clean_cell_value(cell: Any) -> str:
       txt = _safe_text(cell, "")
       if not txt:
         return "-"
-
-      # Normalize whitespace first so pattern cleanup is predictable.
+      # Keep exported table values as-is (except whitespace normalization).
       txt = re.sub(r"\s+", " ", txt).strip()
-      txt = _strip_explanatory_tail(txt)
-
-      # Prefer value text when formulas are embedded.
-      if "=" in txt:
-        rhs = txt.split("=")[-1].strip()
-        if rhs:
-          txt = rhs
-
-      if is_first_col:
-        hour_match = re.search(r"\b\d{2}:\d{2}-\d{2}:\d{2}\b", txt)
-        if hour_match:
-          return hour_match.group(0)
-        return txt or "-"
-
-      is_formula_like = (
-        "=" in txt
-        or any(kw in txt.lower() for kw in ["formula", "equation", "hourly value", "peak value"])
-        or (
-          any(op in txt for op in ["*", "/", "^"])
-          and bool(re.search(r"[A-Za-z]", txt))
-        )
-      )
-
-      if is_formula_like:
-        numbers = re.findall(r"[-+]?\d+(?:,\d{3})*(?:\.\d+)?", txt)
-        if numbers:
-          return numbers[-1]
-        if not numbers:
-          return "-"
-
       return txt or "-"
 
     def _normalize_columns(raw_columns: list[Any], sample_rows: list[Any], table_title: str) -> list[str]:
@@ -200,7 +156,7 @@ def _render_data_table(table_data: Any) -> str:
     for row in rows:
         if not isinstance(row, list) or not row:
             continue
-        cleaned_row = [_clean_cell_value(cell, idx == 0) for idx, cell in enumerate(row)]
+        cleaned_row = [_clean_cell_value(cell) for cell in row]
         cleaned_rows.append(cleaned_row)
         rendered_cells = [f"<td class=\"editable-text editable-cell\" contenteditable=\"true\">{_escape(cell)}</td>" for cell in cleaned_row]
         body_html_parts.append(f"<tr>{''.join(rendered_cells)}</tr>")
@@ -237,12 +193,14 @@ def _render_data_table(table_data: Any) -> str:
           "Edit this summary to record key findings and decisions."
       )
 
+    table_classes = "wide-table" if col_count >= 10 else ""
+
     return (
         f"<div class=\"report-section report-block avoid-break\">"
         f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Table</button></div>"
         f"<h4 class=\"editable-text\" contenteditable=\"true\">{title}</h4>"
         f"<div class=\"editable table-note table-note-top\" contenteditable=\"true\"><p>{_escape(informative_default)}</p></div>"
-        f"<table>{head_html}{body_html}</table>"
+      f"<table class=\"{table_classes}\">{head_html}{body_html}</table>"
         f"<div class=\"editable table-note table-note-bottom\" contenteditable=\"true\"><p>{_escape(summary_default)}</p></div>"
         f"</div>"
     )
@@ -419,6 +377,8 @@ def editor_page(draft_id: str) -> str:
     th, td {{ border: 1px solid var(--border); padding: 10px 12px; text-align: left; vertical-align: top; }}
     th {{ background-color: var(--bg-light); font-weight: 600; color: var(--brand); border-bottom: 2px solid var(--accent); }}
     .kv-table th {{ width: 35%; background-color: var(--bg-light); }}
+    .wide-table {{ table-layout: fixed; font-size: 0.84rem; }}
+    .wide-table th, .wide-table td {{ padding: 7px 6px; word-break: break-word; }}
 
     /* Interactive Elements & Editor Styles */
     .toolbar {{ display: flex; justify-content: flex-end; margin-bottom: 20px; }}
