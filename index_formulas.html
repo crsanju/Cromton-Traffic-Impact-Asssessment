@@ -4804,6 +4804,8 @@
   let loadingHintTimer = null;
   let loadingHintIndex = 0;
   let loadingHintMode = 'default';
+  let loadingActiveHintList = null;
+  let loadingTextTransitionInProgress = false;
   const loadingHints = [
     'Tip: Use Quick Search to jump straight to a known counter ID.',
     'Tip: You can upload custom CSV data and merge it with live datasets.',
@@ -4811,12 +4813,85 @@
     'Tip: Use Create Editable Report to tailor commentary before exporting PDF.'
   ];
   const loadingFunnyHints = [
+    'Warming up satellite pigeons for address reconnaissance...',
     'Calibrating kangaroo traffic controllers for peak-hour diplomacy...',
     'Politely asking road cones to stand in a straight line...',
     'Negotiating with queue waves to stop being dramatic...',
     'Teaching VCR values to stay calm under pressure...',
-    'Warming up map tiles with a tiny digital coffee break...'
+    'Bribing map tiles with premium digital coffee beans...',
+    'Checking if this road is truly connected, not just emotionally connected...',
+    'Sending tiny survey drones to count polite lane merges...',
+    'Assembling a roundtable of very opinionated traffic signals...',
+    'Running a detour reality check with 100 percent less guesswork...',
+    'Scanning for mystery tunnels, flyovers, and dramatic one-way twists...',
+    'Applying anti-chaos coating to the nearest intersection model...',
+    'Asking GPS satellites to stop speaking over each other...',
+    'Converting road names into machine-readable common sense...',
+    'Verifying this is a road search and not a treasure map...',
+    'Balancing inbound and outbound vibes for directional sanity...',
+    'Checking if your shortcut is genius or just optimistic...',
+    'Deploying lane math with suspicious confidence...',
+    'Measuring traffic patience in scientifically tiny units...',
+    'Finalizing results before the coffee gets cold...'
   ];
+
+  function getQuickSearchFunnyHints(queryText = '') {
+    const q = String(queryText || '').toLowerCase();
+    const hintPool = [...loadingFunnyHints];
+
+    if (/\b(street|st|road|rd|avenue|ave|way|drive|dr)\b/.test(q)) {
+      hintPool.push('Street-mode detected: aligning curbs, lanes, and local shortcuts...');
+      hintPool.push('Road-name spelling tribunal is now in session...');
+    }
+    if (/\b(highway|motorway|arterial|freeway|m1|m3|m7)\b/.test(q)) {
+      hintPool.push('Highway-mode: checking ramps, links, and no-route surprises...');
+      hintPool.push('Motorway sanity test: reachable in practice, not just on paper...');
+    }
+    if (/\b(court|close|place|crescent|cct|lane|ln)\b/.test(q)) {
+      hintPool.push('Local-street mode: tiny roads, big detective energy...');
+      hintPool.push('Looking for hidden neighborhood connectors and legal turns...');
+    }
+    if (/\b(qld|queensland|brisbane|gold coast|logan|ipswich|toowoomba|sunshine coast)\b/.test(q)) {
+      hintPool.push('Queensland mode engaged: sun, signals, and suspicious slip lanes...');
+    }
+
+    return hintPool;
+  }
+
+  function getQuickSearchStageTitle(progressPercent, fallbackTitle) {
+    const p = Math.max(0, Math.min(100, Number(progressPercent) || 0));
+    if (p < 24) return 'Stage 1/4: Reading the address';
+    if (p < 52) return 'Stage 2/4: Geocoding and map lookup';
+    if (p < 78) return 'Stage 3/4: Checking road connectivity';
+    if (p < 100) return 'Stage 4/4: Building reference candidates';
+    return fallbackTitle || 'Search complete';
+  }
+
+  function applyLoadingTextTransition(mainText, detailText) {
+    const titleEl = document.getElementById('loadingText');
+    const detailEl = document.getElementById('loadingDetailText');
+    if (!titleEl || !detailEl || loadingTextTransitionInProgress) {
+      if (titleEl && typeof mainText === 'string' && mainText.trim()) titleEl.textContent = mainText;
+      if (detailEl && typeof detailText === 'string' && detailText.trim()) detailEl.textContent = detailText;
+      return;
+    }
+
+    loadingTextTransitionInProgress = true;
+    titleEl.style.transition = 'opacity 0.18s ease';
+    detailEl.style.transition = 'opacity 0.18s ease';
+    titleEl.style.opacity = '0.18';
+    detailEl.style.opacity = '0.18';
+
+    setTimeout(() => {
+      if (typeof mainText === 'string' && mainText.trim()) titleEl.textContent = mainText;
+      if (typeof detailText === 'string' && detailText.trim()) detailEl.textContent = detailText;
+      titleEl.style.opacity = '1';
+      detailEl.style.opacity = '1';
+      setTimeout(() => {
+        loadingTextTransitionInProgress = false;
+      }, 190);
+    }, 180);
+  }
 
   // ===== TRIP GENERATION SCENARIOS (Global Definition) =====
   // Enhanced Trip Generation Rates based on RTA/RMS/TMR/ITE Standards
@@ -4949,7 +5024,8 @@
     loadingHintIndex = 0;
     const detailEl = document.getElementById('loadingDetailText');
     if (detailEl) {
-      detailEl.textContent = loadingFunnyHints[0];
+      const activeHints = Array.isArray(loadingActiveHintList) && loadingActiveHintList.length ? loadingActiveHintList : loadingFunnyHints;
+      detailEl.textContent = activeHints[0];
     }
   }
 
@@ -4980,7 +5056,9 @@
     if (loadingHintTimer) return;
     const detailEl = document.getElementById('loadingDetailText');
     if (!detailEl) return;
-    const hints = loadingHintMode === 'funny' ? loadingFunnyHints : loadingHints;
+    const hints = (Array.isArray(loadingActiveHintList) && loadingActiveHintList.length)
+      ? loadingActiveHintList
+      : (loadingHintMode === 'funny' ? loadingFunnyHints : loadingHints);
     if (!hints.length) return;
     loadingHintTimer = setInterval(() => {
       const overlay = document.getElementById('appLoadingOverlay');
@@ -5000,6 +5078,7 @@
       overlay.setAttribute('aria-busy', 'false');
     }
     loadingHintMode = 'default';
+    loadingActiveHintList = null;
     loadingHintIndex = 0;
   }
 
@@ -5025,18 +5104,29 @@
 
     quickTiaSearchOverlayOwnsVisibility = overlay.classList.contains('hidden');
     overlay.classList.remove('hidden');
+    loadingActiveHintList = getQuickSearchFunnyHints(queryText);
+    activateFunnyLoadingMode();
     startLoadingHints();
 
     const trimmed = String(queryText || '').trim();
     setLoadingState(
-      'Searching address and matching roads...',
+      'Stage 1/4: Reading the address',
       trimmed ? `Checking map and traffic references near: ${trimmed}` : 'Checking map and traffic references near the entered address.',
       18
     );
   }
 
   function updateQuickAddressSearchOverlay(mainText, detailText, progressPercent) {
-    setLoadingState(mainText, detailText, progressPercent);
+    const activeHints = (Array.isArray(loadingActiveHintList) && loadingActiveHintList.length)
+      ? loadingActiveHintList
+      : loadingFunnyHints;
+    const nextHint = activeHints.length
+      ? activeHints[(loadingHintIndex + 1) % activeHints.length]
+      : '';
+    const stagedTitle = getQuickSearchStageTitle(progressPercent, mainText);
+    const stagedDetail = [detailText, nextHint].filter(Boolean).join(' | ');
+    applyLoadingTextTransition(stagedTitle, stagedDetail);
+    setLoadingState(stagedTitle, stagedDetail, progressPercent);
   }
 
   function hideQuickAddressSearchOverlay() {
@@ -20325,6 +20415,61 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return best;
   }
 
+  async function checkRoadRouteConnectivity(fromLat, fromLon, toLat, toLon) {
+    const aLat = Number(fromLat);
+    const aLon = Number(fromLon);
+    const bLat = Number(toLat);
+    const bLon = Number(toLon);
+    if (!Number.isFinite(aLat) || !Number.isFinite(aLon) || !Number.isFinite(bLat) || !Number.isFinite(bLon)) {
+      return { available: false, connected: false, routeDistanceMeters: null };
+    }
+
+    const directMeters = haversineDistance(aLat, aLon, bLat, bLon);
+    if (Number.isFinite(directMeters) && directMeters <= 60) {
+      return { available: true, connected: true, routeDistanceMeters: Math.round(directMeters) };
+    }
+
+    const cache = window.__routeConnectivityCache || (window.__routeConnectivityCache = new Map());
+    const cacheKey = `${aLat.toFixed(5)},${aLon.toFixed(5)}:${bLat.toFixed(5)},${bLon.toFixed(5)}`;
+    if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+    const url = `https://router.project-osrm.org/route/v1/driving/${aLon},${aLat};${bLon},${bLat}?overview=false&steps=false`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5500);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) {
+        const unknown = { available: false, connected: false, routeDistanceMeters: null };
+        cache.set(cacheKey, unknown);
+        return unknown;
+      }
+      const json = await response.json();
+      if (json && json.code === 'Ok' && Array.isArray(json.routes) && json.routes.length) {
+        const dist = Number(json.routes[0].distance);
+        const connected = Number.isFinite(dist) && dist > 0;
+        const resolved = {
+          available: true,
+          connected,
+          routeDistanceMeters: connected ? Math.round(dist) : null
+        };
+        cache.set(cacheKey, resolved);
+        return resolved;
+      }
+      if (json && json.code === 'NoRoute') {
+        const unresolved = { available: true, connected: false, routeDistanceMeters: null };
+        cache.set(cacheKey, unresolved);
+        return unresolved;
+      }
+      const unknown = { available: false, connected: false, routeDistanceMeters: null };
+      cache.set(cacheKey, unknown);
+      return unknown;
+    } catch (_err) {
+      return { available: false, connected: false, routeDistanceMeters: null };
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
   async function classifyReferenceConnectivityToAddress(userLat, userLon, userRoadName, candidate) {
     const result = {
       exclude: false,
@@ -20339,9 +20484,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const candidateRoad = String(candidate && (candidate.roadName || candidate.road_name || candidate.Description || candidate.description) || '').trim();
     const candidateDistanceMeters = haversineDistance(Number(userLat), Number(userLon), cLat, cLon);
-    const [targetEls, candidateEls] = await Promise.all([
+    const [targetEls, candidateEls, routeConnectivity] = await Promise.all([
       fetchOsmRoadElementsNear(userLat, userLon, 260),
-      fetchOsmRoadElementsNear(cLat, cLon, 180)
+      fetchOsmRoadElementsNear(cLat, cLon, 180),
+      checkRoadRouteConnectivity(userLat, userLon, cLat, cLon)
     ]);
 
     const targetRoadSet = new Set();
@@ -20365,29 +20511,26 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     result.isElevatedOrTunnel = isElevatedOrTunnelRoad(tags);
     result.isControlledAccess = isControlledAccessHighway(tags);
 
-    const highwayTag = String(tags.highway || '').toLowerCase();
-    const isThroughCorridorClass = /^(motorway|motorway_link|trunk|trunk_link|primary|primary_link)$/.test(highwayTag);
     const likelyDisconnectedRoad = !roadTouchesTargetArea && !sameAsSearchRoad;
+
+    if (routeConnectivity && routeConnectivity.available) {
+      if (!routeConnectivity.connected) {
+        result.exclude = true;
+        result.reason = `Road not connected to searched address network: no drivable route was found between the searched address and ${matchedRoadName || candidateRoad || 'this reference road'}.`;
+      }
+      return result;
+    }
 
     const disconnectedControlledAccess = likelyDisconnectedRoad
       && result.isControlledAccess
       && (result.isElevatedOrTunnel || hasLocalRoadNearTarget);
 
-    const disconnectedThroughCorridor = likelyDisconnectedRoad
-      && hasLocalRoadNearTarget
-      && isThroughCorridorClass
-      && candidateDistanceMeters >= 450;
-
-    if (disconnectedControlledAccess || disconnectedThroughCorridor) {
+    if (disconnectedControlledAccess) {
       const structureHint = String(tags.tunnel || '').toLowerCase() === 'yes'
         ? 'tunnel motorway segment'
         : 'elevated motorway segment';
       result.exclude = true;
-      if (disconnectedControlledAccess) {
-        result.reason = `Road not connected to searched address network: ${matchedRoadName || 'this reference'} appears to be on a ${structureHint} without clear local ingress to the searched roads.`;
-      } else {
-        result.reason = `Road not connected to searched address network: ${matchedRoadName || 'this reference'} appears to be on a separated ${highwayTag || 'major'} corridor and is not connected to the searched local road set.`;
-      }
+      result.reason = `Road not connected to searched address network: ${matchedRoadName || 'this reference'} appears to be on a ${structureHint} without clear local ingress to the searched roads.`;
     }
 
     return result;
