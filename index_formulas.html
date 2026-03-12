@@ -20633,11 +20633,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const likelyDisconnectedRoad = !roadTouchesTargetArea && !sameAsSearchRoad;
 
-    if (routeConnectivity && routeConnectivity.available) {
-      if (!routeConnectivity.connected) {
-        result.exclude = true;
-        result.reason = `Road not connected to searched address network: no drivable route was found between the searched address and ${matchedRoadName || candidateRoad || 'this reference road'}.`;
-      }
+    const routeIsAvailable = !!(routeConnectivity && routeConnectivity.available);
+    const routeIsConnected = !!(routeConnectivity && routeConnectivity.available && routeConnectivity.connected);
+    const routeDistanceMeters = Number(routeConnectivity && routeConnectivity.routeDistanceMeters);
+    const effectiveRouteDistanceMeters = Number.isFinite(routeDistanceMeters) ? routeDistanceMeters : candidateDistanceMeters;
+    const routeDetourFactor = candidateDistanceMeters > 1
+      ? (effectiveRouteDistanceMeters / candidateDistanceMeters)
+      : 1;
+
+    if (routeIsAvailable && !routeIsConnected) {
+      result.exclude = true;
+      result.reason = `Road not connected to searched address network: no drivable route was found between the searched address and ${matchedRoadName || candidateRoad || 'this reference road'}.`;
       return result;
     }
 
@@ -20645,12 +20651,27 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       && result.isControlledAccess
       && (result.isElevatedOrTunnel || hasLocalRoadNearTarget);
 
-    if (disconnectedControlledAccess) {
+    const suspiciousControlledAccessRoute = routeIsConnected
+      && likelyDisconnectedRoad
+      && result.isControlledAccess
+      && hasLocalRoadNearTarget
+      && routeDetourFactor >= 2.8;
+
+    const fallbackDisconnectedControlledAccess = !routeIsAvailable
+      && likelyDisconnectedRoad
+      && result.isControlledAccess
+      && (result.isElevatedOrTunnel || hasLocalRoadNearTarget);
+
+    if (disconnectedControlledAccess || suspiciousControlledAccessRoute || fallbackDisconnectedControlledAccess) {
       const structureHint = String(tags.tunnel || '').toLowerCase() === 'yes'
         ? 'tunnel motorway segment'
         : 'elevated motorway segment';
       result.exclude = true;
-      result.reason = `Road not connected to searched address network: ${matchedRoadName || 'this reference'} appears to be on a ${structureHint} without clear local ingress to the searched roads.`;
+      if (suspiciousControlledAccessRoute) {
+        result.reason = `Road not connected to searched address network: ${matchedRoadName || 'this reference'} is on a controlled-access corridor with indirect ingress from the searched local road network.`;
+      } else {
+        result.reason = `Road not connected to searched address network: ${matchedRoadName || 'this reference'} appears to be on a ${structureHint} without clear local ingress to the searched roads.`;
+      }
     }
 
     return result;
