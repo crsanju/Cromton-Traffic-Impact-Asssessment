@@ -80,7 +80,7 @@ def _render_key_value_table(title: str, data: dict[str, Any]) -> str:
 
 
 def _render_notes(notes: Any) -> str:
-    if not isinstance(notes, list) or not notes:
+  if not isinstance(notes, list) or not notes:
     return "<li class=\"editable-text\" contenteditable=\"true\">No supplementary notes provided.</li>"
   return "".join(f"<li class=\"editable-text\" contenteditable=\"true\">{_escape(item)}</li>" for item in notes)
 
