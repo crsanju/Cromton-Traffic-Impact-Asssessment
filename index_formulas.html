@@ -9550,13 +9550,39 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
   }
 
+  function isGeoJsonFeatureCollection(data) {
+    return !!(data && typeof data === 'object' && Array.isArray(data.features) && data.features.length > 0);
+  }
+
+  function buildGithubCdnMirrorUrl(url) {
+    const rawUrl = String(url || '').trim();
+    const m = rawUrl.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/i);
+    if (!m) return '';
+    const owner = m[1];
+    const repo = m[2];
+    const branch = m[3];
+    const path = m[4];
+    return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${path}`;
+  }
+
   async function fetchDatasetWithFallback(primaryUrl, fallbackUrl, sourceLabel) {
     const primary = await fetchGitHubData(primaryUrl);
-    if (primary) return primary;
+    if (isGeoJsonFeatureCollection(primary)) return primary;
 
-    console.warn(`[Data Load] ${sourceLabel} primary source failed. Falling back to local file: ${fallbackUrl}`);
+    const cacheBypassUrl = `${primaryUrl}${primaryUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`;
+    const primaryBypass = await fetchGitHubData(cacheBypassUrl);
+    if (isGeoJsonFeatureCollection(primaryBypass)) return primaryBypass;
+
+    const mirrorUrl = buildGithubCdnMirrorUrl(primaryUrl);
+    if (mirrorUrl) {
+      const mirrorData = await fetchGitHubData(mirrorUrl);
+      if (isGeoJsonFeatureCollection(mirrorData)) return mirrorData;
+    }
+
+    console.warn(`[Data Load] ${sourceLabel} remote sources failed or returned invalid GeoJSON. Falling back to local file: ${fallbackUrl}`);
     if (!fallbackUrl || fallbackUrl === primaryUrl) return null;
-    return fetchGitHubData(fallbackUrl);
+    const localData = await fetchGitHubData(fallbackUrl);
+    return isGeoJsonFeatureCollection(localData) ? localData : null;
   }
 
   function parseMacroTrafficData(jsonData, sourceName = 'TMR') {
