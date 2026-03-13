@@ -17954,14 +17954,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const totalCapacity = Math.max(0, Number(model.totalCapacity) || 0);
       // Selected roads represent one continuous detour path, not parallel split routes.
       // Apply full diverted demand to each segment for path-based capacity checks.
+      // divertedVpdTotal is the projected Target Year diversion volume supplied from the main model.
       const divertedVpd = Math.round(Math.max(0, Number(divertedVpdTotal) || 0));
-      const futureVpd = baseVpd + divertedVpd;
+      const totalDemandVpd = baseVpd + divertedVpd;
       const basePeakHourVol = convertDailyVpdTo80thHourly(baseVpd);
       const divertedPeakHourVol = convertDailyVpdTo80thHourly(divertedVpd);
-      const futurePeakHourVol = basePeakHourVol + divertedPeakHourVol;
+      const totalDemandPeakHourVol = basePeakHourVol + divertedPeakHourVol;
 
       const maxNewVcr = Math.max(0, Number(roadStatus && roadStatus.maxNewVcr) || 0);
-      const peakHourVc = totalCapacity > 0 ? (futurePeakHourVol / totalCapacity) : 0;
+      const peakHourVc = totalCapacity > 0 ? (totalDemandPeakHourVol / totalCapacity) : 0;
       // Capacity status for cards is based on converted 80th-hour demand only.
       const statusVcr = peakHourVc;
       const worstPeriod = String((roadStatus && roadStatus.worstPeriod) || '-');
@@ -17983,10 +17984,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         <p><strong>Legal Speed Limit:</strong> ${speedLimitKmh} km/h</p>
         <p><strong>Base VPD</strong>${methodBadge}<strong>:</strong> ${baseVpd.toLocaleString()} vpd</p>
         <p><strong>Base Peak Hour (80th):</strong> ${basePeakHourVol.toLocaleString()} vph</p>
-        <p><strong>Diverted VPD:</strong> +${divertedVpd.toLocaleString()} vpd</p>
-        <p><strong>Diverted Peak Hour (80th):</strong> +${divertedPeakHourVol.toLocaleString()} vph</p>
-        <p><strong>Future VPD:</strong> ${futureVpd.toLocaleString()} vpd</p>
-        <p><strong>Future Peak Hour (80th):</strong> ${futurePeakHourVol.toLocaleString()} vph</p>
+        <p><strong>Target Year Diverted VPD:</strong> +${divertedVpd.toLocaleString()} vpd</p>
+        <p><strong>Target Year Diverted Peak Hour (80th):</strong> +${divertedPeakHourVol.toLocaleString()} vph</p>
+        <p><strong>Total Demand VPD (Base + Target):</strong> ${totalDemandVpd.toLocaleString()} vpd</p>
+        <p><strong>Total Demand Peak Hour (80th):</strong> ${totalDemandPeakHourVol.toLocaleString()} vph</p>
         <p><strong>Lane Capacity:</strong> ${totalCapacity.toLocaleString()} vph</p>
         <p><strong>Worst Period VCR:</strong> ${numberRoundUp(maxNewVcr, 2)}${worstPeriod !== '-' ? ` (${worstPeriod})` : ''}</p>
         <p><strong>80th-Hour V/C:</strong> ${numberRoundUp(peakHourVc, 2)}</p>
