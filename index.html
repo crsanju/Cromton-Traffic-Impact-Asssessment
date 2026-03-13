@@ -11714,6 +11714,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
               errEl.innerHTML = `<strong>⚠ Address found, but no nearby counters within ${radiusLabel}km.</strong>`;
               errEl.style.display = 'block';
             }
+            const panelEl = document.getElementById('quickTiaPanel');
+            if (panelEl) panelEl.style.display = 'block';
+            const manualRadio = document.querySelector('input[name="trafficCalcMethod"][value="manual"]');
+            if (manualRadio) manualRadio.checked = true;
+            if (typeof toggleTrafficCalcMethod === 'function') toggleTrafficCalcMethod();
             return;
           }
 
@@ -20374,7 +20379,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   function findBestReferencePoints(userAddress, userLat, userLon, allDatabaseCounters) {
     const userRoadNormalized = normalizeRoadName(userAddress);
     const BASE_SEARCH_RADIUS_KM = 1.5;
-    const SEARCH_STEP_KM = 0.5;
+    const SEARCH_STEP_KM = 1.0;
     const PREFERRED_MAX_RADIUS_KM = 5.0;
     const counters = Array.isArray(allDatabaseCounters)
       ? allDatabaseCounters
@@ -20752,12 +20757,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   // Step B: apply connectedness filter before rendering/using references.
   function updateSmartRefList(searchResults, searchedRoad) {
     const input = Array.isArray(searchResults) ? searchResults : [];
-    return input.filter((point) => {
+    const filtered = input.filter((point) => {
       const pointRoad = Array.isArray(point)
         ? String((point[1] && (point[1].road_name || point[1].description)) || '')
         : String((point && (point.roadName || point.road_name || point.Description || point.description)) || '');
       return checkRoadConnectivity(searchedRoad, pointRoad);
     });
+    return filtered.length ? filtered : input;
   }
 
   async function filterSmartReferencePoints(searchedRoadName, allReferencePoints, userLat, userLon) {
@@ -20766,18 +20772,6 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const excluded = [];
 
     for (const point of sourceList) {
-      const pointRoad = String((point && (point.roadName || point.road_name || point.Description || point.description)) || '');
-      if (!checkRoadConnectivity(searchedRoadName, pointRoad)) {
-        excluded.push({
-          point,
-          access: {
-            exclude: true,
-            reason: 'Road not connected to searched address network by same-road/segment check.'
-          }
-        });
-        continue;
-      }
-
       const { isConnected, access } = await checkRoadConnectivityDetailed(searchedRoadName, point, userLat, userLon);
       if (isConnected) included.push(point);
       else excluded.push({ point, access });
@@ -20847,16 +20841,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const exactFiltered = filterEntries(exact);
     const nearbyFiltered = filterEntries(nearby);
+    const fallbackNearest = !exactFiltered.length && !nearbyFiltered.length
+      ? [...pool]
+          .sort((a, b) => (Number(a && a.distanceKm) || Number.POSITIVE_INFINITY) - (Number(b && b.distanceKm) || Number.POSITIVE_INFINITY))
+          .slice(0, 3)
+      : [];
 
     let type = base.type;
     if (exactFiltered.length) type = 'EXACT';
-    else if (nearbyFiltered.length) type = 'SPATIAL_SNAP';
+    else if (nearbyFiltered.length || fallbackNearest.length) type = 'SPATIAL_SNAP';
     else type = 'NO_MATCH';
 
-    const point = exactFiltered[0] || nearbyFiltered[0] || null;
+    const effectiveNearby = nearbyFiltered.length ? nearbyFiltered : fallbackNearest;
+    const point = exactFiltered[0] || effectiveNearby[0] || null;
     const payload = point ? buildSafeSimulationPayload(point) : null;
     const summary = excludedRefs.length
-      ? `${excludedRefs.length} reference point(s) excluded: road not connected to searched address network.`
+      ? `${excludedRefs.length} reference point(s) excluded: road not connected to searched address network.${fallbackNearest.length ? ' Using nearest reachable references as fallback.' : ''}`
       : '';
 
     return {
@@ -20866,7 +20866,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         point,
         payload,
         exactMatches: exactFiltered,
-        nearbyMatches: nearbyFiltered
+        nearbyMatches: effectiveNearby
       },
       excludedRefs,
       summary,
@@ -21068,6 +21068,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         : '';
       document.getElementById('quickTiaError').innerHTML = `${noConnectedMsg}${disconnectedExtra}`;
       document.getElementById('quickTiaError').style.display = 'block';
+      const panelEl = document.getElementById('quickTiaPanel');
+      if (panelEl) panelEl.style.display = 'block';
+      const manualRadio = document.querySelector('input[name="trafficCalcMethod"][value="manual"]');
+      if (manualRadio) manualRadio.checked = true;
+      if (typeof toggleTrafficCalcMethod === 'function') toggleTrafficCalcMethod();
     } else {
       const simulationData = LoganTrafficEngine.executeSimulation(matchResult.payload);
       window.selectedTiaData = window.selectedTiaData || {};
@@ -21284,7 +21289,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (roadWeightList) roadWeightList.innerHTML = '';
     
     const connectedNearbyArray = updateSmartRefList(nearbyArray, searchTerm);
-    const refArray = connectedNearbyArray.map((item) => {
+    const displayNearbyArray = connectedNearbyArray.length ? connectedNearbyArray : (Array.isArray(nearbyArray) ? nearbyArray : []);
+    const refArray = displayNearbyArray.map((item) => {
       const siteId = item[0];
       const data = item[1];
       const distFromCenter = item[2] || haversineDistance(centerLat, centerLon, Number(data.latitude), Number(data.longitude));
@@ -21662,18 +21668,21 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   // Trip generation scenarios already defined at top of script
 
   function toggleTrafficCalcMethod() {
-    const selectedMethod = document.querySelector('input[name="trafficCalcMethod"]:checked')?.value;
+    const selectedMethod = document.querySelector('input[name="trafficCalcMethod"]:checked')?.value || 'weighted';
     const manualPanel = document.getElementById('manualTrafficGenPanel');
     const weightedPanel = document.getElementById('quickTiaCalcResult');
+    const useCalculatedBtn = document.getElementById('quickTiaUseCalculatedBtn');
 
     if (selectedMethod === 'manual') {
       if (manualPanel) manualPanel.style.display = 'block';
       if (weightedPanel) weightedPanel.style.display = 'none';
+      if (useCalculatedBtn) useCalculatedBtn.textContent = '✓ Use Trip Generation Data';
       updateScenarioFields();
       calculateTripGeneration();
     } else {
       if (manualPanel) manualPanel.style.display = 'none';
       if (weightedPanel) weightedPanel.style.display = 'block';
+      if (useCalculatedBtn) useCalculatedBtn.textContent = '✓ Use Calculated Data';
     }
   }
 
@@ -21717,8 +21726,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       
       console.log('Calculating trip generation: quantity =', quantity, 'rate =', rate, 'scenario =', scenarioKey);
     
-    // Validate inputs for custom scenario
-    if (scenarioKey === 'custom' && (!quantity || !rate)) {
+    // Validate core inputs for all scenarios
+    if (!(quantity > 0) || !(rate > 0)) {
       const resultDiv = document.getElementById('tripGenResult');
       if (resultDiv) {
         resultDiv.innerHTML = `
@@ -21889,7 +21898,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     // Set years to current year
     const currentYear = new Date().getFullYear();
     const baseYearField = document.getElementById('baseYear');
-    const openingYearField = document.getElementById('openingYear');
+    const openingYearField = document.getElementById('openingYear') || document.getElementById('macroOpeningYear');
     if (baseYearField) baseYearField.value = String(currentYear);
     if (openingYearField) openingYearField.value = String(currentYear);
     
