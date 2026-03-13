@@ -9698,14 +9698,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
       const rawSiteId = isIpswich
         ? createIpswichSiteKey(props)
-        : (props['SITE_ID'] || props['site_id'] || props['OBJECTID'] || props['ID'] || props['id'] || props['Id'] || props['SITE'] || props['Site'] || '');
+        : (props['SITE_ID'] || props['site_id'] || props['OBJECTID'] || props['ID'] || props['id'] || props['Id'] || props['SITE'] || props['Site'] || props['tsc'] || '');
       const siteId = String(rawSiteId || '').trim();
       if (!siteId) return;
 
       const suburb = props['SUBURB'] || props['Suburb'] || props['Suburb'] || '';
-      const rawDescription = props['DESCRIPTION'] || props['LOCATION'] || props['COUNTER_LOCATION_BETWEEN'] || props['Site Description'] || props['Local_Road_Alias'] || '';
+      const rawDescription = props['DESCRIPTION'] || props['LOCATION'] || props['COUNTER_LOCATION_BETWEEN'] || props['Site Description'] || props['Local_Road_Alias'] || props['address'] || '';
       const description = suburb ? `${suburb} - ${rawDescription}` : String(rawDescription).replace(/"/g, '').trim();
-      const roadName = String(props['ROAD_NAME'] || props['STREET'] || props['STREET_NAME'] || props['Road Name'] || props['Road_Name'] || '').replace(/"/g, '').trim();
+      const roadName = String(props['ROAD_NAME'] || props['STREET'] || props['STREET_NAME'] || props['Road Name'] || props['Road_Name'] || props['address'] || '').replace(/"/g, '').trim();
       const geomCoords = feature && feature.geometry && Array.isArray(feature.geometry.coordinates) ? feature.geometry.coordinates : [];
 
       let longitude = props['LONGITUDE'] || props['LON'] || props['LONG'] || props['Longitude'];
@@ -9725,7 +9725,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       if (!Number.isFinite(Number(longitude)) || !Number.isFinite(Number(latitude))) return;
 
       const countYear = parseYearFromAny(
-        props['COUNT_YEAR'], props['Count Year'], props['count_year'], props['DATA_YEAR'], props['YEAR'], props['AADT_DATE'], props['SURVEY_DATE'], props['AAWT_DATE'], props['Start Day|Survey'], props['Finish_Date'], props['Count Date (dd/mm/yyyy)'], props['Count Date']
+        props['COUNT_YEAR'], props['Count Year'], props['count_year'], props['DATA_YEAR'], props['YEAR'], props['AADT_DATE'], props['SURVEY_DATE'], props['AAWT_DATE'], props['Start Day|Survey'], props['Finish_Date'], props['Count Date (dd/mm/yyyy)'], props['Count Date'], props['recorded']
       );
       const countDayOfWeek = deriveDayOfWeekFromAny(
         props['DAY_OF_WEEK'],
@@ -9751,7 +9751,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const hvPercent = hvPercentDirect !== null ? hvPercentDirect : normalizePercentValue(isLogan ? calcLoganHvPercent(props) : null);
       const roadClass = normalizeRoadClass(props['ROAD_CLASS'] || props['ROAD_TYPE'] || props['Road Type'] || props['ROAD TYPE'] || props['road type'] || props['CLASSIFICATION'] || props['ROAD CATEGORY'] || 'tmr');
       const designCapacityDaily = Math.max(0, Number(props['DESIGN_CAPACITY_DAILY'] || props['CAPACITY_DAILY'] || props['CAPACITY_REF_DAILY'] || props['ROAD_CAPACITY_DAILY'] || 0));
-      const totalVadtFromProps = Number(props['VADT'] || props['AADT'] || props['VPD'] || props['TOTAL_VADT'] || props['Average Daily Traffic Adt Vehicles Per Day'] || props['Average Weekday Traffic Awt Vehicles Per Day'] || props['ADT']) || null;
+      const totalVadtFromProps = Number(props['VADT'] || props['AADT'] || props['VPD'] || props['TOTAL_VADT'] || props['Average Daily Traffic Adt Vehicles Per Day'] || props['Average Weekday Traffic Awt Vehicles Per Day'] || props['ADT'] || props['total_volume']) || null;
 
       let d1VadtFromProps = Number(props['D1_VADT'] || props['GAZETTAL_VADT'] || props['VADT_D1'] || props['VOL1'] || '') || null;
       let d2VadtFromProps = Number(props['D2_VADT'] || props['AGAINST_GAZETTAL_VADT'] || props['VADT_D2'] || props['VOL2'] || '') || null;
@@ -9788,7 +9788,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           latitude: Number(latitude),
           countYear,
           count_day_of_week: countDayOfWeek,
-          count_date_raw: props['SURVEY_DATE'] || props['Survey Date'] || props['AADT_DATE'] || props['AAWT_DATE'] || props['Start Day|Survey'] || props['Count Date (dd/mm/yyyy)'] || props['Count Date'] || props['DATE'] || props['COUNT_DATE'] || null,
+          count_date_raw: props['SURVEY_DATE'] || props['Survey Date'] || props['AADT_DATE'] || props['AAWT_DATE'] || props['Start Day|Survey'] || props['Count Date (dd/mm/yyyy)'] || props['Count Date'] || props['DATE'] || props['COUNT_DATE'] || props['recorded'] || null,
           vadt: 0,
           growth_rate: growthRate,
           hv_percent: hvPercent,
