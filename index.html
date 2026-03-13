@@ -11751,6 +11751,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             if (vadtEl) vadtEl.value = vadt;
             if (typeof updateAssumptionsPanel === 'function') updateAssumptionsPanel(nearest.data);
           }
+          handleSearchSuccess(matchResult);
         } catch (err) {
           if (errEl) {
             errEl.innerHTML = `<strong>❌ Search failed:</strong> ${String(err && err.message ? err.message : err)}`;
@@ -20486,6 +20487,27 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       }
     }
 
+    const nearbyWithinPreferred = analyzed
+      .filter((entry) => Number(entry.distanceKm) <= PREFERRED_MAX_RADIUS_KM)
+      .sort((a, b) => a.distanceKm - b.distanceKm)
+      .slice(0, 5)
+      .map((entry) => {
+        const cleaned = { ...entry };
+        delete cleaned.__roadNorm;
+        return cleaned;
+      });
+
+    if (nearbyWithinPreferred.length > 0) {
+      return {
+        type: 'SPATIAL_SNAP',
+        point: nearbyWithinPreferred[0],
+        payload: buildSafeSimulationPayload(nearbyWithinPreferred[0]),
+        exactMatches: [],
+        nearbyMatches: nearbyWithinPreferred,
+        usedRadiusKm: Number(PREFERRED_MAX_RADIUS_KM.toFixed(1))
+      };
+    }
+
     return {
       type: 'NO_MATCH',
       point: null,
@@ -21095,6 +21117,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       displayQuickTiaMultipleRefs(searchInput, nearbyArray, location.lat, location.lon, false, { excludedRefs, exclusionSummary });
       showNotification(`⚠ No fuzzy road-name matches. Using nearest counters within ${radiusLabel}km.`);
       }
+      handleSearchSuccess(matchResult);
 
       const selectedForDistanceCheck = [
         ...(Array.isArray(matchResult.exactMatches) ? matchResult.exactMatches.slice(0, 3) : []),
@@ -21130,6 +21153,21 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   }
 
   window.performQuickTIASearch = performQuickTIASearch;
+
+  function handleSearchSuccess(results) {
+    const panel = document.getElementById('quickTiaPanel');
+    if (panel) panel.style.display = 'block';
+
+    const manualPanel = document.getElementById('manualTrafficGenPanel');
+    const method = String((document.querySelector('input[name="trafficCalcMethod"]:checked') || {}).value || 'weighted');
+    if (method === 'manual' && manualPanel) {
+      manualPanel.style.display = 'block';
+    }
+    if (typeof toggleTrafficCalcMethod === 'function') {
+      try { toggleTrafficCalcMethod(); } catch (_) {}
+    }
+    return results || null;
+  }
 
   (function setupQuickTiaNearbyRoadsRadiusSlider() {
     const sliderEl = document.getElementById('quickTiaNearbyRoadsRadius');
@@ -21832,7 +21870,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
     
     resultHTML += `
-      <button id="applyTripGenBtn" onclick="applyToMainVadt()" style="margin-top: 8px; padding: 8px 15px; background: linear-gradient(135deg, #14746f 0%, #0a3f3c 100%); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(20, 116, 111, 0.3)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">
+      <button id="applyTripGenBtn" onclick="applyManualVadtToAssessment(${vadt})" style="margin-top: 8px; padding: 8px 15px; background: linear-gradient(135deg, #14746f 0%, #0a3f3c 100%); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(20, 116, 111, 0.3)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">
         ✓ Apply to Assessment
       </button>
     `;
@@ -21935,11 +21973,30 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     alert(`✅ Applied to Assessment!\\n\\n📈 Base VADT: ${generatedVadt.toLocaleString()} vehicles/day\\n🗓️ Base & Target Year: ${currentYear}${peakInfo}\\n\\nNote: Daily VADT uses 50/50 directional split. Peak hour directional splits are preserved for detailed analysis.`);
   }
 
+  function applyManualVadtToAssessment(totalVadt) {
+    const vadt = Math.max(0, Math.round(Number(totalVadt) || 0));
+    const resultDiv = document.getElementById('tripGenResult');
+    if (!vadt || !resultDiv) {
+      alert('⚠️ Please calculate a non-zero VADT before applying to assessment.');
+      return;
+    }
+    resultDiv.dataset.calculatedVadt = String(vadt);
+    if (!window.manualTrafficGenData || !Number(window.manualTrafficGenData.vadt)) {
+      window.manualTrafficGenData = {
+        vadt,
+        d1: Math.round(vadt * 0.5),
+        d2: Math.max(0, vadt - Math.round(vadt * 0.5))
+      };
+    }
+    applyToMainVadt();
+  }
+
   // Expose manual traffic generation functions to global scope for onclick handlers
   window.toggleTrafficCalcMethod = toggleTrafficCalcMethod;
   window.updateScenarioFields = updateScenarioFields;
   window.calculateTripGeneration = calculateTripGeneration;
   window.applyToMainVadt = applyToMainVadt;
+  window.applyManualVadtToAssessment = applyManualVadtToAssessment;
 
   // Initialize scenario fields in case browser restores cached dropdown value.
   document.addEventListener('DOMContentLoaded', function () {
