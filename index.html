@@ -7797,7 +7797,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   // ===== DATA CONFIG & LOADING =====
   const GITHUB_TMR_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/tmr.geojson';
   const GITHUB_GOLDCOAST_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/goldcoast.geojson';
-  const GITHUB_BRISBANE_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/Brisbane_vapd_ready.geojson';
+  const GITHUB_BRISBANE_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/Brisbane.geojson';
   const GITHUB_IPSWICH_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/Ipswich.geojson';
   const GITHUB_LOGAN_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/logan.geojson';
   const GITHUB_TOOWOOMBA_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/toowoomba.geojson';
@@ -10596,8 +10596,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       setLoadingState('Downloading live records...', 'Fetched TMR traffic feed.', 46);
       const goldCoastData = await fetchDatasetWithFallback(GITHUB_GOLDCOAST_URL, './goldcoast.geojson', 'Gold Coast');
       setLoadingState('Downloading live records...', 'Fetched Gold Coast traffic feed.', 50);
-      const brisbaneData = await fetchDatasetWithFallback(GITHUB_BRISBANE_URL, './Brisbane_vapd_ready.geojson', 'Brisbane');
-      setLoadingState('Downloading live records...', 'Fetched Brisbane VAPD-ready traffic feed.', 52);
+      const brisbaneData = await fetchDatasetWithFallback(GITHUB_BRISBANE_URL, './Brisbane.geojson', 'Brisbane');
+      setLoadingState('Downloading live records...', 'Fetched Brisbane traffic feed.', 52);
       const ipswichData = await fetchDatasetWithFallback(GITHUB_IPSWICH_URL, './Ipswich.geojson', 'Ipswich');
       setLoadingState('Downloading live records...', 'Fetched Ipswich traffic feed.', 56);
       const loganData = await fetchDatasetWithFallback(GITHUB_LOGAN_URL, './logan.geojson', 'Logan');
