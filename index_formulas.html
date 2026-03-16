@@ -4133,6 +4133,47 @@
       <div id="kpiModelProfile" style="margin-top:10px; padding:8px 10px; border-radius:6px; background:#eef3f7; border:1px solid #d0dde6; color:#1f5e63; font-size:0.88em; font-weight:700;">Model Profile: -</div>
     </details>
 
+    <!-- Data Visualization -->
+    <details class="card" id="macroDataVizSection" style="display:none;" open>
+      <summary id="macroDataVizSummaryText" style="cursor: pointer; font-size: 1.1em; font-weight: 700; color: #1f5e63; padding: 10px 0;">
+        📊 Traffic Data Visualization
+      </summary>
+      <div style="margin-top: 15px;">
+        <p id="macroDataVizSourceText" style="margin: 0 0 10px 0; font-size: 0.86em; color: #455a64; background: #f5f8fa; border: 1px solid #d7e2e8; border-radius: 6px; padding: 7px 10px;">
+          Source: Selected traffic profile
+        </p>
+        <h3 style="color: #1f5e63; margin: 0 0 10px 0;">Hourly Traffic Profile</h3>
+        <div class="chart-panel">
+          <canvas id="macroHourlyChart" class="chart-canvas-350"></canvas>
+        </div>
+        
+        <h3 style="color: #1f5e63; margin: 20px 0 10px 0;">Directional Distribution</h3>
+        <div class="report-keep-two-col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div>
+            <h4 id="macroDataVizD1Heading" style="text-align: center; color: #2e7d32; margin: 0 0 10px 0;">Direction 1, Gazettal</h4>
+            <canvas id="macroD1PieChart" class="chart-canvas-250"></canvas>
+          </div>
+          <div>
+            <h4 id="macroDataVizD2Heading" style="text-align: center; color: #c30000; margin: 0 0 10px 0;">Direction 2, Against Gazettal</h4>
+            <canvas id="macroD2PieChart" class="chart-canvas-250"></canvas>
+          </div>
+        </div>
+        
+        <h3 style="color: #1f5e63; margin: 20px 0 10px 0;">Peak Hour Analysis</h3>
+        <div id="macroPeakInsights" style="margin: 0 0 12px 0; padding: 12px; background: #eef7fa; border: 1px solid #b7d6dc; border-radius: 8px; color: #11363a; font-size: 0.92em;"></div>
+        <div class="report-keep-two-col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div style="background: #e8f5e9; border: 1px solid #4caf50; border-radius: 8px; padding: 12px;">
+            <h4 id="macroDataVizD1PeakHeading" style="color: #2e7d32; margin: 0 0 8px 0;">Direction 1, Gazettal Peak Hours</h4>
+            <div id="macroD1PeakHours" style="font-size: 0.9em;"></div>
+          </div>
+          <div style="background: #ffebee; border: 1px solid #ef5350; border-radius: 8px; padding: 12px;">
+            <h4 id="macroDataVizD2PeakHeading" style="color: #c30000; margin: 0 0 8px 0;">Direction 2, Against Gazettal Peak Hours</h4>
+            <div id="macroD2PeakHours" style="font-size: 0.9em;"></div>
+          </div>
+        </div>
+      </div>
+    </details>
+
     <div class="card">
       <h2>Grouped Directional Summary</h2>
       <p class="section-help">Compares AM/OP/PM/EV directional splits and totals used by downstream queue and VCR calculations.</p>
@@ -4454,48 +4495,6 @@
         <canvas id="hourlyVcrChart" class="chart-canvas-360"></canvas>
       </div>
     </details>
-
-    <!-- Data Visualization (Moved to report end) -->
-    <details class="card" id="macroDataVizSection" style="display:none;" open>
-      <summary id="macroDataVizSummaryText" style="cursor: pointer; font-size: 1.1em; font-weight: 700; color: #1f5e63; padding: 10px 0;">
-        📊 Traffic Data Visualization
-      </summary>
-      <div style="margin-top: 15px;">
-        <p id="macroDataVizSourceText" style="margin: 0 0 10px 0; font-size: 0.86em; color: #455a64; background: #f5f8fa; border: 1px solid #d7e2e8; border-radius: 6px; padding: 7px 10px;">
-          Source: Selected traffic profile
-        </p>
-        <h3 style="color: #1f5e63; margin: 0 0 10px 0;">Hourly Traffic Profile</h3>
-        <div class="chart-panel">
-          <canvas id="macroHourlyChart" class="chart-canvas-350"></canvas>
-        </div>
-        
-        <h3 style="color: #1f5e63; margin: 20px 0 10px 0;">Directional Distribution</h3>
-        <div class="report-keep-two-col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-          <div>
-            <h4 id="macroDataVizD1Heading" style="text-align: center; color: #2e7d32; margin: 0 0 10px 0;">Direction 1, Gazettal</h4>
-            <canvas id="macroD1PieChart" class="chart-canvas-250"></canvas>
-          </div>
-          <div>
-            <h4 id="macroDataVizD2Heading" style="text-align: center; color: #c30000; margin: 0 0 10px 0;">Direction 2, Against Gazettal</h4>
-            <canvas id="macroD2PieChart" class="chart-canvas-250"></canvas>
-          </div>
-        </div>
-        
-        <h3 style="color: #1f5e63; margin: 20px 0 10px 0;">Peak Hour Analysis</h3>
-        <div id="macroPeakInsights" style="margin: 0 0 12px 0; padding: 12px; background: #eef7fa; border: 1px solid #b7d6dc; border-radius: 8px; color: #11363a; font-size: 0.92em;"></div>
-        <div class="report-keep-two-col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-          <div style="background: #e8f5e9; border: 1px solid #4caf50; border-radius: 8px; padding: 12px;">
-            <h4 id="macroDataVizD1PeakHeading" style="color: #2e7d32; margin: 0 0 8px 0;">Direction 1, Gazettal Peak Hours</h4>
-            <div id="macroD1PeakHours" style="font-size: 0.9em;"></div>
-          </div>
-          <div style="background: #ffebee; border: 1px solid #ef5350; border-radius: 8px; padding: 12px;">
-            <h4 id="macroDataVizD2PeakHeading" style="color: #c30000; margin: 0 0 8px 0;">Direction 2, Against Gazettal Peak Hours</h4>
-            <div id="macroD2PeakHours" style="font-size: 0.9em;"></div>
-          </div>
-        </div>
-      </div>
-    </details>
-
 
     <div class="card" id="detourCard" style="border: 2px solid #8e24aa;">
       <h2 class="optional-card-title">
@@ -6552,7 +6551,7 @@
     const charts = [];
     chartEls.forEach((canvasEl, idx) => {
       try {
-        const dataUrl = canvasEl.toDataURL('image/jpeg', 0.8);
+        const dataUrl = canvasEl.toDataURL('image/png');
         if (!dataUrl || !dataUrl.startsWith('data:image/')) return;
         charts.push({
           title: getChartHeading(canvasEl, idx),
@@ -8309,7 +8308,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   const GITHUB_TOOWOOMBA_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/toowoomba.geojson';
   const GITHUB_TEWANTIN_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/tewantin.geojson';
   const GITHUB_NSW_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/TNSW.geojson';
-  const GITHUB_CACHE_PREFIX = 'crompton_tia_cache_v3:';
+  const GITHUB_CACHE_PREFIX = 'crompton_tia_cache_v4:';
   const GITHUB_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const GITHUB_FETCH_TIMEOUT_MS = 60000;
   const githubRefreshInflight = new Map();
@@ -11155,7 +11154,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         setLoadingState('Downloading live records...', 'Fetched TMR traffic feed.', 46);
         goldCoastData = await fetchDatasetWithFallback(GITHUB_GOLDCOAST_URL, './goldcoast.geojson', 'Gold Coast');
         setLoadingState('Downloading live records...', 'Fetched Gold Coast traffic feed.', 50);
-        brisbaneData = await fetchDatasetWithFallback(GITHUB_BRISBANE_URL, './Brisbane.geojson', 'Brisbane');
+        brisbaneData = await fetchDatasetWithFallback(GITHUB_BRISBANE_URL, '', 'Brisbane');
         setLoadingState('Downloading live records...', 'Fetched Brisbane traffic feed.', 52);
         ipswichData = await fetchDatasetWithFallback(GITHUB_IPSWICH_URL, './Ipswich.geojson', 'Ipswich');
         setLoadingState('Downloading live records...', 'Fetched Ipswich traffic feed.', 56);

@@ -414,7 +414,7 @@ def editor_page(draft_id: str) -> str:
     /* Charts */
     .chart-block {{ width: 100%; max-width: 100%; margin: 0 0 16px; }}
     .chart-title {{ margin-bottom: 8px; }}
-    .chart-img {{ width: 100%; max-width: 100%; height: auto; border: 1px solid var(--border); display: block; margin: 10px 0; object-fit: contain; }}
+    .chart-img {{ width: auto; max-width: 100%; height: auto; border: 1px solid var(--border); display: block; margin: 10px auto; object-fit: contain; image-rendering: auto; }}
     .chart-caption {{ min-height: 48px; }}
 
     /* Table of Contents Styles */
@@ -584,8 +584,16 @@ def editor_page(draft_id: str) -> str:
 
     function refreshToc() {{
       const tocContent = document.getElementById("toc-content");
-      const headers = document.querySelectorAll("main h2:not(.toc-title), main h3, main h4.chart-title");
-      if (!tocContent || headers.length === 0) return;
+      if (!tocContent) return;
+
+      const headers = Array.from(document.querySelectorAll("main h2:not(.toc-title), main h3, main h4.chart-title"))
+        .filter((header) => header && header.isConnected)
+        .filter((header) => String(header.innerText || '').trim().length > 0);
+
+      if (headers.length === 0) {{
+        tocContent.innerHTML = '<div class="toc-item toc-h3">No sections available.</div>';
+        return;
+      }}
 
       let tocHTML = "";
       headers.forEach((header, index) => {{
@@ -604,6 +612,49 @@ def editor_page(draft_id: str) -> str:
       tocContent.innerHTML = tocHTML;
     }}
 
+    function bindTocAutoRefresh() {{
+      const reportMain = document.querySelector('main.document-wrapper');
+      if (!reportMain) return;
+
+      let refreshHandle = null;
+      const scheduleRefresh = () => {{
+        if (refreshHandle) return;
+        refreshHandle = window.setTimeout(() => {{
+          refreshHandle = null;
+          refreshToc();
+        }}, 80);
+      }};
+
+      const observer = new MutationObserver((mutations) => {{
+        for (const mutation of mutations) {{
+          if (mutation.type === 'childList') {{
+            scheduleRefresh();
+            return;
+          }}
+          if (mutation.type === 'characterData') {{
+            const parent = mutation.target && mutation.target.parentElement;
+            if (parent && parent.matches && parent.matches('h2, h3, h4.chart-title')) {{
+              scheduleRefresh();
+              return;
+            }}
+          }}
+        }}
+      }});
+
+      observer.observe(reportMain, {{
+        childList: true,
+        subtree: true,
+        characterData: true
+      }});
+
+      document.addEventListener('input', (event) => {{
+        const target = event && event.target;
+        if (target && target.matches && target.matches('h2, h3, h4.chart-title')) {{
+          scheduleRefresh();
+        }}
+      }});
+    }}
+
     function removeReportBlock(btn) {{
       const block = btn && btn.closest('.report-block');
       if (!block) return;
@@ -615,6 +666,7 @@ def editor_page(draft_id: str) -> str:
       hydrateChartsFromPayload();
       enableStrongEditability();
       refreshToc();
+      bindTocAutoRefresh();
     }});
   </script>
 </body>
