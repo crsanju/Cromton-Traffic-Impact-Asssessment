@@ -8302,7 +8302,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   // ===== DATA CONFIG & LOADING =====
   const GITHUB_TMR_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/tmr.geojson';
   const GITHUB_GOLDCOAST_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/goldcoast.geojson';
-  const GITHUB_BRISBANE_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/Brisbane.geojson';
+  const GITHUB_BRISBANE_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/Brisbane.geojson';
   const GITHUB_IPSWICH_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/Ipswich.geojson';
   const GITHUB_LOGAN_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/logan.geojson';
   const GITHUB_TOOWOOMBA_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/toowoomba.geojson';
@@ -10294,12 +10294,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   }
 
   async function fetchDatasetWithFallback(primaryUrl, fallbackUrl, sourceLabel) {
-    const primary = await fetchGitHubData(primaryUrl);
-    if (isGeoJsonFeatureCollection(primary)) return primary;
-
+    // Always attempt a cache-bypassed request first so dataset updates appear immediately.
     const cacheBypassUrl = `${primaryUrl}${primaryUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`;
     const primaryBypass = await fetchGitHubData(cacheBypassUrl);
     if (isGeoJsonFeatureCollection(primaryBypass)) return primaryBypass;
+
+    const primary = await fetchGitHubData(primaryUrl);
+    if (isGeoJsonFeatureCollection(primary)) return primary;
 
     const mirrorUrl = buildGithubCdnMirrorUrl(primaryUrl);
     if (mirrorUrl) {
