@@ -2,6 +2,20 @@
 
 This repository contains the Traffic Impact Assessment tool.
 
+## Ownership
+
+Copyright © 2026 Crompton Concepts. All rights reserved.
+
+Unless stated otherwise in third-party dependencies or bundled assets, the source code and application materials in this repository are owned by Crompton Concepts.
+
+## License
+
+This repository is distributed under the proprietary terms set out in [LICENSE](LICENSE).
+
+No public right to copy, modify, redistribute, or create derivative works is granted except where Crompton Concepts provides written authorization.
+
+Third-party materials, if any, remain subject to their own applicable license terms.
+
 ## Index Sync Workflow
 
 `index_formulas.html` is generated from `index.html` and must stay in sync.
