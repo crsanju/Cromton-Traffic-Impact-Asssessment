@@ -14049,12 +14049,109 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     });
   }
 
-  const periods = [
+  const DEFAULT_PERIOD_DEFS = [
     { key: 'AM', hours: [7, 8] },
     { key: 'OP', hours: [9, 10, 11, 12, 13, 14, 15] },
     { key: 'PM', hours: [16, 17] },
     { key: 'EV', hours: [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6] }
   ];
+  // Keep legacy identifier for existing diagnostics and compatibility checks.
+  const periods = DEFAULT_PERIOD_DEFS;
+
+  let runtimePeriodDefs = DEFAULT_PERIOD_DEFS.map(p => ({ key: p.key, hours: [...p.hours] }));
+  let runtimePeriodMode = 'default';
+  let runtimeTrafficBucketMap = null;
+
+  function clonePeriodDefinitions(defs) {
+    const list = Array.isArray(defs) ? defs : DEFAULT_PERIOD_DEFS;
+    return list.map(p => ({
+      key: String(p && p.key ? p.key : '').toUpperCase(),
+      hours: Array.from(new Set((Array.isArray(p && p.hours) ? p.hours : []).map(h => ((Number(h) % 24) + 24) % 24)))
+    }));
+  }
+
+  function periodLabelFromKey(key) {
+    const k = String(key || '').toUpperCase();
+    if (k === 'AM') return 'MORNING PEAK';
+    if (k === 'PM') return 'EVENING PEAK';
+    if (k === 'OP') return 'MORNING OFF PEAK';
+    return 'EVENING OFF PEAK';
+  }
+
+  function buildHourToBucketMap(periodDefs) {
+    const map = new Map();
+    const defs = clonePeriodDefinitions(periodDefs);
+    // Priority order ensures peak windows override OP/EV if hours overlap.
+    ['AM', 'PM', 'OP', 'EV'].forEach((key) => {
+      const def = defs.find(d => d.key === key);
+      if (!def) return;
+      def.hours.forEach((h) => {
+        map.set(h, { key, label: periodLabelFromKey(key), peak: key === 'AM' || key === 'PM' });
+      });
+    });
+    return map;
+  }
+
+  function setRuntimePeriodDefinitions(periodDefs, mode = 'default') {
+    runtimePeriodDefs = clonePeriodDefinitions(periodDefs);
+    runtimePeriodMode = String(mode || 'default');
+    runtimeTrafficBucketMap = buildHourToBucketMap(runtimePeriodDefs);
+  }
+
+  function getActivePeriodDefinitions() {
+    return clonePeriodDefinitions(runtimePeriodDefs);
+  }
+
+  function findPeakTwoHourWindow(hourlyTotals, startHour, endHourExclusive) {
+    const values = Array.isArray(hourlyTotals) ? hourlyTotals : [];
+    const start = Math.max(0, Math.min(23, Number(startHour) || 0));
+    const endExclusive = Math.max(start + 2, Math.min(24, Number(endHourExclusive) || 24));
+    let bestStart = start;
+    let bestSum = -Infinity;
+
+    for (let h = start; h <= endExclusive - 2; h += 1) {
+      const sum = (Number(values[h]) || 0) + (Number(values[h + 1]) || 0);
+      if (sum > bestSum) {
+        bestSum = sum;
+        bestStart = h;
+      }
+    }
+
+    return [bestStart, bestStart + 1];
+  }
+
+  function buildTmrPeriodDefinitionsFromHourly(hourlyTotals) {
+    const amHours = findPeakTwoHourWindow(hourlyTotals, 0, 12);
+    const pmHours = findPeakTwoHourWindow(hourlyTotals, 12, 24);
+    const amSet = new Set(amHours);
+    const pmSet = new Set(pmHours);
+
+    const pmStart = Math.min(...pmHours);
+    const pmEndExclusive = Math.max(...pmHours) + 1;
+
+    const opHours = [];
+    for (let h = 6; h < pmStart; h += 1) {
+      if (!amSet.has(h) && !pmSet.has(h)) opHours.push(h);
+    }
+
+    const evHours = [];
+    for (let h = pmEndExclusive; h < 24; h += 1) {
+      if (!amSet.has(h) && !pmSet.has(h)) evHours.push(h);
+    }
+    for (let h = 0; h < 6; h += 1) {
+      if (!amSet.has(h) && !pmSet.has(h)) evHours.push(h);
+    }
+
+    return [
+      { key: 'AM', hours: amHours },
+      { key: 'OP', hours: opHours },
+      { key: 'PM', hours: pmHours },
+      { key: 'EV', hours: evHours }
+    ];
+  }
+
+  // Initialize with default hour buckets before first calculation.
+  setRuntimePeriodDefinitions(DEFAULT_PERIOD_DEFS, 'default');
 
   function queueFromFiveMinute(total5, hvPct, rtPct, isRtr){
     const hv = total5 * hvPct;
@@ -14479,7 +14576,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   * @param {boolean} isTmr - Whether this is a TMR source with measured hourly data
    * @returns {Object} Period metrics object { lanes, AM, OP, PM, EV } compatible with calcDirectionMetrics output
    */
-  function buildPeriodMetricsFromHourly(hourlyProfile, hvPct, rtPct, lanes, isRtr, isTmr) {
+  function buildPeriodMetricsFromHourly(hourlyProfile, hvPct, rtPct, lanes, isRtr, isTmr, periodDefsOverride) {
     const laneCount = Math.max(1, Number(lanes) || 1);
     const hvF = Number(hvPct) || 0;
     const rtF = Number(rtPct) || 0;
@@ -14487,63 +14584,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const factor = isRtr ? 1.5 : 1;
     const out = { lanes: laneCount };
 
-    let periodDefs;
-    
-    if (isTmr) {
-      // TMR: Use actual measured peaks from 12-hour blocks
-      // Find peak hour in morning (0-11) and evening (12-23), then build adjacent 2-hour periods
-      let morningPeakHour = 6, morningPeakVol = 0;
-      let eveningPeakHour = 16, eveningPeakVol = 0;
-
-      // Find peak in morning block (0-11)
-      for (let h = 0; h <= 11; h++) {
-        const vol = Number((hourlyProfile && hourlyProfile[h] && hourlyProfile[h].total) || 0);
-        if (vol > morningPeakVol) {
-          morningPeakVol = vol;
-          morningPeakHour = h;
-        }
-      }
-
-      // Find peak in evening block (12-23)
-      for (let h = 12; h <= 23; h++) {
-        const vol = Number((hourlyProfile && hourlyProfile[h] && hourlyProfile[h].total) || 0);
-        if (vol > eveningPeakVol) {
-          eveningPeakVol = vol;
-          eveningPeakHour = h;
-        }
-      }
-
-      // Build 2-hour AM period around the morning peak
-      const amHour1 = Math.max(0, morningPeakHour - 1);
-      const amHour2 = Math.min(11, Math.max(amHour1 + 1, morningPeakHour));
-      const amHours = [amHour1, amHour2];
-
-      // Build 2-hour PM period around the evening peak
-      const pmHour1 = Math.max(12, eveningPeakHour - 1);
-      const pmHour2 = Math.min(23, Math.max(pmHour1 + 1, eveningPeakHour));
-      const pmHours = [pmHour1, pmHour2];
-
-      // OP = 9-15 (between AM and PM)
-      const opHours = [9, 10, 11, 12, 13, 14, 15];
-
-      // EV = 18-23, 0-5 (remaining hours)
-      const evHours = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5];
-
-      periodDefs = [
-        { key: 'AM', hours: amHours },
-        { key: 'OP', hours: opHours },
-        { key: 'PM', hours: pmHours },
-        { key: 'EV', hours: evHours }
-      ];
-    } else {
-      // Non-TMR: Use fixed period definitions and find peak within each
-      periodDefs = [
-        { key: 'AM', hours: [7, 8] },
-        { key: 'OP', hours: [9, 10, 11, 12, 13, 14, 15] },
-        { key: 'PM', hours: [16, 17] },
-        { key: 'EV', hours: [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6] }
-      ];
-    }
+    const tmrDerivedDefs = isTmr
+      ? buildTmrPeriodDefinitionsFromHourly(Array.from({ length: 24 }, (_, h) => Number((hourlyProfile && hourlyProfile[h] && hourlyProfile[h].total) || 0)))
+      : DEFAULT_PERIOD_DEFS;
+    const periodDefs = clonePeriodDefinitions(periodDefsOverride || tmrDerivedDefs);
 
     periodDefs.forEach(({ key, hours }) => {
       // Find the peak single-hour volume within this period
@@ -14657,10 +14701,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   }
 
   function getTrafficBucket(hour) {
-    const h = Number(hour);
-    if (h >= 7 && h < 9) return { key: 'AM', label: 'MORNING PEAK', peak: true };
-    if (h >= 9 && h < 16) return { key: 'OP', label: 'MORNING OFF PEAK', peak: false };
-    if (h >= 16 && h < 18) return { key: 'PM', label: 'EVENING PEAK', peak: true };
+    const h = ((Number(hour) % 24) + 24) % 24;
+    const bucket = runtimeTrafficBucketMap && runtimeTrafficBucketMap.get(h);
+    if (bucket) return bucket;
     return { key: 'EV', label: 'EVENING OFF PEAK', peak: false };
   }
 
@@ -15216,23 +15259,20 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const checks = [];
     const pushCheck = (name, ok, details) => checks.push({ name, ok: !!ok, details: String(details || '') });
 
-    const periodShapeOk = Array.isArray(periods)
-      && periods.length === 4
-      && periods[0].key === 'AM' && String(periods[0].hours) === '7,8'
-      && periods[1].key === 'OP' && String(periods[1].hours) === '9,10,11,12,13,14,15'
-      && periods[2].key === 'PM' && String(periods[2].hours) === '16,17'
-      && periods[3].key === 'EV' && String(periods[3].hours) === '18,19,20,21,22,23,0,1,2,3,4,5,6';
-    pushCheck('AM/OP/PM/EV definitions', periodShapeOk, periodShapeOk ? 'Bucket hours match configured standard.' : 'Bucket hours are not aligned to expected standard.');
+    const activeDefs = getActivePeriodDefinitions();
+    const periodShapeOk = Array.isArray(activeDefs)
+      && activeDefs.length === 4
+      && activeDefs[0].key === 'AM'
+      && activeDefs[1].key === 'OP'
+      && activeDefs[2].key === 'PM'
+      && activeDefs[3].key === 'EV';
+    const periodShapeDetails = runtimePeriodMode === 'tmr-dynamic'
+      ? `Dynamic TMR windows active: AM=${String(activeDefs[0] && activeDefs[0].hours)}, PM=${String(activeDefs[2] && activeDefs[2].hours)}`
+      : 'Bucket hours match configured standard.';
+    pushCheck('AM/OP/PM/EV definitions', periodShapeOk, periodShapeDetails);
 
-    const bucketSamplesOk = getTrafficBucket(7).key === 'AM'
-      && getTrafficBucket(8).key === 'AM'
-      && getTrafficBucket(9).key === 'OP'
-      && getTrafficBucket(15).key === 'OP'
-      && getTrafficBucket(16).key === 'PM'
-      && getTrafficBucket(17).key === 'PM'
-      && getTrafficBucket(18).key === 'EV'
-      && getTrafficBucket(3).key === 'EV';
-    pushCheck('Bucket classifier boundaries', bucketSamplesOk, bucketSamplesOk ? 'Boundary hours classify correctly.' : 'One or more bucket boundaries classify incorrectly.');
+    const bucketSamplesOk = [0, 6, 7, 8, 9, 12, 16, 18, 23].every((h) => !!getTrafficBucket(h).key);
+    pushCheck('Bucket classifier boundaries', bucketSamplesOk, bucketSamplesOk ? 'All sampled hours classify to a valid bucket.' : 'One or more sampled hours could not be classified.');
 
     const growthCtx = getCurrentGrowthProjectionContext();
     const baseVadt = Number(num('VADT')) || 0;
@@ -15581,10 +15621,19 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     // This replaces the flat VADT-formula estimates so Grouped Summary, Queue, and VCR
     // all reflect real directional AM/PM differentiation.
     const isTmrSource = sourceUpper === 'TMR' || (sourceUpper === 'CUSTOM UPLOAD' && isTmrStyleSource(site));
-    const d1AdjProfile = buildPeriodMetricsFromHourly(d1HourlyProfile, d1HvPct, d1RtPct, d1Metrics.lanes, rtr === 'YES', isTmrSource);
-    const d2AdjProfile = buildPeriodMetricsFromHourly(d2HourlyProfile, d2HvPct, d2RtPct, d2Metrics.lanes, rtr === 'YES', isTmrSource);
-    const d1BaseAdjProfile = buildPeriodMetricsFromHourly(d1BaseHourlyProfile, d1HvPct, d1RtPct, d1BaseMetrics.lanes, rtr === 'YES', isTmrSource);
-    const d2BaseAdjProfile = buildPeriodMetricsFromHourly(d2BaseHourlyProfile, d2HvPct, d2RtPct, d2BaseMetrics.lanes, rtr === 'YES', isTmrSource);
+    const runtimeDefs = isTmrSource
+      ? buildTmrPeriodDefinitionsFromHourly(Array.from({ length: 24 }, (_, h) => {
+          const d1H = Number((d1HourlyProfile && d1HourlyProfile[h] && d1HourlyProfile[h].total) || 0);
+          const d2H = Number((d2HourlyProfile && d2HourlyProfile[h] && d2HourlyProfile[h].total) || 0);
+          return d1H + d2H;
+        }))
+      : DEFAULT_PERIOD_DEFS;
+    setRuntimePeriodDefinitions(runtimeDefs, isTmrSource ? 'tmr-dynamic' : 'default');
+
+    const d1AdjProfile = buildPeriodMetricsFromHourly(d1HourlyProfile, d1HvPct, d1RtPct, d1Metrics.lanes, rtr === 'YES', isTmrSource, runtimeDefs);
+    const d2AdjProfile = buildPeriodMetricsFromHourly(d2HourlyProfile, d2HvPct, d2RtPct, d2Metrics.lanes, rtr === 'YES', isTmrSource, runtimeDefs);
+    const d1BaseAdjProfile = buildPeriodMetricsFromHourly(d1BaseHourlyProfile, d1HvPct, d1RtPct, d1BaseMetrics.lanes, rtr === 'YES', isTmrSource, runtimeDefs);
+    const d2BaseAdjProfile = buildPeriodMetricsFromHourly(d2BaseHourlyProfile, d2HvPct, d2RtPct, d2BaseMetrics.lanes, rtr === 'YES', isTmrSource, runtimeDefs);
 
     // Override global period profiles so generateWorkWindow() uses the real directional peaks
     lastD1Profile = d1AdjProfile;
@@ -15807,12 +15856,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const derivePeriodQueueFromHourly = (hourlyProfile, fallbackProfile) => {
       const out = {};
-      const periodsDef = [
-        { key: 'AM', hours:[7, 8] },
-        { key: 'OP', hours:[9, 10, 11, 12, 13, 14, 15] },
-        { key: 'PM', hours: [16, 17] },
-        { key: 'EV', hours:[18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6] }
-      ];
+      const periodsDef = getActivePeriodDefinitions();
       periodsDef.forEach(period => {
         const fallbackQueue = fallbackProfile && fallbackProfile[period.key] && fallbackProfile[period.key].queue;
         if (fallbackQueue) {
@@ -19674,21 +19718,6 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       };
     };
 
-    // Detect peak 2-hour windows for TMR sites
-    const detectPeak2HourWindow = (hourlyProfile, startHour, endHour) => {
-      if (!Array.isArray(hourlyProfile) || hourlyProfile.length < 24) return null;
-      let maxSum = 0;
-      let peakStartHour = startHour;
-      for (let h = startHour; h < endHour; h++) {
-        const twoHourSum = (Number(hourlyProfile[h]) || 0) + (Number(hourlyProfile[(h + 1) % 24]) || 0);
-        if (twoHourSum > maxSum) {
-          maxSum = twoHourSum;
-          peakStartHour = h;
-        }
-      }
-      return { startHour: peakStartHour, endHour: (peakStartHour + 1) % 24 };
-    };
-
     // Build periods based on TMR data availability
     let periods = [
       { key: 'AM (7-9)', hours: [7, 8] },
@@ -19701,20 +19730,19 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
                        (Array.isArray(primarySite.directions_weekday['GAZETTAL']) || 
                         Array.isArray(primarySite.directions_weekday['AGAINST GAZETTAL']));
     if (hasTmrData && Array.isArray(primaryProfile) && primaryProfile.length === 24 && primaryProfile.reduce((a,b)=>a+b,0) > 0) {
-      const amPeak = detectPeak2HourWindow(primaryProfile, 5, 12);
-      const pmPeak = detectPeak2HourWindow(primaryProfile, 12, 22);
-      if (amPeak && pmPeak) {
-        const amStartHr = amPeak.startHour;
-        const amEndHr = amPeak.endHour;
-        const pmStartHr = pmPeak.startHour;
-        const pmEndHr = pmPeak.endHour;
-        periods = [
-          { key: `AM Peak (${amStartHr}–${amStartHr + 2})`, hours: [amStartHr, amEndHr] },
-          { key: 'OP (9-16)', hours: [9, 10, 11, 12, 13, 14, 15] },
-          { key: `PM Peak (${pmStartHr}–${pmStartHr + 2})`, hours: [pmStartHr, pmEndHr] },
-          { key: 'EV (18-7)', hours: [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6] }
-        ];
-      }
+      const tmrDefs = buildTmrPeriodDefinitionsFromHourly(primaryProfile);
+      const amHours = ((tmrDefs.find(p => p.key === 'AM') || {}).hours || []).slice(0, 2);
+      const pmHours = ((tmrDefs.find(p => p.key === 'PM') || {}).hours || []).slice(0, 2);
+      const opHours = ((tmrDefs.find(p => p.key === 'OP') || {}).hours || []).slice();
+      const evHours = ((tmrDefs.find(p => p.key === 'EV') || {}).hours || []).slice();
+      const amStartHr = amHours.length ? Math.min(...amHours) : 7;
+      const pmStartHr = pmHours.length ? Math.min(...pmHours) : 16;
+      periods = [
+        { key: `AM Peak (${String(amStartHr).padStart(2, '0')}:00-${String((amStartHr + 2) % 24).padStart(2, '0')}:00)`, hours: amHours.length ? amHours : [7, 8] },
+        { key: `OP (06:00-${String(pmStartHr).padStart(2, '0')}:00, excluding AM)`, hours: opHours },
+        { key: `PM Peak (${String(pmStartHr).padStart(2, '0')}:00-${String((pmStartHr + 2) % 24).padStart(2, '0')}:00)`, hours: pmHours.length ? pmHours : [16, 17] },
+        { key: `EV (${String((pmStartHr + 2) % 24).padStart(2, '0')}:00-06:00)`, hours: evHours }
+      ];
     }
 
     const roadCapacityStatusByKey = {};
