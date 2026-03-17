@@ -11831,6 +11831,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const d1Peaks = getPeakHours(gazData);
     const d2Peaks = getPeakHours(agData);
 
+    const activePeriodDefs = getActivePeriodDefinitions();
+    const amHoursSet = new Set(((activePeriodDefs.find(p => p.key === 'AM') || {}).hours || []).map(h => Number(h)));
+    const pmHoursSet = new Set(((activePeriodDefs.find(p => p.key === 'PM') || {}).hours || []).map(h => Number(h)));
+
+    const getPeakWindowRowStyle = (hour, borderColor) => {
+      const h = Number(hour);
+      if (amHoursSet.has(h)) return `background:#fff3cd; font-weight:700; border-left:3px solid ${borderColor};`;
+      if (pmHoursSet.has(h)) return `background:#ffe5b4; font-weight:700; border-left:3px solid ${borderColor};`;
+      return '';
+    };
+
     const formatHourWindow = (hourValue) => {
       const h = Number(hourValue);
       if (!Number.isFinite(h)) return 'N/A';
@@ -11901,13 +11912,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           const share = d1Total > 0 ? (p.volume / d1Total) * 100 : 0;
           const diff = p.volume - opposing;
           const diffText = `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()} vph`;
+          const rowStyle = getPeakWindowRowStyle(p.hour, '#b8860b');
           return `<tr>
-            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:center;">${i + 1}</td>
-            <td style="padding:4px 6px; border:1px solid #b7dcb9;">${formatHourWindow(p.hour)}</td>
-            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right;">${Math.round(p.volume).toLocaleString()}</td>
-            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right;">${share.toFixed(1)}%</td>
-            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right;">${Math.round(opposing).toLocaleString()}</td>
-            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right;">${diffText}</td>
+            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:center; ${rowStyle}">${i + 1}</td>
+            <td style="padding:4px 6px; border:1px solid #b7dcb9; ${rowStyle}">${formatHourWindow(p.hour)}</td>
+            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right; ${rowStyle}">${Math.round(p.volume).toLocaleString()}</td>
+            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right; ${rowStyle}">${share.toFixed(1)}%</td>
+            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right; ${rowStyle}">${Math.round(opposing).toLocaleString()}</td>
+            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right; ${rowStyle}">${diffText}</td>
           </tr>`;
         }).join('');
 
@@ -11941,13 +11953,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           const share = d2Total > 0 ? (p.volume / d2Total) * 100 : 0;
           const diff = p.volume - opposing;
           const diffText = `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()} vph`;
+          const rowStyle = getPeakWindowRowStyle(p.hour, '#cc6f00');
           return `<tr>
-            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:center;">${i + 1}</td>
-            <td style="padding:4px 6px; border:1px solid #f0b4b4;">${formatHourWindow(p.hour)}</td>
-            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right;">${Math.round(p.volume).toLocaleString()}</td>
-            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right;">${share.toFixed(1)}%</td>
-            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right;">${Math.round(opposing).toLocaleString()}</td>
-            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right;">${diffText}</td>
+            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:center; ${rowStyle}">${i + 1}</td>
+            <td style="padding:4px 6px; border:1px solid #f0b4b4; ${rowStyle}">${formatHourWindow(p.hour)}</td>
+            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right; ${rowStyle}">${Math.round(p.volume).toLocaleString()}</td>
+            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right; ${rowStyle}">${share.toFixed(1)}%</td>
+            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right; ${rowStyle}">${Math.round(opposing).toLocaleString()}</td>
+            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right; ${rowStyle}">${diffText}</td>
           </tr>`;
         }).join('');
 
