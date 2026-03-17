@@ -15474,6 +15474,18 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       : (customDirectionContext && customDirectionContext.d2Label ? customDirectionContext.d2Label : 'Direction 2, Against Gazettal');
     const d1Label = formatDirectionalCodeLabel('D1', rawD1Label);
     const d2Label = formatDirectionalCodeLabel('D2', rawD2Label);
+
+    const toOperationalWorkWindowLabel = (directionCode, rawLabel, fallbackLabel) => {
+      const stream = inferDirectionalStreamLabel(directionCode, rawLabel);
+      const cardinal = inferCardinalDirectionText(rawLabel) || inferCardinalFromMapBearing(directionCode);
+      const parts = [String(directionCode || '').trim().toUpperCase(), stream];
+      if (cardinal) parts.push(cardinal);
+      const text = parts.filter(Boolean).join(' | ').trim();
+      return text || String(fallbackLabel || rawLabel || directionCode).trim();
+    };
+
+    const wwD1Label = toOperationalWorkWindowLabel('D1', rawD1Label, d1Label);
+    const wwD2Label = toOperationalWorkWindowLabel('D2', rawD2Label, d2Label);
     const dtca = txt('DTCA').toUpperCase();
     const dhvpa = txt('DHVPA').toUpperCase();
     const drtpa = txt('DRTPA').toUpperCase();
@@ -20972,8 +20984,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return d2Lanes > 1 ? ((vol2 / getEffectiveOpenLanes(d2Lanes)) / dv2) : (vol2 / dv2);
     });
 
-    const d1Schedule = buildSchedule(`${d1Label} Scheduler`, d1VcrByHour);
-    const d2Schedule = buildSchedule(`${d2Label} Scheduler`, d2VcrByHour);
+    const d1Schedule = buildSchedule(`${wwD1Label} Scheduler`, d1VcrByHour);
+    const d2Schedule = buildSchedule(`${wwD2Label} Scheduler`, d2VcrByHour);
     timelineEl.appendChild(d1Schedule.card);
     timelineEl.appendChild(d2Schedule.card);
 
@@ -20981,9 +20993,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const d1Summary = d1Schedule.windows.length ? d1Schedule.windows.join(' & ') : 'No permitted windows';
     const d2Summary = d2Schedule.windows.length ? d2Schedule.windows.join(' & ') : 'No permitted windows';
     summaryEl.innerHTML = `
-      <div style="color:#1f5e63; font-weight:700;">🕒 Directional Permitted Work Windows (SLC)</div>
-      <div style="margin-top:4px;"><strong>${d1Label}:</strong> ${d1Summary}</div>
-      <div style="margin-top:2px;"><strong>${d2Label}:</strong> ${d2Summary}</div>
+      <div style="color:#1f5e63; font-weight:700;">🕒 Directional Permitted Work Windows (SLC, threshold ≤ ${maxVcr.toFixed(2)})</div>
+      <div style="margin-top:4px;"><strong>${wwD1Label}:</strong> ${d1Summary}</div>
+      <div style="margin-top:2px;"><strong>${wwD2Label}:</strong> ${d2Summary}</div>
     `;
   }
 
