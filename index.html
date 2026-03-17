@@ -10442,6 +10442,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return 2024;
     };
 
+    const isLeapYear = (yearValue) => {
+      const y = Number(yearValue);
+      if (!Number.isFinite(y)) return false;
+      return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+    };
+
     const calcLoganHvPercent = (props) => {
       const heavyFields = ['M3_5_PCENT', 'M4_5_PCENT', 'L3_PCENT', 'L4_PCENT', 'L5_PCENT', 'L6_PCENT', 'L7_8_PCENT'];
       const total = heavyFields.reduce((sum, field) => sum + (Number(props[field]) || 0), 0);
@@ -10640,6 +10646,21 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         props['ADT'],
         props['total_volume']
       ));
+      const yearlyVolumeFromProps = parseVolumeValue(firstDefinedValue(
+        props['Yearly_Volume'],
+        props['yearly_volume'],
+        props['YEARLY_VOLUME']
+      ));
+      const yearlyBasisYear = parseYearFromAny(
+        props['Latest_Year_For_Yearly'],
+        props['Yearly_Summary_Year'],
+        props['Latest_Year'],
+        props['Latest_Date'],
+        props['YEAR']
+      );
+      const derivedDailyFromYearly = (isNsw && (!totalVadtFromProps || totalVadtFromProps <= 0) && yearlyVolumeFromProps && yearlyVolumeFromProps > 0)
+        ? Math.max(1, Math.round(yearlyVolumeFromProps / (isLeapYear(yearlyBasisYear) ? 366 : 365)))
+        : null;
 
       let d1VadtFromProps = parseVolumeValue(firstDefinedValue(
         props['D1_VADT'],
@@ -10686,6 +10707,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           count_day_of_week: countDayOfWeek,
           count_date_raw: props['SURVEY_DATE'] || props['Survey Date'] || props['AADT_DATE'] || props['AAWT_DATE'] || props['Start Day|Survey'] || props['Count Date (dd/mm/yyyy)'] || props['Count Date'] || props['DATE'] || props['COUNT_DATE'] || props['recorded'] || null,
           vadt: 0,
+          vadt_is_estimated: false,
+          vadt_estimate_note: '',
           growth_rate: growthRate,
           hv_percent: hvPercent,
           road_class: roadClass,
@@ -10726,6 +10749,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const site = sites[siteId];
       if (totalVadtFromProps && (!site.vadt || site.vadt <= 0 || countYear >= (site.countYear || 0))) {
         site.vadt = totalVadtFromProps;
+        site.vadt_is_estimated = false;
+        site.vadt_estimate_note = '';
+      } else if (derivedDailyFromYearly && (!site.vadt || site.vadt <= 0 || countYear >= (site.countYear || 0))) {
+        site.vadt = derivedDailyFromYearly;
+        site.vadt_is_estimated = true;
+        site.vadt_estimate_note = `Estimated from NSW yearly volume (${Math.round(yearlyVolumeFromProps).toLocaleString()}/year for ${yearlyBasisYear})`;
       }
       if (d1VadtFromProps) site.d1_vadt = d1VadtFromProps;
       if (d2VadtFromProps) site.d2_vadt = d2VadtFromProps;
@@ -10862,6 +10891,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
           if ((!site.vadt || site.vadt <= 0) && hourlyTotal > 0) {
             site.vadt = Math.round(hourlyTotal);
+            site.vadt_is_estimated = false;
+            site.vadt_estimate_note = '';
           }
           site.direction_split_mode = 'hourly';
         }
@@ -22875,6 +22906,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         description: data.description,
         direction,
         countYear: data.countYear || data.count_year || null,
+        vadt_is_estimated: !!data.vadt_is_estimated,
+        vadt_estimate_note: String(data.vadt_estimate_note || '').trim(),
         selected: true
       };
     });
@@ -22994,6 +23027,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const distanceText = site.distance < 1000 ? `${site.distance}m` : `${(site.distance/1000).toFixed(1)}km`;
       const sourceLabel = `[${site.source}]`;
       const suggestedWeight = Math.max(0, Math.min(100, site.autoWeight));
+      const estimatedTag = site.vadt_is_estimated
+        ? '<span style="margin-left: 6px; padding: 1px 6px; border-radius: 10px; background: #fff3e0; color: #e65100; font-size: 0.72em; border:1px solid #ffcc80;">Estimated daily</span>'
+        : '';
       const matchBadge = isSameRoadMatch
         ? '<span style="margin-left: 6px; padding: 1px 6px; border-radius: 10px; background: #2e7d32; color: #fff; font-size: 0.72em;">Same road</span>'
         : '<span style="margin-left: 6px; padding: 1px 6px; border-radius: 10px; background: #546e7a; color: #fff; font-size: 0.72em;">Nearby</span>';
@@ -23007,7 +23043,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             <button type="button" class="ref-remove" data-siteid="${site.siteId}" style="width:auto; margin:0; padding:2px 8px; font-size:0.74em; background:#ef5350; color:#fff; border:none; border-radius:10px; cursor:pointer; box-shadow:none;">Remove</button>
           </span>
         </div>
-        <small style="color: #666;">${sourceLabel} • <strong>${distanceText} ${site.direction} of address</strong> • ${site.vadt.toLocaleString()} VADT</small>
+        <small style="color: #666;">${sourceLabel} • <strong>${distanceText} ${site.direction} of address</strong> • ${site.vadt.toLocaleString()} VADT ${estimatedTag}</small>
+        ${site.vadt_is_estimated && site.vadt_estimate_note ? `<div style="margin-top:4px; font-size:0.74em; color:#e65100;">${site.vadt_estimate_note}</div>` : ''}
         <div style="margin-top: 6px; display: grid; grid-template-columns: 1fr auto auto auto auto; align-items: center; gap: 8px;">
           <span style="color: #333; font-size: 0.8em;">Distance Weighting:</span>
           <input type="range" class="ref-weight-slider" data-siteid="${site.siteId}" min="0" max="100" step="1" value="${suggestedWeight}" style="width: 100%; cursor: pointer;" />
