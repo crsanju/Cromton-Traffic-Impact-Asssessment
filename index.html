@@ -14593,14 +14593,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       // Find the peak single-hour volume within this period
       let peakTotal = 0;
       let peakPerLane = 0;
+      let periodTotalSum = 0;
+      let periodHourCount = 0;
       hours.forEach(h => {
         const entry = (hourlyProfile && hourlyProfile[h]) || {};
         const vol = Number(entry.total) || 0;
+        periodTotalSum += vol;
+        periodHourCount += 1;
         if (vol > peakTotal) {
           peakTotal = vol;
           peakPerLane = Number(entry.perLane) || 0;
         }
       });
+
+      // VCR/LOS uses average hourly approach volume across the period bucket.
+      const avgTotal = periodHourCount > 0 ? (periodTotalSum / periodHourCount) : 0;
+      const avgPerLane = laneCount > 0 ? (avgTotal / laneCount) : 0;
 
       const hv = numberRoundUp(peakTotal * hvF, 0);
       const rt = numberRoundUp(peakTotal * rtF, 0);
@@ -14619,7 +14627,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         total: peakTotal,
         lv, hv, rt,
         lvPerLane, hvPerLane, rtPerLane,
-        hourlyPerLane: peakPerLane,
+        hourlyPerLane: avgPerLane,
+        peakHourlyPerLane: peakPerLane,
         per5: lv5 + hv5 + rt5,
         queue: {
           q2:  numberRoundUp((lv5 * 2.4  + hv5 * 8  + rt5 * 25.2) * factor, 0),
