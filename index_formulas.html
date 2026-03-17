@@ -20843,76 +20843,148 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const timelineEl = document.getElementById('wwTimeline');
     if (!timelineEl) return;
-    timelineEl.innerHTML = '';
-    let permittedHoursCount = 0;
-    let permittedBlocks = [];
-
-    // Loop through 24 hours
-    for (let h = 0; h < 24; h++) {
-      const vol1 = Number(gazData[h]) || 0;
-      const vol2 = Number(agData[h]) || 0;
-      let worstVcr = Number.isFinite(Number(hourlyWorstVcr && hourlyWorstVcr[h]))
-        ? Number(hourlyWorstVcr[h])
-        : null;
-
-      // Fallback when hourly table data is unavailable: compute using SLC/SLRF logic.
-      if (!Number.isFinite(worstVcr)) {
-        if (d1Lanes === 1 && d2Lanes === 1) {
-          worstVcr = (vol1 + vol2) / maxDv;
-        } else {
-          const d1SlcVcr = d1Lanes > 1 ? (vol1 / getEffectiveOpenLanes(d1Lanes)) / dv1 : vol1 / dv1;
-          const d2SlcVcr = d2Lanes > 1 ? (vol2 / getEffectiveOpenLanes(d2Lanes)) / dv2 : vol2 / dv2;
-          worstVcr = Math.max(d1SlcVcr, d2SlcVcr);
-        }
-      }
-
-      const isPermitted = worstVcr <= maxVcr;
-      if (isPermitted) permittedHoursCount++;
-
-      // Create the visual block
-      const block = document.createElement('div');
-      block.style.flex = '1';
-      block.style.display = 'flex';
-      block.style.flexDirection = 'column';
-      block.style.justifyContent = 'center';
-      block.style.alignItems = 'center';
-      block.style.borderRight = h === 23 ? 'none' : '1px solid rgba(255,255,255,0.4)';
-      block.style.transition = 'opacity 0.2s';
-      block.style.cursor = 'help';
-      block.title = `Hour: ${h}:00 - ${h+1}:00\nWorst VCR: ${worstVcr.toFixed(2)}\nStatus: ${isPermitted ? 'Permitted' : 'Restricted'}`;
-      
-      if (isPermitted) {
-        block.style.backgroundColor = worstVcr > (maxVcr - 0.1) ? '#ffb300' : '#4caf50'; // Caution if close to limit, safe otherwise
-        block.style.color = '#fff';
-        block.innerHTML = `<span style="font-size: 10px; opacity: 0.8;">${h}</span>`;
-        permittedBlocks.push(h);
-      } else {
-        block.style.backgroundColor = '#ef5350'; // Red
-        block.style.color = 'rgba(255,255,255,0.5)';
-        block.innerHTML = `<span style="font-size: 10px;">${h}</span>`;
-      }
-
-      timelineEl.appendChild(block);
-    }
-
-    // Generate smart text summary
     const summaryEl = document.getElementById('wwSummary');
-    if (permittedHoursCount === 24) {
-      summaryEl.innerHTML = `<span style="color: #2e7d32;">✅ Permitted 24 hours a day (Max VCR does not exceed ${maxVcr})</span>`;
-    } else if (permittedHoursCount === 0) {
-      summaryEl.innerHTML = `<span style="color: #c30000;">❌ Not permitted at any time (VCR exceeds ${maxVcr} all day)</span>`;
-    } else {
-      // Group consecutive hours for a clean text output
-      let windows = [];
-      let start = permittedBlocks[0];
-      for (let i = 1; i <= permittedBlocks.length; i++) {
-        if (permittedBlocks[i] !== permittedBlocks[i - 1] + 1) {
-          windows.push(`${start}:00 to ${permittedBlocks[i - 1] + 1}:00`);
-          start = permittedBlocks[i];
+
+    const rawD1Label = (selectedMacroSite && macroSitesData[selectedMacroSite])
+      ? macroSitesData[selectedMacroSite].d1_direction_label
+      : (customDirectionContext && customDirectionContext.d1Label ? customDirectionContext.d1Label : 'Direction 1, Gazettal');
+    const rawD2Label = (selectedMacroSite && macroSitesData[selectedMacroSite])
+      ? macroSitesData[selectedMacroSite].d2_direction_label
+      : (customDirectionContext && customDirectionContext.d2Label ? customDirectionContext.d2Label : 'Direction 2, Against Gazettal');
+    const d1Label = formatDirectionalCodeLabel('D1', rawD1Label);
+    const d2Label = formatDirectionalCodeLabel('D2', rawD2Label);
+
+    const isSlrfMode = d1Lanes === 1 && d2Lanes === 1;
+    const hourlyD1Work = (lastHourlyVcrChartData && Array.isArray(lastHourlyVcrChartData.d1Work) && lastHourlyVcrChartData.d1Work.length === 24)
+      ? lastHourlyVcrChartData.d1Work
+      : null;
+    const hourlyD2Work = (lastHourlyVcrChartData && Array.isArray(lastHourlyVcrChartData.d2Work) && lastHourlyVcrChartData.d2Work.length === 24)
+      ? lastHourlyVcrChartData.d2Work
+      : null;
+
+    const formatWindows = (hours) => {
+      if (!Array.isArray(hours) || !hours.length) return [];
+      const list = [...hours].sort((a, b) => a - b);
+      const windows = [];
+      let start = list[0];
+      for (let i = 1; i <= list.length; i += 1) {
+        if (list[i] !== list[i - 1] + 1) {
+          windows.push(`${start}:00 to ${list[i - 1] + 1}:00`);
+          start = list[i];
         }
       }
-      summaryEl.innerHTML = `<span style="color: #1f5e63;">🕒 Permitted Work Windows: <strong>${windows.join(' & ')}</strong></span>`;
+      return windows;
+    };
+
+    const buildSchedule = (title, vcrByHour) => {
+      const card = document.createElement('div');
+      card.style.marginBottom = '8px';
+
+      const heading = document.createElement('div');
+      heading.style.fontSize = '0.84em';
+      heading.style.fontWeight = '700';
+      heading.style.color = '#1f5e63';
+      heading.style.marginBottom = '4px';
+      heading.textContent = title;
+      card.appendChild(heading);
+
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.width = '100%';
+      row.style.height = '24px';
+      row.style.borderRadius = '6px';
+      row.style.overflow = 'hidden';
+      row.style.border = '1px solid #ccc';
+      row.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.08)';
+
+      const permittedBlocks = [];
+      for (let h = 0; h < 24; h += 1) {
+        const vcr = Number(vcrByHour[h]) || 0;
+        const isPermitted = vcr <= maxVcr;
+        if (isPermitted) permittedBlocks.push(h);
+
+        const block = document.createElement('div');
+        block.style.flex = '1';
+        block.style.display = 'flex';
+        block.style.justifyContent = 'center';
+        block.style.alignItems = 'center';
+        block.style.borderRight = h === 23 ? 'none' : '1px solid rgba(255,255,255,0.35)';
+        block.style.cursor = 'help';
+        block.title = `Hour: ${h}:00 - ${h + 1}:00\nWork VCR: ${vcr.toFixed(2)}\nStatus: ${isPermitted ? 'Permitted' : 'Restricted'}`;
+        if (isPermitted) {
+          block.style.backgroundColor = vcr > (maxVcr - 0.1) ? '#ffb300' : '#4caf50';
+          block.style.color = '#fff';
+          block.innerHTML = `<span style="font-size: 10px; opacity: 0.8;">${h}</span>`;
+        } else {
+          block.style.backgroundColor = '#ef5350';
+          block.style.color = 'rgba(255,255,255,0.55)';
+          block.innerHTML = `<span style="font-size: 10px;">${h}</span>`;
+        }
+        row.appendChild(block);
+      }
+
+      card.appendChild(row);
+      const windows = formatWindows(permittedBlocks);
+      return { card, windows, permittedHoursCount: permittedBlocks.length };
+    };
+
+    timelineEl.innerHTML = '';
+    timelineEl.style.display = 'block';
+    timelineEl.style.height = 'auto';
+    timelineEl.style.border = 'none';
+    timelineEl.style.boxShadow = 'none';
+    timelineEl.style.padding = '0';
+    timelineEl.style.overflow = 'visible';
+
+    if (isSlrfMode) {
+      const combinedVcr = new Array(24).fill(0).map((_, h) => {
+        const fromWorst = Number.isFinite(Number(hourlyWorstVcr && hourlyWorstVcr[h])) ? Number(hourlyWorstVcr[h]) : null;
+        if (Number.isFinite(fromWorst)) return fromWorst;
+        const vol1 = Number(gazData[h]) || 0;
+        const vol2 = Number(agData[h]) || 0;
+        return maxDv > 0 ? ((vol1 + vol2) / maxDv) : 0;
+      });
+      const sched = buildSchedule('Single Lane Reversible Flow Scheduler (Both Directions Combined)', combinedVcr);
+      timelineEl.appendChild(sched.card);
+
+      if (!summaryEl) return;
+      if (sched.permittedHoursCount === 24) {
+        summaryEl.innerHTML = `<span style="color: #2e7d32;">✅ SLRF permitted 24 hours a day (Max VCR does not exceed ${maxVcr})</span>`;
+      } else if (sched.permittedHoursCount === 0) {
+        summaryEl.innerHTML = `<span style="color: #c30000;">❌ SLRF not permitted at any time (VCR exceeds ${maxVcr} all day)</span>`;
+      } else {
+        summaryEl.innerHTML = `<span style="color: #1f5e63;">🕒 SLRF Permitted Work Windows: <strong>${sched.windows.join(' & ')}</strong></span>`;
+      }
+      return;
     }
+
+    const d1VcrByHour = new Array(24).fill(0).map((_, h) => {
+      const fromChart = Number.isFinite(Number(hourlyD1Work && hourlyD1Work[h])) ? Number(hourlyD1Work[h]) : null;
+      if (Number.isFinite(fromChart)) return fromChart;
+      const vol1 = Number(gazData[h]) || 0;
+      return d1Lanes > 1 ? ((vol1 / getEffectiveOpenLanes(d1Lanes)) / dv1) : (vol1 / dv1);
+    });
+
+    const d2VcrByHour = new Array(24).fill(0).map((_, h) => {
+      const fromChart = Number.isFinite(Number(hourlyD2Work && hourlyD2Work[h])) ? Number(hourlyD2Work[h]) : null;
+      if (Number.isFinite(fromChart)) return fromChart;
+      const vol2 = Number(agData[h]) || 0;
+      return d2Lanes > 1 ? ((vol2 / getEffectiveOpenLanes(d2Lanes)) / dv2) : (vol2 / dv2);
+    });
+
+    const d1Schedule = buildSchedule(`${d1Label} Scheduler`, d1VcrByHour);
+    const d2Schedule = buildSchedule(`${d2Label} Scheduler`, d2VcrByHour);
+    timelineEl.appendChild(d1Schedule.card);
+    timelineEl.appendChild(d2Schedule.card);
+
+    if (!summaryEl) return;
+    const d1Summary = d1Schedule.windows.length ? d1Schedule.windows.join(' & ') : 'No permitted windows';
+    const d2Summary = d2Schedule.windows.length ? d2Schedule.windows.join(' & ') : 'No permitted windows';
+    summaryEl.innerHTML = `
+      <div style="color:#1f5e63; font-weight:700;">🕒 Directional Permitted Work Windows (SLC)</div>
+      <div style="margin-top:4px;"><strong>${d1Label}:</strong> ${d1Summary}</div>
+      <div style="margin-top:2px;"><strong>${d2Label}:</strong> ${d2Summary}</div>
+    `;
   }
 
   
