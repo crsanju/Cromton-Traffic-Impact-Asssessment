@@ -10587,6 +10587,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return updates;
     };
 
+    const getCoordinateOverride = (siteId, props) => {
+      const key = `${sourceUpper}|${String(siteId || '').trim().toUpperCase()}`;
+      const exactOverrides = {
+        'TEWANTIN|[N02.01] MEMORIAL AVE, TEWANTIN': { latitude: -26.3943665, longitude: 153.0405808 }
+      };
+      if (exactOverrides[key]) return exactOverrides[key];
+
+      const road = String(firstDefinedValue(props && props['ROAD_NAME'], props && props['road_name'], props && props['Road Name']) || '').trim().toUpperCase();
+      const suburb = String(firstDefinedValue(props && props['SUBURB'], props && props['Suburb'], props && props['suburb']) || '').trim().toUpperCase();
+      if (sourceUpper === 'TEWANTIN' && road === 'MEMORIAL AVE' && suburb === 'TEWANTIN') {
+        return { latitude: -26.3943665, longitude: 153.0405808 };
+      }
+
+      return null;
+    };
+
     orderedFeatures.forEach(feature => {
       const props = feature.properties;
       if (!props) return;
@@ -10618,6 +10634,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       }
 
       if (!Number.isFinite(Number(longitude)) || !Number.isFinite(Number(latitude))) return;
+
+      const coordinateOverride = getCoordinateOverride(siteId, props);
+      if (coordinateOverride) {
+        longitude = coordinateOverride.longitude;
+        latitude = coordinateOverride.latitude;
+      }
 
       const countYear = parseYearFromAny(
         props['COUNT_YEAR'], props['Count Year'], props['count_year'], props['DATA_YEAR'], props['YEAR'], props['AADT_DATE'], props['SURVEY_DATE'], props['AAWT_DATE'], props['Start Day|Survey'], props['Finish_Date'], props['Count Date (dd/mm/yyyy)'], props['Count Date'], props['recorded']
