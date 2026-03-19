@@ -23402,13 +23402,19 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const isOneWay = String((document.getElementById('roadOperationMode') && document.getElementById('roadOperationMode').value) || '').toUpperCase() === 'ONE-WAY';
     const oneWayPercentInput = document.getElementById('quickTiaOneWayPercent');
     const oneWayPercent = Math.max(1, Math.min(100, Number(oneWayPercentInput && oneWayPercentInput.value) || 100));
-    const oneWayDirection = 'D1';
+    const oneWayDirectionInput = document.getElementById('quickTiaOneWayDirection');
+    const oneWayDirection = String(oneWayDirectionInput && oneWayDirectionInput.value || 'D1').toUpperCase() === 'D2' ? 'D2' : 'D1';
 
     if (isOneWay) {
       const oneWayAadt = Math.round(finalAvgVADT * (oneWayPercent / 100));
       finalAvgVADT = oneWayAadt;
-      finalAvgD1 = oneWayAadt;
-      finalAvgD2 = 0;
+      if (oneWayDirection === 'D2') {
+        finalAvgD1 = 0;
+        finalAvgD2 = oneWayAadt;
+      } else {
+        finalAvgD1 = oneWayAadt;
+        finalAvgD2 = 0;
+      }
     }
 
     window.selectedTiaData.avgVADT = finalAvgVADT;
@@ -23434,8 +23440,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     setFormulaBelow('quickTiaCalcAvgVADT', `Weighted Avg VADT = sum(weight_i * VADT_i) = ${weightedAvgVADT.toLocaleString()}`);
     if (isOneWay) {
       setFormulaBelow('quickTiaCalcAdjVADT', `One-way AADT = (Weighted Avg * area factor) * selected one-way % = (${weightedAvgVADT.toLocaleString()} * ${(areaTypeFactorPercent / 100).toFixed(2)}) * ${(oneWayPercent / 100).toFixed(2)} = ${finalAvgVADT.toLocaleString()}`);
-      setFormulaBelow('quickTiaCalcD1', `Calculated D1 (one-way) = ${finalAvgD1.toLocaleString()} (one-way flow always mapped to Direction 1)`);
-      setFormulaBelow('quickTiaCalcD2', `Calculated D2 (one-way) = ${finalAvgD2.toLocaleString()} (Direction 2 disabled in one-way mode)`);
+      setFormulaBelow('quickTiaCalcD1', `Calculated D1 (one-way, selected ${oneWayDirection}) = ${finalAvgD1.toLocaleString()}`);
+      setFormulaBelow('quickTiaCalcD2', `Calculated D2 (one-way, selected ${oneWayDirection}) = ${finalAvgD2.toLocaleString()}`);
     } else {
       setFormulaBelow('quickTiaCalcAdjVADT', `Adjusted AADT = Weighted Avg * area factor = ${weightedAvgVADT.toLocaleString()} * ${(areaTypeFactorPercent / 100).toFixed(2)} = ${finalAvgVADT.toLocaleString()}`);
       setFormulaBelow('quickTiaCalcD1', `Calculated D1 = Weighted D1 * area factor = ${weightedAvgD1.toLocaleString()} * ${(areaTypeFactorPercent / 100).toFixed(2)} = ${finalAvgD1.toLocaleString()}`);
