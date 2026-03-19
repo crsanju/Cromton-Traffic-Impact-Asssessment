@@ -10049,10 +10049,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       console.warn('[Map Init] Leaflet not available yet');
       return;
     }
+    const stateScope = String(requestedDataScope || getQuickTiaSelectedState() || 'QLD').toUpperCase() === 'NSW' ? 'NSW' : 'QLD';
+    const initialCenter = stateScope === 'NSW' ? [-33.87, 151.21] : [-27.55, 152.95];
+    const australiaEastBounds = [[-39.5, 140.0], [-9.0, 154.8]];
     macroMapInstance = L.map('macroMap', {
-      maxBounds: [[-29, 138], [-10, 154]], // Queensland bounds
-      restrictBounds: true
-    }).setView([-27.55, 152.95], 8);
+      maxBounds: australiaEastBounds
+    }).setView(initialCenter, 8);
     addMapFullscreenControl(macroMapInstance, 'macroMap');
     addBaseLayerToMap(macroMapInstance);
     macroSiteLayer = L.layerGroup().addTo(macroMapInstance);
