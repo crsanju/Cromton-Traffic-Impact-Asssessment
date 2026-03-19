@@ -3527,6 +3527,7 @@
         </span>
         <button id="userManualBtn" type="button" class="contact-dev-button" aria-expanded="false" aria-controls="userManualModal">📖 User Manual</button>
         <a id="formulaViewLink" class="contact-dev-button" href="/Cromton-Traffic-Impact-Asssessment/index_formulas.html" target="_blank" rel="noopener noreferrer" style="text-decoration: none;" title="Open Formula View">📘 Formula View</a>
+        <a id="developerViewLink" class="contact-dev-button" href="/Cromton-Traffic-Impact-Asssessment/index_developer.html" target="_blank" rel="noopener noreferrer" style="text-decoration: none;" title="Open Developer View">🧪 Developer View</a>
         <div class="contact-dev-wrap">
           <button id="contactDevBtn" type="button" class="contact-dev-button" aria-expanded="false" aria-controls="contactDevPanel">💬 Contact Developer</button>
           <div id="contactDevPanel" class="contact-dev-panel hidden" role="dialog" aria-label="Developer contact details">
@@ -8279,6 +8280,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   function bindRepoSafeLinks() {
     const formulaLink = document.getElementById('formulaViewLink');
     if (formulaLink) formulaLink.href = resolveRepoRelativePath('index_formulas.html');
+    const developerLink = document.getElementById('developerViewLink');
+    if (developerLink) developerLink.href = resolveRepoRelativePath('index_developer.html');
   }
 
   bindRepoSafeLinks();
