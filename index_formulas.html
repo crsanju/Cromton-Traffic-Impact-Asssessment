@@ -12113,6 +12113,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return raw === 'NSW' ? 'NSW' : 'QLD';
   }
 
+  function getQuickTiaStateSearchHints() {
+    const stateScope = getQuickTiaSelectedState();
+    return stateScope === 'NSW'
+      ? ['New South Wales, Australia', 'NSW, Australia']
+      : ['Queensland, Australia', 'QLD, Australia'];
+  }
+
   function updateQuickTiaStateStatus(message, isError = false) {
     const statusEl = document.getElementById('quickTiaStateLoadStatus');
     if (!statusEl) return;
@@ -12541,8 +12548,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   const macroSourceFilterEl = document.getElementById('macroSourceFilter');
   if (macroSourceFilterEl) {
-    macroSourceFilterEl.addEventListener('change', (e) => {
+    macroSourceFilterEl.addEventListener('change', async (e) => {
       macroSourceFilter = String((e.target && e.target.value) || 'ALL');
+      if (macroSourceFilter === 'NSW') {
+        const stateSelect = document.getElementById('quickTiaStateSelect');
+        if (stateSelect) stateSelect.value = 'NSW';
+        requestedDataScope = 'NSW';
+        if (loadedDataScope !== 'NSW' || Object.keys(baseMacroSitesData || {}).length === 0) {
+          updateQuickTiaStateStatus('Loading NSW database...');
+          try {
+            dataLoadingPromise = loadMacroSitesData(true, 'NSW');
+            await dataLoadingPromise;
+          } catch (err) {
+            updateQuickTiaStateStatus('Failed to load New South Wales (NSW) database', true);
+          }
+        }
+      }
       const searchInput = document.getElementById('macroSiteSearch');
       if (searchInput) searchInput.value = '';
       populateMacroSitesDatalist();
@@ -12772,7 +12793,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         };
 
         const geocodeOnline = async (address) => {
-          const queries = [address, `${address}, Queensland, Australia`, `${address}, Australia`];
+          const stateHints = getQuickTiaStateSearchHints();
+          const queries = [address, ...stateHints.map((hint) => `${address}, ${hint}`), `${address}, Australia`];
           for (const q of queries) {
             const nominatimAu = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&countrycodes=au&q=${encodeURIComponent(q)}`;
             const nominatimAny = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&q=${encodeURIComponent(q)}`;
@@ -21482,7 +21504,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       } finally { clearTimeout(timeoutId); }
     };
 
-    const queries = [address, `${address}, Queensland, Australia`, `${address}, Australia`];
+    const stateHints = getQuickTiaStateSearchHints();
+    const queries = [address, ...stateHints.map((hint) => `${address}, ${hint}`), `${address}, Australia`];
     for (const q of queries) {
       const nominatimAu = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&countrycodes=au&q=${encodeURIComponent(q)}`;
       const nominatimAny = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&q=${encodeURIComponent(q)}`;
