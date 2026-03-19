@@ -10291,11 +10291,6 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   }
 
   async function fetchDatasetWithFallback(primaryUrl, fallbackUrl, sourceLabel) {
-    // Always attempt a cache-bypassed request first so dataset updates appear immediately.
-    const cacheBypassUrl = `${primaryUrl}${primaryUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}`;
-    const primaryBypass = await fetchGitHubData(cacheBypassUrl);
-    if (isGeoJsonFeatureCollection(primaryBypass)) return primaryBypass;
-
     const primary = await fetchGitHubData(primaryUrl);
     if (isGeoJsonFeatureCollection(primary)) return primary;
 
@@ -11385,26 +11380,23 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
       if (requestedScope === 'NSW') {
         setLoadingState('Downloading live records...', 'Fetching NSW 2026 traffic feed.', 42);
-        nswData2026 = await fetchDatasetWithFallback(GITHUB_NSW_2026_URL, './nsw_2026.geojson', 'NSW 2026');
-        setLoadingState('Downloading live records...', 'Fetched NSW 2026 traffic feed.', 56);
-        nswDataLegacy = await fetchDatasetWithFallback(GITHUB_NSW_TNSW_URL, './tnsw.geojson', 'NSW Legacy');
-        setLoadingState('Downloading live records...', 'Fetched NSW legacy hourly feed.', 68);
+        [nswData2026, nswDataLegacy] = await Promise.all([
+          fetchDatasetWithFallback(GITHUB_NSW_2026_URL, './nsw_2026.geojson', 'NSW 2026'),
+          fetchDatasetWithFallback(GITHUB_NSW_TNSW_URL, './tnsw.geojson', 'NSW Legacy')
+        ]);
+        setLoadingState('Downloading live records...', 'Fetched NSW traffic feeds.', 68);
       } else {
         setLoadingState('Downloading live records...', 'Fetching Queensland traffic feeds.', 42);
-        tmrData = await fetchDatasetWithFallback(GITHUB_TMR_URL, './tmr.geojson', 'TMR');
-        setLoadingState('Downloading live records...', 'Fetched TMR traffic feed.', 46);
-        goldCoastData = await fetchDatasetWithFallback(GITHUB_GOLDCOAST_URL, './goldcoast.geojson', 'Gold Coast');
-        setLoadingState('Downloading live records...', 'Fetched Gold Coast traffic feed.', 50);
-        brisbaneData = await fetchDatasetWithFallback(GITHUB_BRISBANE_URL, '', 'Brisbane');
-        setLoadingState('Downloading live records...', 'Fetched Brisbane traffic feed.', 52);
-        ipswichData = await fetchDatasetWithFallback(GITHUB_IPSWICH_URL, './Ipswich.geojson', 'Ipswich');
-        setLoadingState('Downloading live records...', 'Fetched Ipswich traffic feed.', 56);
-        loganData = await fetchDatasetWithFallback(GITHUB_LOGAN_URL, './logan.geojson', 'Logan');
-        setLoadingState('Downloading live records...', 'Fetched Logan traffic feed.', 60);
-        toowoombaData = await fetchDatasetWithFallback(GITHUB_TOOWOOMBA_URL, './toowoomba.geojson', 'Toowoomba');
-        setLoadingState('Downloading live records...', 'Fetched Toowoomba traffic feed.', 64);
-        tewantinData = await fetchDatasetWithFallback(GITHUB_TEWANTIN_URL, './tewantin.geojson', 'Tewantin');
-        setLoadingState('Downloading live records...', 'Fetched Tewantin traffic feed.', 66);
+        [tmrData, goldCoastData, brisbaneData, ipswichData, loganData, toowoombaData, tewantinData] = await Promise.all([
+          fetchDatasetWithFallback(GITHUB_TMR_URL, './tmr.geojson', 'TMR'),
+          fetchDatasetWithFallback(GITHUB_GOLDCOAST_URL, './goldcoast.geojson', 'Gold Coast'),
+          fetchDatasetWithFallback(GITHUB_BRISBANE_URL, '', 'Brisbane'),
+          fetchDatasetWithFallback(GITHUB_IPSWICH_URL, './Ipswich.geojson', 'Ipswich'),
+          fetchDatasetWithFallback(GITHUB_LOGAN_URL, './logan.geojson', 'Logan'),
+          fetchDatasetWithFallback(GITHUB_TOOWOOMBA_URL, './toowoomba.geojson', 'Toowoomba'),
+          fetchDatasetWithFallback(GITHUB_TEWANTIN_URL, './tewantin.geojson', 'Tewantin')
+        ]);
+        setLoadingState('Downloading live records...', 'Fetched Queensland traffic feeds.', 66);
       }
       console.log('[Data Load] GitHub data fetched');
 
@@ -12062,25 +12054,79 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
     
     // Peak Hours Analysis
-    const getPeakHours = (hourlyData) => {
-      const indexed = hourlyData
-        .map((val, idx) => ({ hour: idx, volume: Number(val) || 0 }))
-        .filter(item => item.volume > 0);
-      indexed.sort((a, b) => b.volume - a.volume);
-      return indexed;
-    };
-    
-    const d1Peaks = getPeakHours(gazData);
-    const d2Peaks = getPeakHours(agData);
-
     const activePeriodDefs = getActivePeriodDefinitions();
     const amHoursSet = new Set(((activePeriodDefs.find(p => p.key === 'AM') || {}).hours || []).map(h => Number(h)));
     const pmHoursSet = new Set(((activePeriodDefs.find(p => p.key === 'PM') || {}).hours || []).map(h => Number(h)));
 
-    const getPeakWindowRowStyle = (hour, borderColor) => {
+    const normalizeHourly = (hourlyData) => Array.from({ length: 24 }, (_, idx) => {
+      const arr = Array.isArray(hourlyData) ? hourlyData : [];
+      return Math.max(0, Number(arr[idx]) || 0);
+    });
+
+    const sourceUpperForPeak = String(data && data.source ? data.source : '').trim().toUpperCase();
+    const isTmrStylePeakSource = sourceUpperForPeak === 'TMR'
+      || (sourceUpperForPeak === 'CUSTOM UPLOAD' && isTmrStyleSource(data));
+
+    const d1DbHourly = (data && data.directions_weekday && Array.isArray(data.directions_weekday['GAZETTAL']))
+      ? normalizeHourly(data.directions_weekday['GAZETTAL'])
+      : null;
+    const d2DbHourly = (data && data.directions_weekday && Array.isArray(data.directions_weekday['AGAINST GAZETTAL']))
+      ? normalizeHourly(data.directions_weekday['AGAINST GAZETTAL'])
+      : null;
+
+    const d1DisplayHourly = normalizeHourly(gazData);
+    const d2DisplayHourly = normalizeHourly(agData);
+
+    const d1RankingHourly = (isTmrStylePeakSource && d1DbHourly && d1DbHourly.some(v => v > 0))
+      ? d1DbHourly
+      : d1DisplayHourly;
+    const d2RankingHourly = (isTmrStylePeakSource && d2DbHourly && d2DbHourly.some(v => v > 0))
+      ? d2DbHourly
+      : d2DisplayHourly;
+
+    const getPeakHours = (displayHourlyData, rankingHourlyData) => {
+      const displaySeries = normalizeHourly(displayHourlyData);
+      const rankingSeries = normalizeHourly(rankingHourlyData || displayHourlyData);
+      const indexed = displaySeries
+        .map((val, idx) => ({
+          hour: idx,
+          volume: Number(val) || 0,
+          rankVolume: Number(rankingSeries[idx]) || 0
+        }))
+        .filter(item => item.volume > 0 || item.rankVolume > 0);
+      indexed.sort((a, b) => {
+        if (b.rankVolume !== a.rankVolume) return b.rankVolume - a.rankVolume;
+        if (b.volume !== a.volume) return b.volume - a.volume;
+        return a.hour - b.hour;
+      });
+      return indexed;
+    };
+
+    const getTopWindowHourSet = (rankingHourlyData, targetHourSet, limit = 2) => {
+      if (!(targetHourSet instanceof Set) || targetHourSet.size === 0) return new Set();
+      const ranked = normalizeHourly(rankingHourlyData)
+        .map((volume, hour) => ({ hour, volume: Number(volume) || 0 }))
+        .filter(item => targetHourSet.has(item.hour) && item.volume > 0)
+        .sort((a, b) => {
+          if (b.volume !== a.volume) return b.volume - a.volume;
+          return a.hour - b.hour;
+        })
+        .slice(0, Math.max(1, Number(limit) || 2));
+      return new Set(ranked.map(item => item.hour));
+    };
+
+    const d1AmTopHours = getTopWindowHourSet(d1RankingHourly, amHoursSet, 2);
+    const d1PmTopHours = getTopWindowHourSet(d1RankingHourly, pmHoursSet, 2);
+    const d2AmTopHours = getTopWindowHourSet(d2RankingHourly, amHoursSet, 2);
+    const d2PmTopHours = getTopWindowHourSet(d2RankingHourly, pmHoursSet, 2);
+
+    const d1Peaks = getPeakHours(d1DisplayHourly, d1RankingHourly);
+    const d2Peaks = getPeakHours(d2DisplayHourly, d2RankingHourly);
+
+    const getPeakWindowRowStyle = (hour, borderColor, amTopSet, pmTopSet) => {
       const h = Number(hour);
-      if (amHoursSet.has(h)) return `background:#fff3cd; font-weight:700; border-left:3px solid ${borderColor};`;
-      if (pmHoursSet.has(h)) return `background:#ffe5b4; font-weight:700; border-left:3px solid ${borderColor};`;
+      if (amTopSet && amTopSet.has(h)) return `background:#fff3cd; font-weight:700; border-left:3px solid ${borderColor};`;
+      if (pmTopSet && pmTopSet.has(h)) return `background:#ffe5b4; font-weight:700; border-left:3px solid ${borderColor};`;
       return '';
     };
 
@@ -12092,8 +12138,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const peakInsightsEl = document.getElementById('macroPeakInsights');
     if (peakInsightsEl) {
-      const d1Total = gazData.reduce((sum, value) => sum + (Number(value) || 0), 0);
-      const d2Total = agData.reduce((sum, value) => sum + (Number(value) || 0), 0);
+      const d1Total = d1DisplayHourly.reduce((sum, value) => sum + (Number(value) || 0), 0);
+      const d2Total = d2DisplayHourly.reduce((sum, value) => sum + (Number(value) || 0), 0);
       const totalDirectional = d1Total + d2Total;
       const d1Top = d1Peaks[0] || null;
       const d2Top = d2Peaks[0] || null;
@@ -12145,16 +12191,16 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     
     const d1PeakEl = document.getElementById('macroD1PeakHours');
     if (d1PeakEl) {
-      const d1Total = gazData.reduce((sum, value) => sum + (Number(value) || 0), 0);
+      const d1Total = d1DisplayHourly.reduce((sum, value) => sum + (Number(value) || 0), 0);
       if (!d1Peaks.length) {
         d1PeakEl.innerHTML = '<div>No non-zero hourly profile available from source data.</div>';
       } else {
         const rows = d1Peaks.map((p, i) => {
-          const opposing = Number(agData[p.hour]) || 0;
+          const opposing = Number(d2DisplayHourly[p.hour]) || 0;
           const share = d1Total > 0 ? (p.volume / d1Total) * 100 : 0;
           const diff = p.volume - opposing;
           const diffText = `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()} vph`;
-          const rowStyle = getPeakWindowRowStyle(p.hour, '#b8860b');
+          const rowStyle = getPeakWindowRowStyle(p.hour, '#b8860b', d1AmTopHours, d1PmTopHours);
           return `<tr>
             <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:center; ${rowStyle}">${i + 1}</td>
             <td style="padding:4px 6px; border:1px solid #b7dcb9; ${rowStyle}">${formatHourWindow(p.hour)}</td>
@@ -12180,22 +12226,23 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             <tbody>${rows}</tbody>
           </table>
           <div class="formula-inline">✓ Opening year volumes (matches Queue Length hourly table). v_hour = daily directional volume * diurnal factor(hour)</div>
+          <div class="formula-inline">Highlighting = top 2 AM and top 2 PM hours (dynamic). ${isTmrStylePeakSource ? 'Ranking source: database hourly profile (TMR/TMR-style).' : 'Ranking source: calculated hourly profile.'}</div>
         `;
       }
     }
     
     const d2PeakEl = document.getElementById('macroD2PeakHours');
     if (d2PeakEl) {
-      const d2Total = agData.reduce((sum, value) => sum + (Number(value) || 0), 0);
+      const d2Total = d2DisplayHourly.reduce((sum, value) => sum + (Number(value) || 0), 0);
       if (!d2Peaks.length) {
         d2PeakEl.innerHTML = '<div>No non-zero hourly profile available from source data.</div>';
       } else {
         const rows = d2Peaks.map((p, i) => {
-          const opposing = Number(gazData[p.hour]) || 0;
+          const opposing = Number(d1DisplayHourly[p.hour]) || 0;
           const share = d2Total > 0 ? (p.volume / d2Total) * 100 : 0;
           const diff = p.volume - opposing;
           const diffText = `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()} vph`;
-          const rowStyle = getPeakWindowRowStyle(p.hour, '#cc6f00');
+          const rowStyle = getPeakWindowRowStyle(p.hour, '#cc6f00', d2AmTopHours, d2PmTopHours);
           return `<tr>
             <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:center; ${rowStyle}">${i + 1}</td>
             <td style="padding:4px 6px; border:1px solid #f0b4b4; ${rowStyle}">${formatHourWindow(p.hour)}</td>
@@ -12221,6 +12268,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             <tbody>${rows}</tbody>
           </table>
           <div class="formula-inline">✓ Opening year volumes (matches Queue Length hourly table). v_hour = daily directional volume * diurnal factor(hour)</div>
+          <div class="formula-inline">Highlighting = top 2 AM and top 2 PM hours (dynamic). ${isTmrStylePeakSource ? 'Ranking source: database hourly profile (TMR/TMR-style).' : 'Ranking source: calculated hourly profile.'}</div>
         `;
       }
     }
