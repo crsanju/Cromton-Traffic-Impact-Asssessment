@@ -17,7 +17,12 @@
   <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script async src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
-    :root {
+    /* Production build: beta panel is developer-only. */
+#optionalFeaturesSection,
+#betaFeaturesCard {
+  display: none !important;
+}
+:root {
       --bg: #f8fafc;
       --ink: #1c1c1c;
       --muted: #5f5f5f;
@@ -3481,13 +3486,10 @@
     <div class="login-card">
       <img class="login-logo" src="logo.jpeg" alt="Crompton logo" />
       <h2 id="loginTitle" class="login-title">Crompton Login</h2>
-      <p class="login-note">Please sign in to access the Traffic Impact Assessment tool.</p>
+      <p class="login-note">Enter the developer PIN to access the Traffic Impact Assessment tool.</p>
       <form id="loginForm">
-        <label for="loginUser">Username</label>
-        <input id="loginUser" name="loginUser" type="text" placeholder="Enter username" autocomplete="username" required />
-
-        <label for="loginPassword" style="margin-top:10px;">Password</label>
-        <input id="loginPassword" name="loginPassword" type="password" placeholder="Enter password" autocomplete="current-password" required />
+        <label for="loginPin">Developer PIN</label>
+        <input id="loginPin" name="loginPin" type="password" placeholder="Enter PIN" inputmode="numeric" maxlength="4" autocomplete="one-time-code" required />
 
         <button type="submit">Login</button>
         <div id="loginError" class="login-error" aria-live="polite"></div>
@@ -8054,15 +8056,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   function setupLoginGate() {
     const loginGate = document.getElementById('loginGate');
     const loginForm = document.getElementById('loginForm');
-    const loginUser = document.getElementById('loginUser');
-    const loginPassword = document.getElementById('loginPassword');
+    const loginPin = document.getElementById('loginPin');
     const loginError = document.getElementById('loginError');
-    if (!loginGate || !loginForm || !loginUser || !loginPassword || !loginError) return;
+    if (!loginGate || !loginForm || !loginPin || !loginError) return;
 
-    const allowedUsers = {
-      admin: 'Packer4551',
-      users: 'Crompton123'
-    };
+    const DEVELOPER_PIN = '8080';
 
     async function unlockApplication(options = {}) {
       const useFunnyLoading = !!(options && options.useFunnyLoading);
@@ -8120,25 +8118,16 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return;
     }
 
-    loginUser.focus();
+    loginPin.focus();
 
     // Keep login typing responsive: do not start heavy data loading on input/focus.
     // Data loading now starts only after successful credential validation.
 
     loginForm.addEventListener('submit', async function (event) {
       event.preventDefault();
-      const usernameKey = String(loginUser.value || '').trim().toLowerCase();
-      const enteredPassword = String(loginPassword.value || '').trim();
-      const expectedPassword = allowedUsers[usernameKey];
+      const enteredPin = String(loginPin.value || '').trim();
 
-      if (expectedPassword && enteredPassword === expectedPassword) {
-        if (window.PasswordCredential && navigator.credentials && typeof navigator.credentials.store === 'function') {
-          navigator.credentials.store(new PasswordCredential({
-            id: usernameKey,
-            password: enteredPassword,
-            name: usernameKey
-          })).catch(() => {});
-        }
+      if (enteredPin === DEVELOPER_PIN) {
         sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
         loginError.textContent = '';
         // Instead of reloading, unlock app (will wait for data if needed)
@@ -8155,9 +8144,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         return;
       }
 
-      loginError.textContent = 'Invalid username or password.';
-      loginPassword.value = '';
-      loginPassword.focus();
+      loginError.textContent = 'Invalid PIN.';
+      loginPin.value = '';
+      loginPin.focus();
     });
   }
 
@@ -16988,8 +16977,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   let savedScenarios = [];
   const SCENARIO_EXCLUDED_CONTROL_IDS = new Set([
     'scenarioNameInput',
-    'loginUser',
-    'loginPassword'
+    'loginPin'
   ]);
 
   function collectScenarioControlState() {
@@ -20957,7 +20945,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   // Add listeners to key input fields to reset calculation state when changed
   const keyInputs = document.querySelectorAll('input[id], select[id], textarea[id]');
   keyInputs.forEach(input => {
-    const excludedIds = ['scenarioNameInput', 'loginUser', 'loginPassword', 'quickTiaSearchAddress', 'macroSiteSearch'];
+    const excludedIds = ['scenarioNameInput', 'loginPin', 'quickTiaSearchAddress', 'macroSiteSearch'];
     if (excludedIds.includes(input.id)) return;
     if (input.closest('#scenarioManagerCard') || input.closest('#quickSearchCard')) return;
     

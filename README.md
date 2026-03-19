@@ -18,16 +18,19 @@ Third-party materials, if any, remain subject to their own applicable license te
 
 ## Index Sync Workflow
 
-`index_formulas.html` is generated from `index.html` and must stay in sync.
+`index_developer.html` is now the development-first file.
 
-1. Edit `index.html` first.
-2. Run:
+1. Build and test new features in `index_developer.html`.
+2. After validation, sync approved changes into `index.html`.
+3. Then sync `index_formulas.html` from `index.html`.
+4. Run:
 
 ```powershell
+powershell -ExecutionPolicy Bypass -File scripts/sync-index-developer.ps1
 powershell -ExecutionPolicy Bypass -File scripts/sync-index-formulas.ps1
 ```
 
-3. Stage your changes (the hook can auto-stage `index_formulas.html` when `index.html` is staged):
+5. Stage your changes (the hook can auto-stage `index_formulas.html` when `index.html` is staged):
 
 ```powershell
 git add index.html
