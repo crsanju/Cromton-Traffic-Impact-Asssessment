@@ -12542,6 +12542,68 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return `${prefix}${formatDirectionalCodeLabel(directionCode, directionLabel)} VADT:`;
   }
 
+  function getCurrentDirectionalLabelContext() {
+    const site = selectedMacroSite && macroSitesData && macroSitesData[selectedMacroSite]
+      ? macroSitesData[selectedMacroSite]
+      : null;
+    const d1Raw = String(
+      (site && site.d1_direction_label)
+      || (window.selectedTiaData && (window.selectedTiaData.d1_direction_label || window.selectedTiaData.avgD1Label))
+      || (customDirectionContext && customDirectionContext.d1Label)
+      || 'Direction 1'
+    ).trim();
+    const d2Raw = String(
+      (site && site.d2_direction_label)
+      || (window.selectedTiaData && (window.selectedTiaData.d2_direction_label || window.selectedTiaData.avgD2Label))
+      || (customDirectionContext && customDirectionContext.d2Label)
+      || 'Direction 2'
+    ).trim();
+    return { d1Raw, d2Raw };
+  }
+
+  function formatOneWayDirectionOptionLabel(directionCode, directionLabel) {
+    const raw = String(directionLabel || '').trim();
+    const number = getDirectionalNumber(directionCode, raw);
+    const cardinal = inferCardinalDirectionText(raw) || inferCardinalFromMapBearing(directionCode);
+    const stream = inferDirectionalStreamLabel(directionCode, raw);
+    return cardinal
+      ? `Direction ${number}, ${cardinal}`
+      : `Direction ${number}, ${stream}`;
+  }
+
+  function updateDirectionalSelectionLabels(context = {}) {
+    const resolved = getCurrentDirectionalLabelContext();
+    const d1Raw = String(context.d1Raw || resolved.d1Raw || 'Direction 1').trim();
+    const d2Raw = String(context.d2Raw || resolved.d2Raw || 'Direction 2').trim();
+    const d1Text = formatOneWayDirectionOptionLabel('D1', d1Raw);
+    const d2Text = formatOneWayDirectionOptionLabel('D2', d2Raw);
+
+    ['quickTiaOneWayDirection', 'oneWayActiveDirection'].forEach((selectId) => {
+      const selectEl = document.getElementById(selectId);
+      if (!selectEl) return;
+      const d1Option = selectEl.querySelector('option[value="D1"]');
+      const d2Option = selectEl.querySelector('option[value="D2"]');
+      if (d1Option) d1Option.textContent = d1Text;
+      if (d2Option) d2Option.textContent = d2Text;
+    });
+  }
+
+  function syncDirectionalSelectionControls(source = 'main') {
+    const mainEl = document.getElementById('oneWayActiveDirection');
+    const quickEl = document.getElementById('quickTiaOneWayDirection');
+
+    updateDirectionalSelectionLabels();
+
+    let nextValue = 'D1';
+    if (source === 'quick' && quickEl) nextValue = String(quickEl.value || 'D1').toUpperCase() === 'D2' ? 'D2' : 'D1';
+    else if (source === 'main' && mainEl) nextValue = String(mainEl.value || 'D1').toUpperCase() === 'D2' ? 'D2' : 'D1';
+    else if (window.selectedTiaData && String(window.selectedTiaData.oneWayDirection || 'D1').toUpperCase() === 'D2') nextValue = 'D2';
+
+    if (mainEl) mainEl.value = nextValue;
+    if (quickEl) quickEl.value = nextValue;
+    if (window.selectedTiaData) window.selectedTiaData.oneWayDirection = nextValue;
+  }
+
   function setDirectionalInputLabels(d1Label, d2Label, suffix = ' (from DB)') {
     const d1InputLabelEl = document.getElementById('macroInputD1Label');
     const d2InputLabelEl = document.getElementById('macroInputD2Label');
@@ -12549,6 +12611,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const d2Text = formatDirectionalVadtLabel('D2', d2Label || 'Direction 2').replace(/:\s*$/, '');
     if (d1InputLabelEl) d1InputLabelEl.textContent = `${d1Text}${suffix}`;
     if (d2InputLabelEl) d2InputLabelEl.textContent = `${d2Text}${suffix}`;
+    updateDirectionalSelectionLabels({ d1Raw: d1Label, d2Raw: d2Label });
   }
 
   function getSelectedGoldCoastRoadTypeKey() {
@@ -12637,23 +12700,25 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       sourceEl.innerHTML = '<span class="source-pill source-custom-address">Custom Address</span>';
     }
 
-    const qualityEl = document.getElementById('macroDetailQuality');
-    if (qualityEl) {
-      const oneWayBadge = detail.isOneWay
-        ? `<span class="quality-pill" style="background:#ffebee; color:#b71c1c; border:1px solid #ef9a9a; margin-left:6px;">One-way (${detail.oneWayDirection || 'D1'} @ ${Math.max(1, Math.min(100, Number(detail.oneWayPercent) || 100))}%)</span>`
-        : '';
-      
-      // Check if this is manual traffic generation with peak hour data
-      const hasManualPeakData = detail.peakAM && detail.peakPM;
-      const qualityBadgeText = hasManualPeakData 
-        ? '<span class="quality-pill" style="background:#e8f5e9; color:#2e7d32; border:1px solid #81c784;">Trip Generation (Peak Hour Based)</span>'
-        : '<span class="quality-pill quality-estimated">Estimated (Reference-based)</span>';
-      
-      qualityEl.innerHTML = `${qualityBadgeText}${oneWayBadge}`;
-    }
-
     const d1RowLabel = String(detail.d1Label || 'Direction 1').trim();
     const d2RowLabel = String(detail.d2Label || 'Direction 2').trim();
+    const qualityEl = document.getElementById('macroDetailQuality');
+    if (qualityEl) {
+      const selectedDirectionCode = String(detail.oneWayDirection || 'D1').toUpperCase() === 'D2' ? 'D2' : 'D1';
+      const selectedDirectionLabel = selectedDirectionCode === 'D2'
+        ? formatOneWayDirectionOptionLabel('D2', d2RowLabel)
+        : formatOneWayDirectionOptionLabel('D1', d1RowLabel);
+      const oneWayBadge = detail.isOneWay
+        ? `<span class="quality-pill" style="background:#ffebee; color:#b71c1c; border:1px solid #ef9a9a; margin-left:6px;">One-way (${selectedDirectionLabel} @ ${Math.max(1, Math.min(100, Number(detail.oneWayPercent) || 100))}%)</span>`
+        : '';
+
+      const hasManualPeakData = detail.peakAM && detail.peakPM;
+      const qualityBadgeText = hasManualPeakData
+        ? '<span class="quality-pill" style="background:#e8f5e9; color:#2e7d32; border:1px solid #81c784;">Trip Generation (Peak Hour Based)</span>'
+        : '<span class="quality-pill quality-estimated">Estimated (Reference-based)</span>';
+
+      qualityEl.innerHTML = `${qualityBadgeText}${oneWayBadge}`;
+    }
     const d1LabelEl = document.getElementById('macroDetailD1Label');
     const d2LabelEl = document.getElementById('macroDetailD2Label');
     if (d1LabelEl) d1LabelEl.textContent = formatDirectionalVadtLabel('D1', d1RowLabel);
@@ -12855,6 +12920,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const oneWayDirectionEl = document.getElementById('quickTiaOneWayDirection');
     if (oneWayDirectionEl) {
       oneWayDirectionEl.addEventListener('change', () => {
+        syncDirectionalSelectionControls('quick');
         updateTiaCalculations();
       });
     }
@@ -13229,6 +13295,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   function syncDirectionalAllocationControls() {
     const isOneWayMode = txt('roadOperationMode').toUpperCase() === 'ONE-WAY';
+    const activeDirection = txt('oneWayActiveDirection').toUpperCase() === 'D2' ? 'D2' : 'D1';
     const dhvpaNo = txt('DHVPA').toUpperCase() === 'NO';
     const drtpaNo = txt('DRTPA').toUpperCase() === 'NO';
 
@@ -13240,18 +13307,23 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const d1RtEl = document.getElementById('D1_RTP');
     const d2RtEl = document.getElementById('D2_RTP');
 
-    setDirectionalInputEditable(d1HvEl, !dhvpaNo);
-    setDirectionalInputEditable(d2HvEl, !dhvpaNo && !isOneWayMode);
-    setDirectionalInputEditable(d1RtEl, !drtpaNo);
-    setDirectionalInputEditable(d2RtEl, !drtpaNo && !isOneWayMode);
+    setDirectionalInputEditable(d1HvEl, !dhvpaNo && (!isOneWayMode || activeDirection === 'D1'));
+    setDirectionalInputEditable(d2HvEl, !dhvpaNo && (!isOneWayMode || activeDirection === 'D2'));
+    setDirectionalInputEditable(d1RtEl, !drtpaNo && (!isOneWayMode || activeDirection === 'D1'));
+    setDirectionalInputEditable(d2RtEl, !drtpaNo && (!isOneWayMode || activeDirection === 'D2'));
 
-    // In one-way mode, all D2 directional overrides are intentionally locked.
-    [d2HvEl, d2RtEl].forEach((el) => {
+    [[d1HvEl, 'D1'], [d2HvEl, 'D2'], [d1RtEl, 'D1'], [d2RtEl, 'D2']].forEach(([el, directionCode]) => {
       if (!el) return;
-      el.disabled = !!isOneWayMode;
+      const isInactiveOneWayDirection = isOneWayMode && directionCode !== activeDirection;
+      el.disabled = !!isInactiveOneWayDirection;
       if (isOneWayMode) {
-        el.title = 'Disabled because selected road operation is one-way (D1 only).';
-        el.style.opacity = '0.65';
+        if (isInactiveOneWayDirection) {
+          el.title = `Disabled because selected road operation is one-way (${activeDirection} active).`;
+          el.style.opacity = '0.65';
+        } else {
+          el.title = '';
+          el.style.opacity = '';
+        }
       } else if (el.title && /selected road operation is one-way/i.test(el.title)) {
         el.title = '';
         el.style.opacity = '';
@@ -13263,46 +13335,52 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const mode = txt('roadOperationMode').toUpperCase();
     const wrap = document.getElementById('oneWayDirectionWrap');
     const activeDirEl = document.getElementById('oneWayActiveDirection');
+    const d1LanesEl = document.getElementById('D1_Lanes');
     const d2LanesEl = document.getElementById('D2_Lanes');
     const isOneWayMode = mode === 'ONE-WAY';
+    const activeDirection = activeDirEl && String(activeDirEl.value || 'D1').toUpperCase() === 'D2' ? 'D2' : 'D1';
 
     if (wrap) wrap.style.display = isOneWayMode ? '' : 'none';
+    updateDirectionalSelectionLabels();
+    syncDirectionalSelectionControls('main');
 
-    // Business rule: one-way selections use D1 as active and lock D2 entries.
     if (activeDirEl) {
       if (isOneWayMode) {
-        activeDirEl.value = 'D1';
-        activeDirEl.disabled = true;
-        activeDirEl.title = 'Locked to D1 for one-way road operation.';
+        activeDirEl.disabled = false;
+        activeDirEl.title = 'Select the active direction for one-way road operation.';
       } else {
         activeDirEl.disabled = false;
-        if (activeDirEl.title && /locked to d1/i.test(activeDirEl.title)) activeDirEl.title = '';
+        if (activeDirEl.title && /active direction for one-way/i.test(activeDirEl.title)) activeDirEl.title = '';
       }
     }
 
-    if (d2LanesEl) {
-      d2LanesEl.disabled = isOneWayMode;
-      if (isOneWayMode) {
-        d2LanesEl.title = 'Disabled because selected road operation is one-way (D1 only).';
-        d2LanesEl.style.opacity = '0.65';
-      } else if (d2LanesEl.title && /selected road operation is one-way/i.test(d2LanesEl.title)) {
-        d2LanesEl.title = '';
-        d2LanesEl.style.opacity = '';
+    [[d1LanesEl, 'D1'], [d2LanesEl, 'D2']].forEach(([laneEl, directionCode]) => {
+      if (!laneEl) return;
+      const isInactiveOneWayDirection = isOneWayMode && directionCode !== activeDirection;
+      laneEl.disabled = !!isInactiveOneWayDirection;
+      if (isInactiveOneWayDirection) {
+        laneEl.title = `Disabled because selected road operation is one-way (${activeDirection} active).`;
+        laneEl.style.opacity = '0.65';
+      } else if (laneEl.title && /selected road operation is one-way/i.test(laneEl.title)) {
+        laneEl.title = '';
+        laneEl.style.opacity = '';
+      } else if (!isOneWayMode) {
+        laneEl.title = '';
+        laneEl.style.opacity = '';
       }
-    }
+    });
 
-    // In one-way mode AM peak flow is always D1 (D2 is disabled/zero)
     const amPeakDirEl = document.getElementById('amPeakDirection');
     if (amPeakDirEl) {
       if (isOneWayMode) {
-        amPeakDirEl.value = '1';
+        amPeakDirEl.value = activeDirection === 'D2' ? '2' : '1';
         amPeakDirEl.disabled = true;
         amPeakDirEl.style.opacity = '0.65';
-        amPeakDirEl.title = 'Locked to D1 — AM peak always uses D1 flow on one-way roads.';
+        amPeakDirEl.title = `Locked to ${activeDirection} — AM peak uses the active one-way direction.`;
       } else {
         amPeakDirEl.disabled = false;
         amPeakDirEl.style.opacity = '';
-        if (amPeakDirEl.title && /locked to d1/i.test(amPeakDirEl.title)) amPeakDirEl.title = '';
+        if (amPeakDirEl.title && /active one-way direction/i.test(amPeakDirEl.title)) amPeakDirEl.title = '';
       }
     }
 
@@ -23367,6 +23445,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       road: searchTerm   // <-- ADD THIS
     };
 
+    updateDirectionalSelectionLabels({
+      d1Raw: window.selectedTiaData.avgD1Label,
+      d2Raw: window.selectedTiaData.avgD2Label
+    });
     updateTiaCalculations();
 
     document.getElementById('quickTiaExactMatch').style.display = 'none';
@@ -23430,6 +23512,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const typePercentEl = document.getElementById('quickTiaTypePercent');
     if (calcD1LabelEl) calcD1LabelEl.textContent = formatDirectionalVadtLabel('D1', window.selectedTiaData.avgD1Label || 'Direction 1', 'Calculated ');
     if (calcD2LabelEl) calcD2LabelEl.textContent = formatDirectionalVadtLabel('D2', window.selectedTiaData.avgD2Label || 'Direction 2', 'Calculated ');
+    updateDirectionalSelectionLabels({
+      d1Raw: window.selectedTiaData.avgD1Label,
+      d2Raw: window.selectedTiaData.avgD2Label
+    });
     if (areaTypeEl) areaTypeEl.textContent = String(window.selectedTiaData.areaType || 'Mixed Urban Street');
     if (typePercentEl) typePercentEl.textContent = `${areaTypeFactorPercent}%`;
 
@@ -23745,8 +23831,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       roadName: currentAddress,
       description: `Manual traffic generation calculation (${generatedVadt} total trips/day from ${data.quantity} ${scenarioData.unit})`,
       countYear: 'Manual calculation',
-      d1Label: 'Direction 1, Southbound',
-      d2Label: 'Direction 2, Northbound',
+      d1Label: getCurrentDirectionalLabelContext().d1Raw,
+      d2Label: getCurrentDirectionalLabelContext().d2Raw,
       d1: Math.round(generatedVadt * 0.5),
       d2: Math.max(0, generatedVadt - Math.round(generatedVadt * 0.5)),
       total: generatedVadt,
