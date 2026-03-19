@@ -6,48 +6,38 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$developerPath = Join-Path $repoRoot 'index_developer.html'
 $indexPath = Join-Path $repoRoot 'index.html'
+$developerPath = Join-Path $repoRoot 'index_developer.html'
 
-if (-not (Test-Path $developerPath)) {
-  throw "index_developer.html not found at $developerPath"
+if (-not (Test-Path $indexPath)) {
+  throw "index.html not found at $indexPath"
 }
 
-$developerContent = Get-Content -Path $developerPath -Raw
-$outputContent = $developerContent
+$indexContent = Get-Content -Path $indexPath -Raw
+$outputContent = $indexContent
 
-# Keep production title distinct while mirroring logic/content from index_developer.html.
+# Keep developer title distinct while mirroring baseline content from index.html.
 $outputContent = [regex]::Replace(
   $outputContent,
   '(?is)<title>.*?</title>',
-  '<title>Traffic Impact Assessment</title>',
+  '<title>Traffic Impact Assessment - Developer</title>',
   1
 )
 
-$productionBetaHideBlock = @'
-/* Production build: beta panel is developer-only. */
-#optionalFeaturesSection,
-#betaFeaturesCard {
-  display: none !important;
-}
-'@
+# Developer build should keep beta features visible.
+$outputContent = [regex]::Replace(
+  $outputContent,
+  '(?is)/\*\s*Production build: beta panel is developer-only\.\s*\*/\s*#optionalFeaturesSection,\s*#betaFeaturesCard\s*\{\s*display:\s*none\s*!important;\s*\}',
+  ''
+)
 
-if ($outputContent -notmatch [regex]::Escape('/* Production build: beta panel is developer-only. */')) {
-  $outputContent = [regex]::Replace(
-    $outputContent,
-    '(?is)(<style[^>]*>\s*)',
-    ('$1' + $productionBetaHideBlock + "`r`n"),
-    1
-  )
-}
-
-$existingOutput = if (Test-Path $indexPath) { Get-Content -Path $indexPath -Raw } else { '' }
+$existingOutput = if (Test-Path $developerPath) { Get-Content -Path $developerPath -Raw } else { '' }
 
 if ($existingOutput -ne $outputContent) {
-  Set-Content -Path $indexPath -Value $outputContent -Encoding UTF8
+  Set-Content -Path $developerPath -Value $outputContent -Encoding UTF8
   if (-not $Quiet) {
-    Write-Host 'Synced index.html from index_developer.html (production title preserved).'
+    Write-Host 'Synced index_developer.html from index.html (developer title preserved).'
   }
 } elseif (-not $Quiet) {
-  Write-Host 'index.html is already in sync with index_developer.html.'
+  Write-Host 'index_developer.html is already in sync with index.html.'
 }

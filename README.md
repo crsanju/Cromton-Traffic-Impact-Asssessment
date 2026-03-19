@@ -18,25 +18,31 @@ Third-party materials, if any, remain subject to their own applicable license te
 
 ## Index Sync Workflow
 
-`index_developer.html` is now the development-first file.
+Use this separation model:
 
-1. Build and test new features in `index_developer.html`.
-2. After validation, sync approved changes into `index.html`.
-3. Then sync `index_formulas.html` from `index.html`.
-4. Run:
+1. `index.html` = main user interface (beta hidden).
+2. `index_formulas.html` = user-facing formulas view (beta hidden), synced from `index.html`.
+3. `index_developer.html` = isolated beta/developer editing file.
+
+For user releases, sync only formulas from main index:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/sync-index-developer.ps1
 powershell -ExecutionPolicy Bypass -File scripts/sync-index-formulas.ps1
 ```
 
-5. Stage your changes (the hook can auto-stage `index_formulas.html` when `index.html` is staged):
+Optional reset command (only when you explicitly want to rebuild developer from stable main):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/sync-index-developer.ps1
+```
+
+Stage your changes (the hook auto-stages `index_formulas.html` when `index.html` is staged):
 
 ```powershell
 git add index.html
 ```
 
-The sync script keeps formula-mode behavior in `index_formulas.html` (formula enforcer block) while mirroring updates from `index.html`.
+The formulas sync keeps formula-mode behavior in `index_formulas.html` (formula enforcer block) while mirroring updates from `index.html`.
 
 ## Pre-commit Enforcement
 

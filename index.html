@@ -3486,10 +3486,13 @@
     <div class="login-card">
       <img class="login-logo" src="logo.jpeg" alt="Crompton logo" />
       <h2 id="loginTitle" class="login-title">Crompton Login</h2>
-      <p class="login-note">Enter the developer PIN to access the Traffic Impact Assessment tool.</p>
+      <p class="login-note">Please sign in to access the Traffic Impact Assessment tool.</p>
       <form id="loginForm">
-        <label for="loginPin">Developer PIN</label>
-        <input id="loginPin" name="loginPin" type="password" placeholder="Enter PIN" inputmode="numeric" maxlength="4" autocomplete="one-time-code" required />
+        <label for="loginUser">Username</label>
+        <input id="loginUser" name="loginUser" type="text" placeholder="Enter username" autocomplete="username" required />
+
+        <label for="loginPassword" style="margin-top:10px;">Password</label>
+        <input id="loginPassword" name="loginPassword" type="password" placeholder="Enter password" autocomplete="current-password" required />
 
         <button type="submit">Login</button>
         <div id="loginError" class="login-error" aria-live="polite"></div>
@@ -8057,11 +8060,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   function setupLoginGate() {
     const loginGate = document.getElementById('loginGate');
     const loginForm = document.getElementById('loginForm');
-    const loginPin = document.getElementById('loginPin');
+    const loginUser = document.getElementById('loginUser');
+    const loginPassword = document.getElementById('loginPassword');
     const loginError = document.getElementById('loginError');
-    if (!loginGate || !loginForm || !loginPin || !loginError) return;
+    if (!loginGate || !loginForm || !loginUser || !loginPassword || !loginError) return;
 
-    const DEVELOPER_PIN = '8080';
+    const allowedUsers = {
+      admin: 'Packer4551',
+      users: 'Crompton123'
+    };
 
     async function unlockApplication(options = {}) {
       const useFunnyLoading = !!(options && options.useFunnyLoading);
@@ -8119,16 +8126,25 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return;
     }
 
-    loginPin.focus();
+    loginUser.focus();
 
     // Keep login typing responsive: do not start heavy data loading on input/focus.
     // Data loading now starts only after successful credential validation.
 
     loginForm.addEventListener('submit', async function (event) {
       event.preventDefault();
-      const enteredPin = String(loginPin.value || '').trim();
+      const usernameKey = String(loginUser.value || '').trim().toLowerCase();
+      const enteredPassword = String(loginPassword.value || '').trim();
+      const expectedPassword = allowedUsers[usernameKey];
 
-      if (enteredPin === DEVELOPER_PIN) {
+      if (expectedPassword && enteredPassword === expectedPassword) {
+        if (window.PasswordCredential && navigator.credentials && typeof navigator.credentials.store === 'function') {
+          navigator.credentials.store(new PasswordCredential({
+            id: usernameKey,
+            password: enteredPassword,
+            name: usernameKey
+          })).catch(() => {});
+        }
         sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
         loginError.textContent = '';
         // Instead of reloading, unlock app (will wait for data if needed)
@@ -8145,9 +8161,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         return;
       }
 
-      loginError.textContent = 'Invalid PIN.';
-      loginPin.value = '';
-      loginPin.focus();
+      loginError.textContent = 'Invalid username or password.';
+      loginPassword.value = '';
+      loginPassword.focus();
     });
   }
 
@@ -16980,7 +16996,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   let savedScenarios = [];
   const SCENARIO_EXCLUDED_CONTROL_IDS = new Set([
     'scenarioNameInput',
-    'loginPin'
+    'loginUser',
+    'loginPassword'
   ]);
 
   function collectScenarioControlState() {
@@ -20948,7 +20965,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   // Add listeners to key input fields to reset calculation state when changed
   const keyInputs = document.querySelectorAll('input[id], select[id], textarea[id]');
   keyInputs.forEach(input => {
-    const excludedIds = ['scenarioNameInput', 'loginPin', 'quickTiaSearchAddress', 'macroSiteSearch'];
+    const excludedIds = ['scenarioNameInput', 'loginUser', 'loginPassword', 'quickTiaSearchAddress', 'macroSiteSearch'];
     if (excludedIds.includes(input.id)) return;
     if (input.closest('#scenarioManagerCard') || input.closest('#quickSearchCard')) return;
     
