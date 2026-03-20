@@ -12119,10 +12119,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return new Set(ranked.map(item => item.hour));
     };
 
-    const d1AmTopHours = getTopWindowHourSet(d1RankingHourly, amHoursSet, 2);
-    const d1PmTopHours = getTopWindowHourSet(d1RankingHourly, pmHoursSet, 2);
-    const d2AmTopHours = getTopWindowHourSet(d2RankingHourly, amHoursSet, 2);
-    const d2PmTopHours = getTopWindowHourSet(d2RankingHourly, pmHoursSet, 2);
+    // Highlight morning/evening peaks per direction from hourly ranking data.
+    // Morning = 00:00-11:59, Evening = 12:00-23:59.
+    const morningHoursSet = new Set(Array.from({ length: 12 }, (_, h) => h));
+    const eveningHoursSet = new Set(Array.from({ length: 12 }, (_, i) => i + 12));
+    const d1AmTopHours = getTopWindowHourSet(d1RankingHourly, morningHoursSet, 2);
+    const d1PmTopHours = getTopWindowHourSet(d1RankingHourly, eveningHoursSet, 2);
+    const d2AmTopHours = getTopWindowHourSet(d2RankingHourly, morningHoursSet, 2);
+    const d2PmTopHours = getTopWindowHourSet(d2RankingHourly, eveningHoursSet, 2);
 
     const d1PeaksRanked = getPeakHours(d1DisplayHourly, d1RankingHourly);
     const d2PeaksRanked = getPeakHours(d2DisplayHourly, d2RankingHourly);
