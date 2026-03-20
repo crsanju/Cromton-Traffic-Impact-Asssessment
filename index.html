@@ -11009,10 +11009,57 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       }
     });
 
+    const applyProportionalHourlySplit = (site) => {
+      if (!site || !site.directions_weekday) return;
+
+      const gazData = Array.isArray(site.directions_weekday['GAZETTAL'])
+        ? site.directions_weekday['GAZETTAL'].map(v => Math.max(0, Number(v) || 0))
+        : new Array(24).fill(0);
+      const agData = Array.isArray(site.directions_weekday['AGAINST GAZETTAL'])
+        ? site.directions_weekday['AGAINST GAZETTAL'].map(v => Math.max(0, Number(v) || 0))
+        : new Array(24).fill(0);
+
+      const gazSum = gazData.reduce((a, b) => a + b, 0);
+      const agSum = agData.reduce((a, b) => a + b, 0);
+      const hasGaz = gazSum > 0;
+      const hasAg = agSum > 0;
+      if (hasGaz && hasAg) return;
+
+      const d1Daily = Math.max(0, Number(site.d1_vadt) || 0);
+      const d2Daily = Math.max(0, Number(site.d2_vadt) || 0);
+      const totalDaily = Math.max(0, Number(site.vadt) || (d1Daily + d2Daily));
+      if (totalDaily <= 0) return;
+
+      const baseShape = hasGaz ? gazData : (hasAg ? agData : buildSyntheticHourlyFromDaily(totalDaily, 1));
+      const baseShapeTotal = baseShape.reduce((a, b) => a + (Number(b) || 0), 0);
+      if (baseShapeTotal <= 0) return;
+
+      const dirDailyTotal = d1Daily + d2Daily;
+      const d1Share = dirDailyTotal > 0 ? (d1Daily / dirDailyTotal) : 0.5;
+
+      const redistributedD1 = new Array(24).fill(0);
+      const redistributedD2 = new Array(24).fill(0);
+      for (let hour = 0; hour < 24; hour += 1) {
+        const weight = (Number(baseShape[hour]) || 0) / baseShapeTotal;
+        const hourTotal = totalDaily * weight;
+        redistributedD1[hour] = hourTotal * d1Share;
+        redistributedD2[hour] = hourTotal - redistributedD1[hour];
+      }
+
+      site.directions_weekday['GAZETTAL'] = redistributedD1;
+      site.directions_weekday['AGAINST GAZETTAL'] = redistributedD2;
+      site.directions['GAZETTAL'] = redistributedD1.slice();
+      site.directions['AGAINST GAZETTAL'] = redistributedD2.slice();
+      if (!site.direction_split_mode || String(site.direction_split_mode).toLowerCase() === 'unknown' || String(site.direction_split_mode).toLowerCase() === 'fallback_50_50') {
+        site.direction_split_mode = 'hourly_proportional_split';
+      }
+    };
+
     // Calculate D1 & D2 VADT from directional data and set labels
     const isGoldCoast = sourceUpper === 'GOLD COAST';
     Object.keys(sites).forEach(siteId => {
       const site = sites[siteId];
+      applyProportionalHourlySplit(site);
       const gazData = site.directions_weekday['GAZETTAL'] || new Array(24).fill(0);
       const agData = site.directions_weekday['AGAINST GAZETTAL'] || new Array(24).fill(0);
       
