@@ -12074,15 +12074,19 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       ? normalizeHourly(data.directions_weekday['AGAINST GAZETTAL'])
       : null;
 
-    const d1DisplayHourly = normalizeHourly(gazData);
-    const d2DisplayHourly = normalizeHourly(agData);
+    const hasD1DbHourly = Array.isArray(d1DbHourly) && d1DbHourly.some(v => Number(v) > 0);
+    const hasD2DbHourly = Array.isArray(d2DbHourly) && d2DbHourly.some(v => Number(v) > 0);
+    const useDatabaseDisplayHourly = hasD1DbHourly || hasD2DbHourly;
 
-    const d1RankingHourly = (isTmrStylePeakSource && d1DbHourly && d1DbHourly.some(v => v > 0))
+    const d1DisplayHourly = useDatabaseDisplayHourly && hasD1DbHourly
       ? d1DbHourly
-      : d1DisplayHourly;
-    const d2RankingHourly = (isTmrStylePeakSource && d2DbHourly && d2DbHourly.some(v => v > 0))
+      : normalizeHourly(gazData);
+    const d2DisplayHourly = useDatabaseDisplayHourly && hasD2DbHourly
       ? d2DbHourly
-      : d2DisplayHourly;
+      : normalizeHourly(agData);
+
+    const d1RankingHourly = hasD1DbHourly ? d1DbHourly : d1DisplayHourly;
+    const d2RankingHourly = hasD2DbHourly ? d2DbHourly : d2DisplayHourly;
 
     const getPeakHours = (displayHourlyData, rankingHourlyData) => {
       const displaySeries = normalizeHourly(displayHourlyData);
@@ -12140,7 +12144,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const peakRankingSourceBadgeHtml = `
       <div style="margin:0 0 8px 0; padding:6px 8px; border-radius:6px; border:1px solid ${isTmrStylePeakSource ? '#90caf9' : '#b7d6dc'}; background:${isTmrStylePeakSource ? '#e3f2fd' : '#f3fbfd'}; color:${isTmrStylePeakSource ? '#0d47a1' : '#0f4e55'}; font-size:0.82em; font-weight:700;">
-        Peak ranking source: ${isTmrStylePeakSource ? 'Database hourly profile (TMR/TMR-style)' : 'Calculated hourly profile'}
+        Peak hourly source: ${useDatabaseDisplayHourly ? 'Database hourly profile' : 'Calculated hourly profile (hourly not available)'}
       </div>
     `;
 
@@ -12235,7 +12239,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             <tbody>${rows}</tbody>
           </table>
           <div class="formula-inline">✓ Opening year volumes (matches Queue Length hourly table). v_hour = daily directional volume * diurnal factor(hour)</div>
-          <div class="formula-inline">Highlighting = top 2 AM and top 2 PM hours (dynamic). Display order = chronological timing. ${isTmrStylePeakSource ? 'Ranking source: database hourly profile (TMR/TMR-style).' : 'Ranking source: calculated hourly profile.'}</div>
+          <div class="formula-inline">Highlighting = top 2 AM and top 2 PM hours (dynamic). Display order = chronological timing. ${useDatabaseDisplayHourly ? 'Hourly values shown are from database; calculated fallback is used only when hourly data is unavailable.' : 'Hourly values shown are calculated because hourly source data is unavailable.'}</div>
         `;
       }
     }
@@ -12278,7 +12282,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             <tbody>${rows}</tbody>
           </table>
           <div class="formula-inline">✓ Opening year volumes (matches Queue Length hourly table). v_hour = daily directional volume * diurnal factor(hour)</div>
-          <div class="formula-inline">Highlighting = top 2 AM and top 2 PM hours (dynamic). Display order = chronological timing. ${isTmrStylePeakSource ? 'Ranking source: database hourly profile (TMR/TMR-style).' : 'Ranking source: calculated hourly profile.'}</div>
+          <div class="formula-inline">Highlighting = top 2 AM and top 2 PM hours (dynamic). Display order = chronological timing. ${useDatabaseDisplayHourly ? 'Hourly values shown are from database; calculated fallback is used only when hourly data is unavailable.' : 'Hourly values shown are calculated because hourly source data is unavailable.'}</div>
         `;
       }
     }
