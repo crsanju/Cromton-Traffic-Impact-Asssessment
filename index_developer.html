@@ -12125,13 +12125,18 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const hasD2DbHourly = Array.isArray(d2DbHourly) && d2DbHourly.some(v => Number(v) > 0);
     const useDatabaseDisplayHourly = hasD1DbHourly || hasD2DbHourly;
 
-    const d1DisplayHourly = useDatabaseDisplayHourly && hasD1DbHourly
-      ? d1DbHourly
-      : normalizeHourly(gazData);
-    const d2DisplayHourly = useDatabaseDisplayHourly && hasD2DbHourly
-      ? d2DbHourly
-      : normalizeHourly(agData);
+    // When opening-year work profiles exist, use gazData/agData (opening year projected,
+    // already scaled from lastWorkWindowHourlyProfiles) so volumes match the Queue Length table.
+    // Otherwise fall back to raw DB hourly data for display.
+    const usingWorkProfiles = !!(lastWorkWindowHourlyProfiles && lastWorkWindowHourlyProfiles.d1 && lastWorkWindowHourlyProfiles.d2);
+    const d1DisplayHourly = (usingWorkProfiles || !useDatabaseDisplayHourly || !hasD1DbHourly)
+      ? normalizeHourly(gazData)
+      : d1DbHourly;
+    const d2DisplayHourly = (usingWorkProfiles || !useDatabaseDisplayHourly || !hasD2DbHourly)
+      ? normalizeHourly(agData)
+      : d2DbHourly;
 
+    // Use raw DB data for ranking (proportional scaling doesn't change peak-hour order)
     const d1RankingHourly = hasD1DbHourly ? d1DbHourly : d1DisplayHourly;
     const d2RankingHourly = hasD2DbHourly ? d2DbHourly : d2DisplayHourly;
 
@@ -12261,15 +12266,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const rows = d1PeaksByTime.map((p, i) => {
           const opposing = Number(d2DisplayHourly[p.hour]) || 0;
           const share = d1Total > 0 ? (p.volume / d1Total) * 100 : 0;
-          const diff = p.volume - opposing;
-          const diffText = `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()} vph`;
+          const diff = Math.ceil(p.volume) - Math.ceil(opposing);
+          const diffText = `${diff >= 0 ? '+' : ''}${diff.toLocaleString()} vph`;
           const rowStyle = getPeakWindowRowStyle(p.hour, '#b8860b', d1AmTopHours, d1PmTopHours);
           return `<tr>
             <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:center; ${rowStyle}">${i + 1}</td>
             <td style="padding:4px 6px; border:1px solid #b7dcb9; ${rowStyle}">${formatHourWindow(p.hour)}</td>
-            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right; ${rowStyle}">${Math.round(p.volume).toLocaleString()}</td>
+            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right; ${rowStyle}">${Math.ceil(p.volume).toLocaleString()}</td>
             <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right; ${rowStyle}">${share.toFixed(1)}%</td>
-            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right; ${rowStyle}">${Math.round(opposing).toLocaleString()}</td>
+            <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right; ${rowStyle}">${Math.ceil(opposing).toLocaleString()}</td>
             <td style="padding:4px 6px; border:1px solid #b7dcb9; text-align:right; ${rowStyle}">${diffText}</td>
           </tr>`;
         }).join('');
@@ -12304,15 +12309,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const rows = d2PeaksByTime.map((p, i) => {
           const opposing = Number(d1DisplayHourly[p.hour]) || 0;
           const share = d2Total > 0 ? (p.volume / d2Total) * 100 : 0;
-          const diff = p.volume - opposing;
-          const diffText = `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()} vph`;
+          const diff = Math.ceil(p.volume) - Math.ceil(opposing);
+          const diffText = `${diff >= 0 ? '+' : ''}${diff.toLocaleString()} vph`;
           const rowStyle = getPeakWindowRowStyle(p.hour, '#cc6f00', d2AmTopHours, d2PmTopHours);
           return `<tr>
             <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:center; ${rowStyle}">${i + 1}</td>
             <td style="padding:4px 6px; border:1px solid #f0b4b4; ${rowStyle}">${formatHourWindow(p.hour)}</td>
-            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right; ${rowStyle}">${Math.round(p.volume).toLocaleString()}</td>
+            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right; ${rowStyle}">${Math.ceil(p.volume).toLocaleString()}</td>
             <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right; ${rowStyle}">${share.toFixed(1)}%</td>
-            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right; ${rowStyle}">${Math.round(opposing).toLocaleString()}</td>
+            <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right; ${rowStyle}">${Math.ceil(opposing).toLocaleString()}</td>
             <td style="padding:4px 6px; border:1px solid #f0b4b4; text-align:right; ${rowStyle}">${diffText}</td>
           </tr>`;
         }).join('');
