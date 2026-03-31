@@ -16017,16 +16017,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const sourceUpper = String(site && site.source ? site.source : '').trim().toUpperCase();
     const kpiModelProfileEl = document.getElementById('kpiModelProfile');
     if (kpiModelProfileEl) {
-      let profileText = 'Template (Non-TMR)';
-      if (sourceUpper === 'TMR') profileText = 'TMR (Measured Hourly + TMR Rules)';
-      else if (sourceUpper === 'GOLD COAST') profileText = 'Gold Coast (CoGC Method)';
-      else if (sourceUpper === 'BRISBANE') profileText = 'Brisbane (Council Method)';
-      else if (sourceUpper === 'IPSWICH') profileText = 'Ipswich (Ipswich Method)';
-      else if (sourceUpper === 'LOGAN') profileText = 'Logan (Council Method)';
-      else if (sourceUpper === 'TOOWOOMBA') profileText = 'Toowoomba (Council Method)';
-      else if (sourceUpper === 'NSW') profileText = 'NSW (State Roads Method)';
-      else if (sourceUpper === 'CUSTOM UPLOAD') profileText = isTmrStyleSource(site) ? 'Custom Upload (Measured Hourly)' : 'Custom Upload (Template Hourly)';
-      else if (!sourceUpper && window.selectedTiaData && window.selectedTiaData.type === 'references') profileText = 'Quick Address (Weighted References)';
+      const sourceLabel = {
+        'TMR': 'TMR', 'GOLD COAST': 'Gold Coast', 'BRISBANE': 'Brisbane',
+        'IPSWICH': 'Ipswich', 'LOGAN': 'Logan', 'TOOWOOMBA': 'Toowoomba',
+        'NSW': 'NSW', 'CUSTOM UPLOAD': 'Custom Upload', 'TEWANTIN': 'Tewantin'
+      }[sourceUpper] || (sourceUpper || 'Unknown');
+      let profileText = isTmrStyleSource(site) ? `${sourceLabel} (Measured Hourly)` : `${sourceLabel} (Austroads Template)`;
+      if (!sourceUpper && window.selectedTiaData && window.selectedTiaData.type === 'references') profileText = 'Quick Address (Weighted References)';
       kpiModelProfileEl.textContent = `Model Profile: ${profileText}`;
     }
     const oneWayMode = txt('roadOperationMode').toUpperCase() === 'ONE-WAY';
