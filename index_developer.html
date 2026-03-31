@@ -13579,17 +13579,36 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   // --- Shared helper: determines if a site should use hourly (TMR-style) calculation ---
   function isTmrStyleSource(site, directionKey) {
-    const source = String(site ? site.source : '').toUpperCase();
-    if (source === 'TMR') return true;
-    if (source !== 'CUSTOM UPLOAD' && source !== 'NSW') return false;
+    // Determines whether a site has real measured 24-hour hourly data in the database.
+    // If YES  → use the measured data directly (scaled to target daily total).
+    // If NO   → fall back to the Austroads proportional diurnal template.
+    //
+    // Decision is DATA-DRIVEN, not source-name driven:
+    //   Full measured profile (TMR, NSW, Custom Upload) typically has 20+ non-zero hours.
+    //   Sparse peak-only data (Ipswich AM/PM peaks, Logan AM/PM peaks) has only 2 non-zero hours.
+    //   No hourly data (Brisbane, Gold Coast, Toowoomba) has 0 non-zero hours.
+    //
+    // Threshold: ≥ 6 non-zero hours = adequate coverage to use as a measured profile.
+    // This cleanly separates full 24h measured profiles from sparse/no data.
+    const MINIMUM_NONZERO_HOURS = 6;
+
     if (!site || !site.directions_weekday) return false;
-    // If a specific direction is requested, only check that direction
+
+    const countNonZeroHours = (arr) => {
+      if (!Array.isArray(arr) || arr.length < 24) return 0;
+      return arr.filter(v => Number(v) > 0).length;
+    };
+
     if (directionKey) {
-      return site.directions_weekday[directionKey] && site.directions_weekday[directionKey].reduce((a,b)=>a+b,0) > 0;
+      // Check the specific requested direction
+      return countNonZeroHours(site.directions_weekday[directionKey]) >= MINIMUM_NONZERO_HOURS;
     }
-    // Otherwise check if ANY direction has real hourly data
-    return ((site.directions_weekday['GAZETTAL'] && site.directions_weekday['GAZETTAL'].reduce((a,b)=>a+b,0) > 0) || 
-            (site.directions_weekday['AGAINST GAZETTAL'] && site.directions_weekday['AGAINST GAZETTAL'].reduce((a,b)=>a+b,0) > 0));
+
+    // No direction specified — return true if ANY direction has adequate hourly coverage
+    return (
+      countNonZeroHours(site.directions_weekday['GAZETTAL']) >= MINIMUM_NONZERO_HOURS ||
+      countNonZeroHours(site.directions_weekday['AGAINST GAZETTAL']) >= MINIMUM_NONZERO_HOURS
+    );
   }
 
   // --- SOURCE-AWARE DESIGN VOLUME (DV) CALCULATION ---
@@ -14991,9 +15010,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
        // Each hourly[hour] = dailyTotal * (sourceHourly[hour] / sourceTotal)
        hourly = sourceHourly.map(v => Math.max(0, v * scale));
     } else {
-       // Non-TMR: apply fixed realistic AU hourly template (user-provided), then scale to directional VADT.
-      const amBiasTemplate = [50, 31, 20, 32, 100, 316, 738, 1212, 1477, 738, 580, 527, 527, 527, 632, 685, 738, 632, 422, 316, 263, 211, 158, 106];
-      const pmBiasTemplate = [60, 30, 20, 30, 50, 150, 351, 551, 682, 576, 551, 501, 501, 501, 601, 802, 1153, 1409, 752, 451, 351, 251, 150, 100];
+       // No measured DB data (< 6 non-zero hours): apply Austroads realistic AU hourly diurnal factors.
+       // Based on typical Brisbane urban arterial patterns (morning peak 8-9am, evening peak 5-6pm).
+       // These factors distribute daily volume proportionally across 24 hours.
+      const amBiasTemplate = [23, 15, 10, 8, 12, 45, 120, 180, 210, 150, 100, 85, 80, 80, 90, 110, 140, 160, 100, 70, 55, 40, 30, 25];
+      const pmBiasTemplate = [22, 14, 9, 7, 10, 40, 100, 140, 160, 140, 110, 95, 90, 85, 100, 130, 180, 210, 140, 85, 60, 42, 32, 26];
 
       const bias = inferDirectionalPeakBias(site);
       const directionIsAmBias = Number(direction) === Number(bias && bias.amDirection);
