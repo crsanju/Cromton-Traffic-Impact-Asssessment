@@ -1,6 +1,6 @@
-# Cromton Traffic Impact Asssessment
+# Cromton Traffic Impact Assessment
 
-This repository contains the Traffic Impact Assessment tool.
+This repository contains the Traffic Impact Assessment (TIA) tool for analyzing traffic impacts and generating professional reports.
 
 ## Ownership
 
@@ -15,6 +15,36 @@ This repository is distributed under the proprietary terms set out in [LICENSE](
 No public right to copy, modify, redistribute, or create derivative works is granted except where Crompton Concepts provides written authorization.
 
 Third-party materials, if any, remain subject to their own applicable license terms.
+
+## Quick Start
+
+### Installation
+```bash
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Install Git hooks for workflow automation
+powershell -ExecutionPolicy Bypass -File scripts/install-hooks.ps1
+```
+
+### Running the Application
+```bash
+# Start the Python report service
+python report_service.py
+
+# Open the frontend in browser
+# File: index.html
+```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for comprehensive setup and deployment instructions.
+
+## Documentation
+
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Full setup, configuration, and deployment guide
+- **[LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md)** - Pre-launch verification checklist
+- **[manual.html](manual.html)** - User manual (open in browser)
+- **[LICENSE](LICENSE)** - Proprietary license terms
+- **[COPYRIGHT.md](COPYRIGHT.md)** - Copyright notice
 
 ## Index Sync Workflow
 

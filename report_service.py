@@ -4,6 +4,7 @@ import json
 import uuid
 import base64
 import re
+import os
 from datetime import datetime
 from html import escape
 from pathlib import Path
@@ -672,3 +673,29 @@ def editor_page(draft_id: str) -> str:
 </body>
 </html>
 """
+
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    # Run the server on localhost:8000 by default
+    # Set environment variables to customize:
+    # - HOST: defaults to 127.0.0.1 (localhost)
+    # - PORT: defaults to 8000
+    # - RELOAD: set to "true" for auto-reload in development
+    
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "8000"))
+    reload = os.environ.get("RELOAD", "").lower() == "true"
+    
+    print(f"🚀 Starting TIA Report Service at http://{host}:{port}")
+    print(f"   Health check: http://{host}:{port}/health")
+    print(f"   API docs: http://{host}:{port}/docs")
+    
+    uvicorn.run(
+        "report_service:app",
+        host=host,
+        port=port,
+        reload=reload,
+        log_level="info"
+    )
