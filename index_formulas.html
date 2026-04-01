@@ -12171,6 +12171,95 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   let macroD2PieChartInstance = null;
   let lastMacroChartPayload = null;
 
+  const engineeringChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          font: { family: "'Space Grotesk', sans-serif", size: 13 },
+          usePointStyle: true,
+          boxWidth: 8
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        titleFont: { family: "'Space Grotesk', sans-serif", size: 14 },
+        bodyFont: { family: "'JetBrains Mono', monospace", size: 13 },
+        padding: 12,
+        cornerRadius: 4,
+        callbacks: {
+          label: function(context) {
+            return ` ${context.dataset.label}: ${context.parsed.y} vph`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+          drawBorder: false
+        },
+        ticks: {
+          font: { family: "'JetBrains Mono', monospace", size: 11 },
+          color: '#64748b'
+        }
+      },
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Traffic Volume (vph)',
+          font: { family: "'Space Grotesk', sans-serif", size: 12, weight: '600' },
+          color: '#475569'
+        },
+        grid: {
+          color: '#f1f5f9',
+          drawBorder: false
+        },
+        ticks: {
+          font: { family: "'JetBrains Mono', monospace", size: 12 },
+          color: '#64748b',
+          stepSize: 100
+        }
+      }
+    }
+  };
+
+  function deepMergeChartOptions(baseObj, overrides) {
+    if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides)) {
+      return baseObj;
+    }
+    const output = { ...baseObj };
+    Object.keys(overrides).forEach((key) => {
+      const baseValue = output[key];
+      const overrideValue = overrides[key];
+      if (
+        baseValue
+        && overrideValue
+        && typeof baseValue === 'object'
+        && typeof overrideValue === 'object'
+        && !Array.isArray(baseValue)
+        && !Array.isArray(overrideValue)
+      ) {
+        output[key] = deepMergeChartOptions(baseValue, overrideValue);
+      } else {
+        output[key] = overrideValue;
+      }
+    });
+    return output;
+  }
+
+  function buildEngineeringChartOptions(overrides = {}) {
+    return deepMergeChartOptions(engineeringChartOptions, overrides);
+  }
+
   function getCurrentGrowthProjectionContext() {
     const currentYear = new Date().getFullYear();
     const rawBaseYear = Number(document.getElementById('baseYear')?.value);
@@ -12379,26 +12468,34 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             }
           ]
         },
-        options: {
-          responsive: true,
+        options: buildEngineeringChartOptions({
           maintainAspectRatio: true,
           plugins: {
             title: {
               display: true,
               text: `Current vs Predicted @ ${numberRoundUp(growthRatePct, 3)}% p.a. over ${effectiveYears} year(s)`
             },
-            legend: { position: 'top' }
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return ` ${context.dataset.label}: ${Math.round(Number(context.parsed.y) || 0).toLocaleString()} vph`;
+                }
+              }
+            }
           },
           scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: 'Volume (vph)' }
-            },
             x: {
               title: { display: true, text: 'Hour of Day' }
+            },
+            y: {
+              title: { display: true, text: 'Traffic Volume (vph)' },
+              ticks: {
+                stepSize: 100,
+                callback: (v) => Number(v).toLocaleString('en-AU')
+              }
             }
           }
-        }
+        })
       });
     }
     
@@ -12429,13 +12526,21 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             backgroundColor: CHART_PALETTE.viridis.slice(1)
           }]
         },
-        options: {
-          responsive: true,
+        options: buildEngineeringChartOptions({
           maintainAspectRatio: true,
+          scales: {},
           plugins: {
-            legend: { position: 'top' }
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const value = Math.round(Number(context.parsed) || 0);
+                  return ` ${context.label}: ${value.toLocaleString()} vph`;
+                }
+              }
+            }
           }
-        }
+        })
       });
     }
     
@@ -12452,13 +12557,21 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             backgroundColor: CHART_PALETTE.viridis.slice(1)
           }]
         },
-        options: {
-          responsive: true,
+        options: buildEngineeringChartOptions({
           maintainAspectRatio: true,
+          scales: {},
           plugins: {
-            legend: { position: 'top' }
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const value = Math.round(Number(context.parsed) || 0);
+                  return ` ${context.label}: ${value.toLocaleString()} vph`;
+                }
+              }
+            }
           }
-        }
+        })
       });
     }
     
@@ -12486,6 +12599,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const hasD1DbHourly = Array.isArray(d1DbHourly) && d1DbHourly.some(v => Number(v) > 0);
     const hasD2DbHourly = Array.isArray(d2DbHourly) && d2DbHourly.some(v => Number(v) > 0);
     const useDatabaseDisplayHourly = hasD1DbHourly || hasD2DbHourly;
+
+    if (sourceEl) {
+      const hourlySourceTrace = useDatabaseDisplayHourly
+        ? 'Hourly Source: Database hourly profile scaled to opening year'
+        : 'Hourly Source: Austroads default profile fallback at opening year';
+      sourceEl.textContent = `${sourceText} | ${hourlySourceTrace}`;
+    }
 
     // Always use opening-year projected data (gazPredData/agPredData) for display.
     // gazPredData is the opening-year value in all three code paths:
@@ -14564,52 +14684,28 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       };
     };
 
-    const buildOptions = (maxY) => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
+    const buildOptions = (maxY) => buildEngineeringChartOptions({
       layout: { padding: { top: 2, right: 8, bottom: 0, left: 4 } },
       scales: {
         y: {
-          beginAtZero: true,
           suggestedMax: maxY,
+          title: { display: true, text: 'V/C Ratio' },
           ticks: {
             stepSize: 0.2,
-            callback: (v) => Number(v).toFixed(2),
-            color: '#334148'
+            callback: (v) => Number(v).toFixed(2)
           },
           grid: {
-            color: (ctx) => (Number(ctx?.tick?.value) === 1 ? 'rgba(20,20,20,0.28)' : 'rgba(20,20,20,0.12)'),
+            color: (ctx) => (Number(ctx?.tick?.value) === 1 ? 'rgba(20,20,20,0.28)' : '#f1f5f9'),
             lineWidth: (ctx) => (Number(ctx?.tick?.value) === 1 ? 1.4 : 1)
-          },
-          border: { color: '#54646e', width: 1.2 },
-          title: { display: true, text: 'V/C Ratio', color: '#263238', font: { weight: '700' } }
+          }
         },
         x: {
-          grid: { color: 'rgba(20,20,20,0.08)' },
-          border: { color: '#54646e', width: 1.2 },
-          ticks: { color: '#334148', font: { weight: '600' } },
-          title: { display: true, text: 'Period', color: '#263238', font: { weight: '700' } }
+          title: { display: true, text: 'Period' },
+          grid: { display: true, color: '#f1f5f9' }
         }
       },
       plugins: {
-        legend: {
-          position: 'top',
-          align: 'center',
-          labels: {
-            color: '#2f3b42',
-            boxWidth: 30,
-            boxHeight: 10,
-            padding: 12
-          }
-        },
         tooltip: {
-          backgroundColor: 'rgba(18, 24, 28, 0.92)',
-          borderColor: 'rgba(120, 144, 156, 0.55)',
-          borderWidth: 1,
-          titleColor: '#e3edf2',
-          bodyColor: '#e3edf2',
-          padding: 10,
           callbacks: {
             label: (ctx) => {
               const value = ctx.parsed.y;
@@ -14761,60 +14857,36 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       };
     };
 
-    const buildOptions = (titleText, maxY) => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
+    const buildOptions = (titleText, maxY) => buildEngineeringChartOptions({
       layout: { padding: { top: 2, right: 8, bottom: 0, left: 4 } },
       scales: {
         y: {
-          beginAtZero: true,
           suggestedMax: maxY,
+          title: { display: true, text: 'Queue Length (m)' },
           ticks: {
             stepSize: maxY >= 1200 ? 200 : 100,
-            color: '#334148',
             callback: (v) => Number(v).toLocaleString('en-AU')
           },
           grid: {
             color: (ctx) => {
               const value = Number(ctx?.tick?.value);
               if (value === 200 || value === 400) return 'rgba(20,20,20,0.24)';
-              return 'rgba(20,20,20,0.11)';
+              return '#f1f5f9';
             },
             lineWidth: (ctx) => {
               const value = Number(ctx?.tick?.value);
               return (value === 200 || value === 400) ? 1.3 : 1;
             }
-          },
-          border: { color: '#54646e', width: 1.2 },
-          title: { display: true, text: 'Queue Length (m)', color: '#263238', font: { weight: '700' } }
+          }
         },
         x: {
-          grid: { color: 'rgba(20,20,20,0.08)' },
-          border: { color: '#54646e', width: 1.2 },
-          ticks: { color: '#334148', font: { weight: '600' } },
-          title: { display: true, text: 'Period', color: '#263238', font: { weight: '700' } }
+          title: { display: true, text: 'Period' },
+          grid: { display: true, color: '#f1f5f9' }
         }
       },
       plugins: {
-        legend: {
-          position: 'top',
-          align: 'center',
-          labels: {
-            color: '#2f3b42',
-            boxWidth: 30,
-            boxHeight: 10,
-            padding: 12
-          }
-        },
         title: { display: false, text: titleText },
         tooltip: {
-          backgroundColor: 'rgba(18, 24, 28, 0.92)',
-          borderColor: 'rgba(120, 144, 156, 0.55)',
-          borderWidth: 1,
-          titleColor: '#e3edf2',
-          bodyColor: '#e3edf2',
-          padding: 10,
           callbacks: {
             label: (ctx) => {
               const value = ctx.parsed.y;
@@ -14881,24 +14953,33 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           { type: 'line', label: 'High 400m', data: labels.map(() => 400), borderColor: CHART_PALETTE.capacity, borderDash: [2, 3], pointRadius: 0, borderWidth: 2 }
         ]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
+      options: buildEngineeringChartOptions({
         scales: {
           y: {
-            beginAtZero: true,
             suggestedMax: maxY,
             title: { display: true, text: 'Queue Length (m)' },
-            grid: { color: 'rgba(120, 130, 140, 0.24)' }
+            ticks: {
+              stepSize: maxY >= 1200 ? 200 : 100,
+              callback: (v) => Number(v).toLocaleString('en-AU')
+            }
           },
           x: {
             title: { display: true, text: 'Hour of Day' },
-            grid: { color: 'rgba(120, 130, 140, 0.24)' }
+            grid: { display: true, color: '#f1f5f9' }
           }
         },
-        plugins: { legend: { position: 'top' } }
-      }
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const value = ctx.parsed.y;
+                if (!Number.isFinite(value)) return `${ctx.dataset.label}: N/A`;
+                return `${ctx.dataset.label}: ${Math.round(value).toLocaleString()} m`;
+              }
+            }
+          }
+        }
+      })
     });
   }
 
@@ -14921,25 +15002,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           { type: 'line', label: 'Capacity 1.00', data: labels.map(() => 1.0), borderColor: CHART_PALETTE.capacity, borderDash: [2, 3], pointRadius: 0, borderWidth: 2 }
         ]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
+      options: buildEngineeringChartOptions({
         scales: {
           y: {
-            beginAtZero: true,
             suggestedMax: maxY,
-            ticks: { callback: (v) => Number(v).toFixed(2) },
             title: { display: true, text: 'V/C Ratio' },
-            grid: { color: 'rgba(120, 130, 140, 0.24)' }
+            ticks: {
+              stepSize: 0.1,
+              callback: (v) => Number(v).toFixed(2)
+            }
           },
           x: {
             title: { display: true, text: 'Hour of Day' },
-            grid: { color: 'rgba(120, 130, 140, 0.24)' }
+            grid: { display: true, color: '#f1f5f9' }
           }
         },
         plugins: {
-          legend: { position: 'top' },
           tooltip: {
             callbacks: {
               label: (ctx) => {
@@ -14951,7 +15029,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             }
           }
         }
-      }
+      })
     });
   }
 
@@ -15396,65 +15474,74 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
   }
 
-  function buildHourlyDirectionProfile(direction, dailyTotal, hvPct, rtPct, laneCount, rtrYes, metrics, site) {
+  // Austroads default hourly percentage profile (00:00 -> 23:00).
+  const AUSTROADS_DEFAULT_PROFILE = [
+    0.010, 0.008, 0.005, 0.005, 0.012, 0.030, 0.075, 0.085, 0.070, 0.055,
+    0.050, 0.050, 0.055, 0.055, 0.060, 0.075, 0.085, 0.090, 0.055, 0.035,
+    0.025, 0.020, 0.015, 0.010
+  ];
+
+  function getDirectionalHourlySource(siteData, directionKey) {
+    if (!siteData) return null;
+
+    const directHourly = Array.isArray(siteData.hourly_volumes)
+      ? siteData.hourly_volumes
+      : null;
+    if (directHourly && directHourly.length === 24) {
+      return directHourly.map(v => Math.max(0, Number(v) || 0));
+    }
+
+    if (
+      siteData.directions_weekday
+      && Array.isArray(siteData.directions_weekday[directionKey])
+      && siteData.directions_weekday[directionKey].length === 24
+    ) {
+      return siteData.directions_weekday[directionKey].map(v => Math.max(0, Number(v) || 0));
+    }
+
+    return null;
+  }
+
+  function generateTargetYearHourlyProfile(siteData, baseYear, targetYear, growthRate, targetAADT, directionKey) {
+    const safeBaseYear = Number(baseYear) || new Date().getFullYear();
+    const safeTargetYear = Number(targetYear) || safeBaseYear;
+    const safeGrowthRate = Number(growthRate) || 0;
+    const safeTargetAADT = Math.max(0, Number(targetAADT) || 0);
+
+    const yearDiff = Math.max(0, safeTargetYear - safeBaseYear);
+    const compoundGrowthFactor = Math.pow(1 + (safeGrowthRate / 100), yearDiff);
+    const sourceHourly = getDirectionalHourlySource(siteData, directionKey);
+
+    if (sourceHourly && sourceHourly.length === 24) {
+      return sourceHourly.map(vol => Math.max(0, Number(vol) || 0) * compoundGrowthFactor);
+    }
+
+    return AUSTROADS_DEFAULT_PROFILE.map(percentage => safeTargetAADT * percentage);
+  }
+
+  function buildHourlyDirectionProfile(direction, dailyTotal, hvPct, rtPct, laneCount, rtrYes, metrics, site, profileOptions = {}) {
     // Builds hourly profile where each hour = dailyTotal * diurnalFactor[hour]
     // This provides hourly volumes for use in SWT calculations
-    const source = String(site ? site.source : '').toUpperCase();
     const directionKey = direction === 1 ? 'GAZETTAL' : 'AGAINST GAZETTAL';
-    
-    const isTmrStyle = isTmrStyleSource(site, directionKey);
-    
-    let hourly;
-    if (isTmrStyle && site && site.directions_weekday && site.directions_weekday[directionKey].length === 24) {
-       // TMR style: scale 24-hour source data to match target daily total
-       const sourceHourly = site.directions_weekday[directionKey].map(v => Number(v) || 0);
-       const sourceTotal = sourceHourly.reduce((a,b)=>a+b, 0);
-       const scale = sourceTotal > 0 ? (dailyTotal / sourceTotal) : 1;
-       // Each hourly[hour] = dailyTotal * (sourceHourly[hour] / sourceTotal)
-       hourly = sourceHourly.map(v => Math.max(0, v * scale));
-    } else {
-       // Non-TMR: apply Austroads realistic AU hourly diurnal factors (Brisbane urban arterial pattern)
-       // Based on typical Australian traffic patterns with morning peak (8-9) and evening peak (16-18)
-       // These factors distribute daily volume proportionally across 24 hours using Brisbane-specific patterns
-       
-       // Urban arterial diurnal factors (typical Brisbane CBD and suburban arterials)
-       // Morning peak: 8-9am (higher in AM direction), Afternoon peak: 5-6pm (lower spread in AM, sharp in PM)
-       // Overnight: 10pm-6am very low traffic (2-3% per hour overnight)
-       // Mid-day: Gradual from 10am-3pm with slight dip
-      const amBiasTemplate = [23, 15, 10, 8, 12, 45, 120, 180, 210, 150, 100, 85, 80, 80, 90, 110, 140, 160, 100, 70, 55, 40, 30, 25];
-      const pmBiasTemplate = [22, 14, 9, 7, 10, 40, 100, 140, 160, 140, 110, 95, 90, 85, 100, 130, 180, 210, 140, 85, 60, 42, 32, 26];
 
-      const bias = inferDirectionalPeakBias(site);
-      const directionIsAmBias = Number(direction) === Number(bias && bias.amDirection);
-      const template = directionIsAmBias ? amBiasTemplate : pmBiasTemplate;
-       const templateTotal = template.reduce((sum, value) => sum + (Number(value) || 0), 0);
-       const targetTotal = Math.max(0, Number(dailyTotal) || 0);
+    const baseYear = Number.isFinite(Number(profileOptions.baseYear))
+      ? Number(profileOptions.baseYear)
+      : (Number(num('baseYear')) || new Date().getFullYear());
+    const targetYear = Number.isFinite(Number(profileOptions.targetYear))
+      ? Number(profileOptions.targetYear)
+      : (Number(num('macroOpeningYear')) || baseYear);
+    const growthRate = Number.isFinite(Number(profileOptions.growthRate))
+      ? Number(profileOptions.growthRate)
+      : (Number(num('macroGrowthRate')) || 0);
 
-      const peakHour = directionIsAmBias ? 8 : 17;
-       const templatePeak = Number(template[peakHour]) || 0;
-       const templateNonPeakTotal = Math.max(0, templateTotal - templatePeak);
-      const targetPeakRaw = directionIsAmBias
-         ? Number(metrics && metrics.AM && metrics.AM.total)
-         : Number(metrics && metrics.PM && metrics.PM.total);
-       // metrics.AM.total / metrics.PM.total are 2-hour period totals.
-       // Convert to 1-hour value before pinning a single peak hour.
-       const targetPeakPerHour = Number.isFinite(targetPeakRaw) ? (targetPeakRaw / 2) : 0;
-       const targetPeak = Math.max(0, Math.min(targetTotal, targetPeakPerHour));
-
-       if (templateTotal <= 0 || targetTotal <= 0) {
-         hourly = new Array(24).fill(0);
-       } else if (targetPeak > 0 && templateNonPeakTotal > 0) {
-         const remainingTotal = Math.max(0, targetTotal - targetPeak);
-         const nonPeakScale = remainingTotal / templateNonPeakTotal;
-         hourly = template.map((value, hour) => {
-           if (hour === peakHour) return targetPeak;
-           return Math.max(0, (Number(value) || 0) * nonPeakScale);
-         });
-       } else {
-         const scale = targetTotal / templateTotal;
-         hourly = template.map(value => Math.max(0, (Number(value) || 0) * scale));
-       }
-    }
+    const hourly = generateTargetYearHourlyProfile(
+      site,
+      baseYear,
+      targetYear,
+      growthRate,
+      Math.max(0, Number(dailyTotal) || 0),
+      directionKey
+    );
     
     const profile = {};
     for (let hour = 0; hour < 24; hour += 1) {
@@ -16543,14 +16630,30 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const d1RtPct = getRTPercent(1);
     const d2RtPct = getRTPercent(2);
 
-    const d1HourlyProfile = buildHourlyDirectionProfile(1, d1Daily, d1HvPct, d1RtPct, d1Metrics.lanes, rtr === 'YES', d1Metrics, site);
-    const d2HourlyProfile = buildHourlyDirectionProfile(2, d2Daily, d2HvPct, d2RtPct, d2Metrics.lanes, rtr === 'YES', d2Metrics, site);
+    const d1HourlyProfile = buildHourlyDirectionProfile(1, d1Daily, d1HvPct, d1RtPct, d1Metrics.lanes, rtr === 'YES', d1Metrics, site, {
+      baseYear: num('baseYear'),
+      targetYear: num('macroOpeningYear'),
+      growthRate: growthRatePct
+    });
+    const d2HourlyProfile = buildHourlyDirectionProfile(2, d2Daily, d2HvPct, d2RtPct, d2Metrics.lanes, rtr === 'YES', d2Metrics, site, {
+      baseYear: num('baseYear'),
+      targetYear: num('macroOpeningYear'),
+      growthRate: growthRatePct
+    });
     lastWorkWindowHourlyProfiles = { d1: d1HourlyProfile, d2: d2HourlyProfile };
 
     // Build base year hourly profiles so the grouped table base-year row also reflects
     // the actual directional diurnal pattern (AM ≠ PM per direction).
-    const d1BaseHourlyProfile = buildHourlyDirectionProfile(1, d1DailyBase, d1HvPct, d1RtPct, d1BaseMetrics.lanes, rtr === 'YES', d1BaseMetrics, site);
-    const d2BaseHourlyProfile = buildHourlyDirectionProfile(2, d2DailyBase, d2HvPct, d2RtPct, d2BaseMetrics.lanes, rtr === 'YES', d2BaseMetrics, site);
+    const d1BaseHourlyProfile = buildHourlyDirectionProfile(1, d1DailyBase, d1HvPct, d1RtPct, d1BaseMetrics.lanes, rtr === 'YES', d1BaseMetrics, site, {
+      baseYear: num('baseYear'),
+      targetYear: num('baseYear'),
+      growthRate: growthRatePct
+    });
+    const d2BaseHourlyProfile = buildHourlyDirectionProfile(2, d2DailyBase, d2HvPct, d2RtPct, d2BaseMetrics.lanes, rtr === 'YES', d2BaseMetrics, site, {
+      baseYear: num('baseYear'),
+      targetYear: num('baseYear'),
+      growthRate: growthRatePct
+    });
 
     // Derive period metrics from the actual hourly distribution (peak single-hour per period).
     // This replaces the flat VADT-formula estimates so Grouped Summary, Queue, and VCR
