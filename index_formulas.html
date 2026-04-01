@@ -1469,6 +1469,32 @@
     }
 
     .table-actions { display: flex; justify-content: flex-end; align-items: center; margin: 8px 0; }
+    .hourly-report-split {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 14px;
+      row-gap: 8px;
+      align-items: start;
+    }
+    .hourly-report-split > h4:nth-of-type(1) { grid-column: 1; grid-row: 1; }
+    .hourly-report-split > .table-wrap:nth-of-type(1) { grid-column: 1; grid-row: 2; }
+    .hourly-report-split > h4:nth-of-type(2) { grid-column: 2; grid-row: 1; margin-top: 10px !important; }
+    .hourly-report-split > .table-wrap:nth-of-type(2) { grid-column: 2; grid-row: 2; }
+
+    @media (max-width: 980px) {
+      .hourly-report-split {
+        grid-template-columns: 1fr;
+        row-gap: 10px;
+      }
+      .hourly-report-split > h4:nth-of-type(1),
+      .hourly-report-split > .table-wrap:nth-of-type(1),
+      .hourly-report-split > h4:nth-of-type(2),
+      .hourly-report-split > .table-wrap:nth-of-type(2) {
+        grid-column: 1;
+        grid-row: auto;
+      }
+    }
+
     .copy-table-btn, .vcr-toggle-btn, .queue-toggle-btn, .hourly-queue-toggle-btn, .hourly-vcr-toggle-btn {
       box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
       height: 31px; padding: 6px 10px; border-radius: 4px; font-size: 0.82rem; line-height: 1.2;
@@ -4244,18 +4270,6 @@
         <h3 style="color: #1f5e63; margin: 0 0 10px 0;">Hourly Traffic Profile</h3>
         <div class="chart-panel">
           <canvas id="macroHourlyChart" class="chart-canvas-350"></canvas>
-        </div>
-        
-        <h3 style="color: #1f5e63; margin: 20px 0 10px 0;">Directional Distribution</h3>
-        <div class="report-keep-two-col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-          <div>
-            <h4 id="macroDataVizD1Heading" style="text-align: center; color: #2e7d32; margin: 0 0 10px 0;">Direction 1, Gazettal</h4>
-            <canvas id="macroD1PieChart" class="chart-canvas-250"></canvas>
-          </div>
-          <div>
-            <h4 id="macroDataVizD2Heading" style="text-align: center; color: #c30000; margin: 0 0 10px 0;">Direction 2, Against Gazettal</h4>
-            <canvas id="macroD2PieChart" class="chart-canvas-250"></canvas>
-          </div>
         </div>
         
         <h3 style="color: #1f5e63; margin: 20px 0 10px 0;">Peak Hour Analysis</h3>
@@ -12499,86 +12513,18 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       });
     }
     
-    // Pie Charts (AM/OP/PM/EV breakdown using global bucket definitions)
-    const aggregateByBucket = (hourlyData) => {
-      const sums = { AM: 0, OP: 0, PM: 0, EV: 0 };
-      for (let hour = 0; hour < 24; hour += 1) {
-        const bucket = getTrafficBucket(hour);
-        sums[bucket.key] += Number(hourlyData[hour]) || 0;
-      }
-      return sums;
-    };
-
-    const d1BucketTotals = aggregateByBucket(gazData);
-    const d2BucketTotals = aggregateByBucket(agData);
-    const pieLabels = ['AM (7-9)', 'OP (9-16)', 'PM (16-18)', 'EV (18-7)'];
-    
-    const ctx2 = document.getElementById('macroD1PieChart');
-    if (ctx2) {
-      if (macroD1PieChartInstance) macroD1PieChartInstance.destroy();
-      
-      macroD1PieChartInstance = new Chart(ctx2, {
-        type: 'pie',
-        data: {
-          labels: pieLabels,
-          datasets: [{
-            data: [d1BucketTotals.AM, d1BucketTotals.OP, d1BucketTotals.PM, d1BucketTotals.EV],
-            backgroundColor: CHART_PALETTE.viridis.slice(1)
-          }]
-        },
-        options: buildEngineeringChartOptions({
-          maintainAspectRatio: true,
-          scales: {},
-          plugins: {
-            legend: { position: 'top' },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const value = Math.round(Number(context.parsed) || 0);
-                  return ` ${context.label}: ${value.toLocaleString()} vph`;
-                }
-              }
-            }
-          }
-        })
-      });
+    // Directional pie charts removed by request; ensure any old instances are cleaned up.
+    if (macroD1PieChartInstance) {
+      macroD1PieChartInstance.destroy();
+      macroD1PieChartInstance = null;
     }
-    
-    const ctx3 = document.getElementById('macroD2PieChart');
-    if (ctx3) {
-      if (macroD2PieChartInstance) macroD2PieChartInstance.destroy();
-      
-      macroD2PieChartInstance = new Chart(ctx3, {
-        type: 'pie',
-        data: {
-          labels: pieLabels,
-          datasets: [{
-            data: [d2BucketTotals.AM, d2BucketTotals.OP, d2BucketTotals.PM, d2BucketTotals.EV],
-            backgroundColor: CHART_PALETTE.viridis.slice(1)
-          }]
-        },
-        options: buildEngineeringChartOptions({
-          maintainAspectRatio: true,
-          scales: {},
-          plugins: {
-            legend: { position: 'top' },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const value = Math.round(Number(context.parsed) || 0);
-                  return ` ${context.label}: ${value.toLocaleString()} vph`;
-                }
-              }
-            }
-          }
-        })
-      });
+    if (macroD2PieChartInstance) {
+      macroD2PieChartInstance.destroy();
+      macroD2PieChartInstance = null;
     }
     
     // Peak Hours Analysis
     const activePeriodDefs = getActivePeriodDefinitions();
-    const amHoursSet = new Set(((activePeriodDefs.find(p => p.key === 'AM') || {}).hours || []).map(h => Number(h)));
-    const pmHoursSet = new Set(((activePeriodDefs.find(p => p.key === 'PM') || {}).hours || []).map(h => Number(h)));
 
     const normalizeHourly = (hourlyData) => Array.from({ length: 24 }, (_, idx) => {
       const arr = Array.isArray(hourlyData) ? hourlyData : [];
@@ -12650,14 +12596,39 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return new Set(ranked.map(item => item.hour));
     };
 
-    // Highlight morning/evening peaks per direction from hourly ranking data.
-    // Morning = 00:00-11:59, Evening = 12:00-23:59.
-    const morningHoursSet = new Set(Array.from({ length: 12 }, (_, h) => h));
-    const eveningHoursSet = new Set(Array.from({ length: 12 }, (_, i) => i + 12));
-    const d1AmTopHours = getTopWindowHourSet(d1RankingHourly, morningHoursSet, 2);
-    const d1PmTopHours = getTopWindowHourSet(d1RankingHourly, eveningHoursSet, 2);
-    const d2AmTopHours = getTopWindowHourSet(d2RankingHourly, morningHoursSet, 2);
-    const d2PmTopHours = getTopWindowHourSet(d2RankingHourly, eveningHoursSet, 2);
+    // Highlight top hours using runtime AM/PM windows; for TMR-style sources these are dynamic
+    // and derived from measured hourly database patterns.
+    const highlightPeriodDefs = isTmrStylePeakSource
+      ? buildTmrPeriodDefinitionsFromHourly(Array.from({ length: 24 }, (_, hour) => {
+          const d1Val = Number(d1RankingHourly[hour]) || 0;
+          const d2Val = Number(d2RankingHourly[hour]) || 0;
+          return d1Val + d2Val;
+        }))
+      : activePeriodDefs;
+    const highlightAmHoursSet = new Set(((highlightPeriodDefs.find(p => p.key === 'AM') || {}).hours || []).map(h => Number(h)));
+    const highlightPmHoursSet = new Set(((highlightPeriodDefs.find(p => p.key === 'PM') || {}).hours || []).map(h => Number(h)));
+    const d1AmTopHours = getTopWindowHourSet(d1RankingHourly, highlightAmHoursSet, 2);
+    const d1PmTopHours = getTopWindowHourSet(d1RankingHourly, highlightPmHoursSet, 2);
+    const d2AmTopHours = getTopWindowHourSet(d2RankingHourly, highlightAmHoursSet, 2);
+    const d2PmTopHours = getTopWindowHourSet(d2RankingHourly, highlightPmHoursSet, 2);
+
+    const formatWindowLabel = (hours) => {
+      const list = Array.from(new Set((Array.isArray(hours) ? hours : []).map(h => ((Number(h) % 24) + 24) % 24))).sort((a, b) => a - b);
+      if (!list.length) return 'N/A';
+      if (list.length === 1) {
+        const h = list[0];
+        return `${String(h).padStart(2, '0')}:00-${String((h + 1) % 24).padStart(2, '0')}:00`;
+      }
+      const isContiguous = list.every((h, idx) => idx === 0 || h === list[idx - 1] + 1);
+      if (isContiguous) {
+        const start = list[0];
+        const endExclusive = (list[list.length - 1] + 1) % 24;
+        return `${String(start).padStart(2, '0')}:00-${String(endExclusive).padStart(2, '0')}:00`;
+      }
+      return list.map((h) => `${String(h).padStart(2, '0')}:00`).join(', ');
+    };
+    const highlightAmWindow = formatWindowLabel((highlightPeriodDefs.find(p => p.key === 'AM') || {}).hours || []);
+    const highlightPmWindow = formatWindowLabel((highlightPeriodDefs.find(p => p.key === 'PM') || {}).hours || []);
 
     const d1PeaksRanked = getPeakHours(d1DisplayHourly, d1RankingHourly);
     const d2PeaksRanked = getPeakHours(d2DisplayHourly, d2RankingHourly);
@@ -12680,6 +12651,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const peakRankingSourceBadgeHtml = `
       <div style="margin:0 0 8px 0; padding:6px 8px; border-radius:6px; border:1px solid ${isTmrStylePeakSource ? '#90caf9' : '#b7d6dc'}; background:${isTmrStylePeakSource ? '#e3f2fd' : '#f3fbfd'}; color:${isTmrStylePeakSource ? '#0d47a1' : '#0f4e55'}; font-size:0.82em; font-weight:700;">
         Peak hourly source: ${useDatabaseDisplayHourly ? 'Database hourly profile' : 'Calculated hourly profile (hourly not available)'}
+        <div style="font-weight:600; margin-top:4px; opacity:0.95;">Dynamic highlight windows: AM ${highlightAmWindow} | PM ${highlightPmWindow}</div>
       </div>
     `;
 
