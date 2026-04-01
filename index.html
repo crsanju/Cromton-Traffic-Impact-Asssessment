@@ -864,6 +864,93 @@
       .queue-calculator-module .result-container { min-width: 0; text-align: left; }
     }
 
+    .queue-calculator-card {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .queue-calculator-card h3 {
+      margin: 0 0 10px 0;
+      color: #1f5e63;
+      font-size: 1.02em;
+      border-bottom: 1px solid #d6e3ea;
+      padding-bottom: 6px;
+    }
+    .queue-calculator-card .input-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .queue-calculator-card .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .queue-calculator-card .input-group label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+      color: #555;
+    }
+    .queue-calculator-card .input-group input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .queue-calculator-card .results-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+    }
+    .queue-calculator-card .result-box {
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      background: #ffffff;
+      border: 1px solid #eee;
+      border-radius: 4px;
+    }
+    .queue-calculator-card .result-box span {
+      font-size: 0.76em;
+      color: #546e7a;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+    }
+    .queue-calculator-card .result-box strong {
+      font-size: 1.24em;
+      color: #1f5e63;
+      line-height: 1.1;
+    }
+    .queue-calculator-card .result-box.highlight {
+      border-color: #0056b3;
+      background: #e9f2fc;
+    }
+    .queue-calculator-card .los-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      text-align: center;
+      color: white;
+      margin-top: 5px;
+    }
+
+    /* Updated Austroads/HCM Aligned LOS Colors */
+    .queue-calculator-card .los-a { background-color: #28a745; } /* <= 0.60 */
+    .queue-calculator-card .los-b { background-color: #8bc34a; } /* <= 0.70 */
+    .queue-calculator-card .los-c { background-color: #ffc107; color: #333; } /* <= 0.80 */
+    .queue-calculator-card .los-d { background-color: #fd7e14; } /* <= 0.90 */
+    .queue-calculator-card .los-e { background-color: #dc3545; } /* <= 1.00 */
+    .queue-calculator-card .los-f { background-color: #8b0000; } /* > 1.00 */
+
     .ux-intro {
       margin-top: 14px;
       border: 1px solid #cfdde3;
@@ -1880,8 +1967,8 @@
     }
     .vcr-los-a { background-color: #b9fbc0; color: #0b3b2e; } /* LOS A: VCR ≤ 0.60 */
     .vcr-los-b { background-color: #a7f3d0; color: #134e4a; } /* LOS B: VCR ≤ 0.70 */
-    .vcr-los-c { background-color: #fde68a; color: #713f12; } /* LOS C: VCR ≤ 0.90 */
-    .vcr-los-d { background-color: #fdba74; color: #7c2d12; } /* LOS D: VCR ≤ 0.95 */
+    .vcr-los-c { background-color: #fde68a; color: #713f12; } /* LOS C: VCR ≤ 0.80 */
+    .vcr-los-d { background-color: #fdba74; color: #7c2d12; } /* LOS D: VCR ≤ 0.90 */
     .vcr-los-e { background-color: #fb923c; color: #7c2d12; } /* LOS E: VCR ≤ 1.00 */
     .vcr-los-f { background-color: #ef4444; color: #ffffff; } /* LOS F: VCR > 1.00 */
 
@@ -3783,6 +3870,12 @@
               </select>
             </div>
 
+            <div class="input-group" style="margin-bottom: 12px;">
+              <label for="tripRateReferenceSource"><strong>Reference Source (Auto by State):</strong></label>
+              <input type="text" id="tripRateReferenceSource" readonly style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #90caf9; background: #e3f2fd; color: #0d47a1; font-weight: 700;" />
+              <div id="tripRateReferenceSourceHint" style="font-size: 0.78em; color: #0d47a1; margin-top: 4px; line-height: 1.4;"></div>
+            </div>
+
             <div style="display: flex; gap: 15px; flex-wrap: wrap;">
               <div class="input-group" style="flex: 1; min-width: 150px;">
                 <label id="quantityLabel" for="tripQuantity"><strong>Quantity:</strong></label>
@@ -3812,7 +3905,7 @@
             </button>
 
             <div style="margin-top: 10px; background: #e8f4f8; border: 1px solid #84cad8; border-radius: 6px; padding: 10px; font-size: 0.82em; line-height: 1.5;">
-              <strong>💡 Tip:</strong> Rates are based on RTA/RMS/TMR/ITE standards. Peak % is the portion of daily trips occurring in peak hour. AM/PM peaks show directional splits (In/Out) based on land use type.
+              <strong>💡 Tip:</strong> Reference source is selected automatically from the state database above (QLD -> TMR Guide, NSW -> RMS NSW Guide). Peak % is the portion of daily trips occurring in peak hour. AM/PM peaks show directional splits (In/Out) based on land use type.
             </div>
 
             <div id="tripGenResult" style="display: none; margin-top: 15px; padding: 12px; background: linear-gradient(135deg, #ffffff 0%, #f0f7f8 100%); border: 2px solid #14746f; border-radius: 8px; box-shadow: 0 2px 8px rgba(20, 116, 111, 0.15);">
@@ -4361,9 +4454,16 @@
       </p>
 
       <div style="background: #f5f5f5; border: 1px solid #ccc; border-radius: 6px; padding: 10px; margin: 0 0 12px 0;">
-        <label style="color: #333; font-weight: bold; font-size: 0.88em;" class="tooltip" data-tip="Blockage duration per cycle for SWT queue calculation. For stop/go operations, use half the cycle time. Typical: 60-180 seconds.">SWT Red Time Per Cycle (seconds)</label>
+        <label style="color: #333; font-weight: bold; font-size: 0.88em;" class="tooltip" data-tip="Blockage duration per cycle for SWT queue calculation. Temporary work-zone stop/go typically uses around 60-180s. Permanent signalized intersections are commonly around 45-80s.">SWT Red Time Per Cycle (seconds)</label>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:4px;">
+          <label for="queueOperationType" style="margin:0; color:#37474f; font-size:0.8em; font-weight:700;">Operation Type</label>
+          <select id="queueOperationType" onchange="syncQueueOperationModeUi(true); generateWorkWindow();" style="width: 220px; padding: 6px; border: 1px solid #999; border-radius: 4px;">
+            <option value="workzone" selected>Temporary Work Zone (Stop/Go)</option>
+            <option value="signal">Permanent Signalized Intersection</option>
+          </select>
+        </div>
         <input type="number" id="swtRedTime" value="120" step="10" min="30" max="600" oninput="generateWorkWindow();" style="width: 120px; padding: 6px; border: 1px solid #999; border-radius: 4px; margin-top: 4px;" />
-        <div style="font-size: 0.75em; color: #666; margin-top: 4px;">⚠️ Use red time per cycle, NOT total hourly accumulation. Typical: 120s for 240s cycle.</div>
+        <div id="queueOperationHint" style="font-size: 0.75em; color: #666; margin-top: 4px;">⚠️ Use red time per cycle, NOT total hourly accumulation. Temporary work-zone stop/go commonly uses around 120s in a 240s cycle.</div>
       </div>
 
       <div class="queue-calculator-module">
@@ -4502,6 +4602,48 @@
       </div>
     </details>
 
+    <div class="card queue-calculator-card" id="intersectionQueueCapacityCard">
+      <h3>Intersection Queue &amp; Capacity Calculator</h3>
+
+      <div class="input-grid">
+        <div class="input-group">
+          <label for="arrivalVol">Arrival Volume (vph)</label>
+          <input type="number" id="arrivalVol" value="750" step="10">
+        </div>
+        <div class="input-group">
+          <label for="laneCap">Base Lane Capacity (vph)</label>
+          <input type="number" id="laneCap" value="900" step="10">
+        </div>
+        <div class="input-group">
+          <label for="redTime">Red Time (seconds)</label>
+          <input type="number" id="redTime" value="60" step="5">
+        </div>
+        <div class="input-group">
+          <label for="hvPercent">Heavy Vehicles (%)</label>
+          <input type="number" id="hvPercent" value="5" step="1" max="100">
+        </div>
+      </div>
+
+      <div class="results-panel">
+        <div class="result-box">
+          <span>Volume/Capacity Ratio</span>
+          <strong id="vcrResult">0.83</strong>
+        </div>
+        <div class="result-box">
+          <span>Level of Service</span>
+          <span id="losBadge" class="los-badge los-d">LOS D</span>
+        </div>
+        <div class="result-box">
+          <span>Dynamic Spacing (m/veh)</span>
+          <strong id="spacingResult">7.25m</strong>
+        </div>
+        <div class="result-box highlight">
+          <span>Estimated Queue Length</span>
+          <strong id="queueResult">90.6m</strong>
+        </div>
+      </div>
+    </div>
+
     <div class="card" id="detourCard" style="border: 2px solid #8e24aa;">
       <h2 class="optional-card-title">
         🔄 Detailed Detour Route Capacity
@@ -4532,6 +4674,13 @@
                 <option value="D1">Direction 1, Gazettal</option>
                 <option value="D2">Direction 2, Against Gazettal</option>
               </select>
+            </div>
+            <label style="display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; color: #6a1b9a; font-weight: 700; line-height: 1.35;">
+              <input type="checkbox" id="detourHvRouteSuitabilityConfirmed" onchange="calculateDetourOverlay()" style="width: auto; margin-top: 2px; cursor: pointer;" />
+              Heavy Vehicle Route Suitability Confirmed
+            </label>
+            <div style="font-size: 0.75em; color: #8e24aa; margin-top: 4px;">
+              Confirm bridge load limits, low-clearance structures, and swept-path suitability before adopting detour capacity outputs.
             </div>
           </div>
 
@@ -4581,6 +4730,26 @@
           <label style="color: #6a1b9a; font-weight: bold;">Estimated Detour Delay Inputs</label>
           <div class="grid-2" style="margin-top: 8px; gap: 8px;">
             <div style="background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;">
+              <label style="color: #6a1b9a; font-size: 0.78em;">Detour Lane Width (m)</label>
+              <input type="number" id="detourLaneWidth" value="3.7" step="0.1" min="2.0" oninput="calculateDetourOverlay()" style="border: 1px solid #ce93d8; background: #fff; width: 100%;" />
+            </div>
+            <div style="background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;">
+              <label style="color: #6a1b9a; font-size: 0.78em;">Lateral Clearance Each Side (m)</label>
+              <input type="number" id="detourLateralClearance" value="2.0" step="0.1" min="0" oninput="calculateDetourOverlay()" style="border: 1px solid #ce93d8; background: #fff; width: 100%;" />
+            </div>
+            <div style="background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;">
+              <label style="color: #6a1b9a; font-size: 0.78em;">Topography / Grade Class</label>
+              <select id="detourGradeType" onchange="calculateDetourOverlay()" style="border: 1px solid #ce93d8; background: #fff; width: 100%;">
+                <option value="level" selected>Level</option>
+                <option value="moderate">Moderate</option>
+                <option value="steep">Steep</option>
+              </select>
+            </div>
+            <div style="background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;">
+              <label style="color: #6a1b9a; font-size: 0.78em;">Base Lane Capacity (vph/lane)</label>
+              <input type="number" id="detourBaseLaneCapacity" value="1800" step="50" min="500" max="2500" oninput="calculateDetourOverlay()" style="border: 1px solid #ce93d8; background: #fff; width: 100%;" />
+            </div>
+            <div style="background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;">
               <label style="color: #6a1b9a; font-size: 0.78em;">Detour Length (km)</label>
               <input type="number" id="detourRouteLengthKm" value="0.4" step="0.1" min="0" oninput="calculateDetourOverlay()" style="border: 1px solid #ce93d8; background: #fff; width: 100%;" />
             </div>
@@ -4622,6 +4791,7 @@
             <tbody id="detourDetailedBody"></tbody>
           </table>
         </div>
+        <div id="detourGeometryWarningText" style="display:none; margin-top: 8px; padding: 10px; border-radius: 6px; border: 1px solid #ffcdd2; background: #ffebee; color: #b71c1c; font-size: 0.82em; line-height: 1.4;"></div>
         <p class="optional-warning-note" id="detourWarningText"></p>
       </div>
     </div>
@@ -4751,7 +4921,7 @@
       <div class="optional-card-title" style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
         <div>
           <span><span class="hide-print">📐</span> AGTTM Layout Geometry &amp; Cross-Section</span>
-          <div style="font-size: 0.75rem; color: #546e7a; font-weight: 600; margin-top: 2px;">Ref: Austroads AGRD Part 3 / AGTTM Part 12</div>
+          <div style="font-size: 0.75rem; color: #546e7a; font-weight: 600; margin-top: 2px;">Ref: Austroads AGRD Part 3 / AGTTM Part 3 (Static Work Sites)</div>
         </div>
         <button type="button" class="print-toggle-btn" data-target-card="agttmGeometryCard" aria-pressed="true">Include in Print: Yes</button>
       </div>
@@ -4795,9 +4965,9 @@
           <p style="font-size: 0.7rem; color: #607d8b; margin: 4px 0 0 0;">Min 0.5m for urban, 2.0m for rural highway.</p>
         </div>
         <div style="background: #ffffff; border: 1px solid #80cbc4; border-radius: 6px; padding: 10px;">
-          <label style="color: #00695c;" class="tooltip" data-tip="Offset distance to kerb/barrier reference.">Lateral Clearance (Offset)</label>
+          <label style="color: #00695c;" class="tooltip" data-tip="Offset distance to kerb/barrier/worksite protection line. During construction staging, AGTTM Part 3 Section 3.2.1 clearances can govern (typically 1.2 m desirable, 0.3 m absolute minimum with approved barriers).">Lateral Clearance (Offset)</label>
           <input type="number" id="lateralOffset" value="0.6" step="0.1" min="0" style="border: 1px solid #80cbc4; background: #f1fdfb;" />
-          <p style="font-size: 0.7rem; color: #607d8b; margin: 4px 0 0 0;">Distance to kerb/barrier (AGRD Part 3 Table 4.6).</p>
+          <p style="font-size: 0.7rem; color: #607d8b; margin: 4px 0 0 0;">Distance to kerb/barrier (AGRD Part 3 Table 4.6). For worksite staging, also check AGTTM Part 3 Section 3.2.1 clearances (typically 1.2 m desirable, 0.3 m absolute minimum with approved barriers).</p>
         </div>
       </div>
 
@@ -4830,6 +5000,9 @@
       <p class="optional-card-note">
         Calculates the safe stopping distance required for approaching traffic based on speed, reaction time, and road gradient.
       </p>
+      <div style="margin: 0 0 12px 0; padding: 8px 10px; border-radius: 6px; background: #f3e5f5; border: 1px solid #d1c4e9; color: #4a148c; font-size: 0.8em; line-height: 1.45;">
+        <strong>Reference note:</strong> Backend longitudinal deceleration friction factors (<em>d</em>) used in ASD braking-distance calculations are sourced from Austroads AGRD Part 3, Table 5.2.
+      </div>
 
       <div class="grid" style="margin-bottom: 15px;">
         <div style="background: #ffffff; border: 1px solid #b39ddb; border-radius: 6px; padding: 10px;">
@@ -5540,7 +5713,7 @@
   }
 
   // ===== TRIP GENERATION SCENARIOS (Global Definition) =====
-  // Enhanced Trip Generation Rates based on RTA/RMS/TMR/ITE Standards
+  // Baseline scenarios with state-specific source traceability.
   window.tripGenerationScenarios = {
     custom: { 
       label: 'Quantity', 
@@ -5664,6 +5837,33 @@
     }
   };
   console.log('Trip Generation Calculator v2.0 - Scenarios loaded at', new Date().toLocaleTimeString());
+
+  function getTripGenerationReferenceSourceDetails() {
+    const stateScope = getQuickTiaSelectedState();
+    if (stateScope === 'NSW') {
+      return {
+        key: 'RMS_NSW_2002',
+        label: 'RMS NSW Guide to Traffic Generating Developments (2002)',
+        shortLabel: 'RMS NSW (2002)',
+        hint: 'Auto-selected because NSW database is active.'
+      };
+    }
+    return {
+      key: 'TMR_QLD_2024',
+      label: 'TMR Guide to Traffic Impact Assessment (2024)',
+      shortLabel: 'TMR QLD (2024)',
+      hint: 'Auto-selected because Queensland database is active.'
+    };
+  }
+
+  function updateTripGenerationReferenceSourceUi() {
+    const details = getTripGenerationReferenceSourceDetails();
+    const sourceInput = document.getElementById('tripRateReferenceSource');
+    const sourceHint = document.getElementById('tripRateReferenceSourceHint');
+    if (sourceInput) sourceInput.value = details.label;
+    if (sourceHint) sourceHint.textContent = details.hint;
+    return details;
+  }
 
   function getProgressPulseCapForStage(progressPercent) {
     const p = Math.max(0, Math.min(100, Number(progressPercent) || 0));
@@ -8593,6 +8793,39 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   function convertDailyVpdTo80thHourly(vpd) {
     const daily = Math.max(0, Number(vpd) || 0);
     return Math.round(daily * DETOUR_80TH_HOUR_FACTOR);
+  }
+
+  /**
+   * Calculates adjusted lane capacity using AGTM Part 3-style factors.
+   * Returns capacity per lane in vph.
+   */
+  function calculateDetourCapacity(laneWidth, lateralClearance, heavyVehiclePercent, gradeType, baseLaneCapacity) {
+    const baseCapacity = Math.max(500, Math.min(2500, Number(baseLaneCapacity) || 1800));
+
+    let fW = 1.0;
+    if (lateralClearance >= 2.0) {
+      if (laneWidth >= 3.7) fW = 1.00;
+      else if (laneWidth >= 3.2) fW = 0.90;
+      else fW = 0.70;
+    } else if (lateralClearance >= 1.0) {
+      if (laneWidth >= 3.7) fW = 0.90;
+      else if (laneWidth >= 3.2) fW = 0.80;
+      else fW = 0.63;
+    } else {
+      if (laneWidth >= 3.7) fW = 0.65;
+      else if (laneWidth >= 3.2) fW = 0.60;
+      else fW = 0.50;
+    }
+
+    const grade = String(gradeType || 'level').toLowerCase();
+    let eHV = 2.0;
+    if (grade === 'moderate') eHV = 4.0;
+    else if (grade === 'steep') eHV = 8.0;
+
+    const proportionHV = Math.max(0, Math.min(100, Number(heavyVehiclePercent) || 0)) / 100;
+    const fHV = 1 / (1 + proportionHV * (eHV - 1));
+
+    return Math.round(baseCapacity * fW * fHV);
   }
 
   function parseCsvLine(line) {
@@ -13105,6 +13338,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const stateSelect = document.getElementById('quickTiaStateSelect');
     if (stateSelect) {
       stateSelect.addEventListener('change', async () => {
+        updateTripGenerationReferenceSourceUi();
         const stateScope = getQuickTiaSelectedState();
         requestedDataScope = stateScope;
         const label = stateScope === 'NSW' ? 'New South Wales (NSW)' : 'Queensland (QLD)';
@@ -13252,9 +13486,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
         const toLocation = (item) => {
           if (!item) return null;
-          const lat = Number(item.lat);
-          const lon = Number(item.lon);
-          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+          const lat = numberOrNull(item.lat);
+          const lon = numberOrNull(item.lon);
+          if (!isValidSearchCoordinatePair(lat, lon)) return null;
           return {
             lat,
             lon,
@@ -14010,8 +14244,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (v === null || Number.isNaN(v) || v < 0) return '';
     if (v <= 0.6) return '#00eb00';
     if (v <= 0.7) return '#add8e6';
-    if (v <= 0.9) return '#ffff00';
-    if (v <= 0.95) return '#ffc896';
+    if (v <= 0.8) return '#ffff00';
+    if (v <= 0.9) return '#ffc896';
     if (v <= 1.0) return '#ffc000';
     return '#c00000';
   }
@@ -14021,8 +14255,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (v === null || Number.isNaN(v) || v < 0) return 'N/A';
     if (v <= 0.60) return 'LOS A';
     if (v <= 0.70) return 'LOS B';
-    if (v <= 0.90) return 'LOS C';
-    if (v <= 0.95) return 'LOS D';
+    if (v <= 0.80) return 'LOS C';
+    if (v <= 0.90) return 'LOS D';
     if (v <= 1.00) return 'LOS E';
     return 'LOS F';
   }
@@ -14038,8 +14272,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     let colorClass = 'vcr-los-a';
     if (value > 1.00) colorClass = 'vcr-los-f';
-    else if (value > 0.95) colorClass = 'vcr-los-e';
-    else if (value > 0.90) colorClass = 'vcr-los-d';
+    else if (value > 0.90) colorClass = 'vcr-los-e';
+    else if (value > 0.80) colorClass = 'vcr-los-d';
     else if (value > 0.70) colorClass = 'vcr-los-c';
     else if (value > 0.60) colorClass = 'vcr-los-b';
 
@@ -14059,6 +14293,60 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     `;
     td.style.fontWeight = '700';
     td.style.background = '#ffffff';
+  }
+
+  function updateIntersectionQueueCapacityCalculator() {
+    const arrivalEl = document.getElementById('arrivalVol');
+    const laneCapEl = document.getElementById('laneCap');
+    const redEl = document.getElementById('redTime');
+    const hvEl = document.getElementById('hvPercent');
+    const vcrEl = document.getElementById('vcrResult');
+    const losEl = document.getElementById('losBadge');
+    const spacingEl = document.getElementById('spacingResult');
+    const queueEl = document.getElementById('queueResult');
+    if (!arrivalEl || !laneCapEl || !redEl || !hvEl || !vcrEl || !losEl || !spacingEl || !queueEl) return;
+
+    const vol = parseFloat(arrivalEl.value) || 0;
+    const cap = parseFloat(laneCapEl.value) || 1;
+    const red = parseFloat(redEl.value) || 0;
+    const hv = (parseFloat(hvEl.value) || 0) / 100;
+
+    const vcr = vol / cap;
+    vcrEl.textContent = vcr.toFixed(2);
+
+    let losClass = 'los-a';
+    let losText = 'LOS A';
+    if (vcr > 1.0) { losClass = 'los-f'; losText = 'LOS F'; }
+    else if (vcr > 0.9) { losClass = 'los-e'; losText = 'LOS E'; }
+    else if (vcr > 0.8) { losClass = 'los-d'; losText = 'LOS D'; }
+    else if (vcr > 0.7) { losClass = 'los-c'; losText = 'LOS C'; }
+    else if (vcr > 0.6) { losClass = 'los-b'; losText = 'LOS B'; }
+
+    losEl.className = `los-badge ${losClass}`;
+    losEl.textContent = losText;
+
+    const dynamicSpacing = (7.0 * (1 - hv)) + (12.0 * hv);
+    spacingEl.textContent = dynamicSpacing.toFixed(2) + 'm';
+
+    const vehPerSec = vol / 3600;
+    const queuedVehicles = vehPerSec * red;
+    const queueLength = queuedVehicles * dynamicSpacing;
+    queueEl.textContent = queueLength.toFixed(1) + 'm';
+  }
+
+  function setupIntersectionQueueCapacityCalculator() {
+    const ids = ['arrivalVol', 'laneCap', 'redTime', 'hvPercent'];
+    const elements = ids.map(id => document.getElementById(id)).filter(Boolean);
+    if (!elements.length) return;
+
+    elements.forEach((el) => {
+      if (el.dataset.intersectionQueueBound === '1') return;
+      el.addEventListener('input', updateIntersectionQueueCapacityCalculator);
+      el.addEventListener('change', updateIntersectionQueueCapacityCalculator);
+      el.dataset.intersectionQueueBound = '1';
+    });
+
+    updateIntersectionQueueCapacityCalculator();
   }
 
   let vcrChartD1Instance = null;
@@ -16779,8 +17067,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const selectedHourlyQueueCustomMinutes = selectedHourlyQueueKey === 'custom' ? getHourlyQueueCustomMinutes() : null;
     const selectedHourlyQueueMeta = getHourlyQueueDurationMeta(selectedHourlyQueueKey);
     refreshHourlyQueueHeaders(selectedHourlyQueueMeta);
-    // Keep SWT aligned with the selected queue wait-time duration.
-    const swtRedTimePerCycle = getSelectedHourlyQueueDurationMinutes(selectedHourlyQueueKey) * 60;
+    // SWT red time is taken from operation-mode input (with duration-derived fallback).
+    const swtRedTimePerCycle = getQueueOperationRedTimeSec(getSelectedHourlyQueueDurationMinutes(selectedHourlyQueueKey) * 60);
     const swtQueuePeriodD1 = { AM: 0, OP: 0, PM: 0, EV: 0 };
     const swtQueuePeriodD2 = { AM: 0, OP: 0, PM: 0, EV: 0 };
     let swtAnomalyHoursD1 = 0;
@@ -17750,6 +18038,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     };
   }
 
+  function getQueue95thPercentileFactor(vcr) {
+    const ratio = Math.max(0, Number(vcr) || 0);
+    if (!Number.isFinite(ratio) || ratio <= 0.85) return 1.0;
+    if (ratio >= 0.999) return 2.5;
+
+    const stress = (ratio - 0.85) / 0.15;
+    return 1 + (1.5 * ((Math.exp(stress) - 1) / (Math.E - 1)));
+  }
+
   function calculateMaxBackOfQueue(volumeVph, redTimeSec, satFlowVph, vehicleSpacingM) {
     if (volumeVph <= 0 || redTimeSec <= 0) return 0;
 
@@ -17759,9 +18056,46 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const redTimeHr = redTimeSec / 3600;
     const queueVehicles = (volumeVph * redTimeHr) / (1 - (volumeVph / satFlowVph));
-    const maxQueueMeters = queueVehicles * vehicleSpacingM;
+    const deterministicQueueMeters = queueVehicles * vehicleSpacingM;
+    const vcr = satFlowVph > 0 ? (volumeVph / satFlowVph) : 0;
+    const queue95Factor = getQueue95thPercentileFactor(vcr);
+    const queue95Meters = deterministicQueueMeters * queue95Factor;
 
-    return Math.round(maxQueueMeters) + ' m';
+    return Math.round(queue95Meters) + ' m';
+  }
+
+  function resolveQueueVehicleSpacing(hvPct, isRtrActive) {
+    const hv = Math.max(0, Math.min(1, Number(hvPct) || 0));
+    const spacing = (7.0 * (1 - hv)) + (12.0 * hv);
+    return numberRoundUp(spacing, 2);
+  }
+
+  function syncQueueOperationModeUi(forceDefault) {
+    const modeEl = document.getElementById('queueOperationType');
+    const redEl = document.getElementById('swtRedTime');
+    const hintEl = document.getElementById('queueOperationHint');
+    if (!modeEl || !redEl || !hintEl) return;
+
+    const isSignal = String(modeEl.value || 'workzone') === 'signal';
+    const recommendedRed = isSignal ? 60 : 120;
+
+    if (forceDefault) {
+      redEl.value = String(recommendedRed);
+    }
+
+    if (isSignal) {
+      hintEl.textContent = 'Use red time per cycle, NOT total hourly accumulation. Permanent signalized intersections are commonly around 45-80s red.';
+    } else {
+      hintEl.textContent = 'Use red time per cycle, NOT total hourly accumulation. Temporary work-zone stop/go commonly uses around 120s in a 240s cycle.';
+    }
+  }
+
+  function getQueueOperationRedTimeSec(defaultRedTimeSec) {
+    const fallback = Math.max(1, Number(defaultRedTimeSec) || 120);
+    const redEl = document.getElementById('swtRedTime');
+    const inputValue = redEl ? Number(redEl.value) : NaN;
+    if (!Number.isFinite(inputValue) || inputValue <= 0) return fallback;
+    return Math.max(1, inputValue);
   }
 
   function updateAutoBackOfQueueCalculator({ d1HourlyProfile, d2HourlyProfile, d1Lanes, d2Lanes, d1HvPct, d2HvPct, d1RtPct, d2RtPct, isRtrActive, redTimeSec }) {
@@ -17791,12 +18125,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const satFlowVph = selectedLanes * 1800;
 
     const hvPct = peakDirection === 'D2' ? (Number(d2HvPct) || 0) : (Number(d1HvPct) || 0);
-    const rtPct = peakDirection === 'D2' ? (Number(d2RtPct) || 0) : (Number(d1RtPct) || 0);
-    const lvPct = Math.max(0, 1 - hvPct - rtPct);
-
-    let spacing = (lvPct * 8) + (hvPct * 24) + (rtPct * 69);
-    if (!Number.isFinite(spacing) || spacing <= 0) spacing = 6.36;
-    if (isRtrActive) spacing *= 1.25;
+    const spacing = resolveQueueVehicleSpacing(hvPct, isRtrActive);
 
     const redTime = Math.max(0, Number(redTimeSec) || 0);
 
@@ -17808,7 +18137,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const result = calculateMaxBackOfQueue(peakArrivalVph, redTime, satFlowVph, spacing);
     resultDisplay.textContent = result;
     resultDisplay.style.color = (typeof result === 'string' && result.includes('Warning')) ? 'red' : '#333';
-    setFormulaBelow('queue-result', `Qmax = ((v * R / 3600) / (1 - v/s)) * spacing, with v=${Math.round(peakArrivalVph)}, R=${Math.round(redTime)}s, s=${Math.round(satFlowVph)} vph, spacing=${spacing.toFixed(2)} m`);
+    const vcr = satFlowVph > 0 ? (peakArrivalVph / satFlowVph) : 0;
+    const q95Factor = getQueue95thPercentileFactor(vcr);
+    setFormulaBelow('queue-result', `Q95 = [((v * R / 3600) / (1 - v/s)) * spacing] * F95, with v=${Math.round(peakArrivalVph)}, R=${Math.round(redTime)}s, s=${Math.round(satFlowVph)} vph, spacing=${spacing.toFixed(2)} m, v/c=${numberRoundUp(vcr, 3)}, F95=${numberRoundUp(q95Factor, 3)}`);
   }
 
   // ===== STOP/GO SHUTTLE SIMULATOR LOGIC =====
@@ -19907,6 +20238,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const roadInputData = getDetourManualRoadInput(roadName) || {};
       const speedLimitKmh = Math.max(10, Number(roadInputData.speedLimitKmh) || 60);
       const vpdMethodUsed = (roadInputData && roadInputData.vpdMethod) || 'datapoints';
+      const capInputs = model.capacityInputs || {};
+      const capBaseLaneCapacity = Number(capInputs.baseLaneCapacity);
+      const capLaneWidth = Number(capInputs.laneWidth);
+      const capClearance = Number(capInputs.lateralClearance);
+      const capHvPct = Number(capInputs.heavyVehiclePercent);
+      const capGradeType = String(capInputs.gradeType || 'level');
       const methodBadge = vpdMethodUsed === 'tripgen'
         ? '<span style="font-size:0.72em; color:#2a4045; background:#e8f5e9; border:1px solid #a5d6a7; border-radius:8px; padding:1px 6px; margin-left:4px;">🚗 Trip Generation</span>'
         : '<span style="font-size:0.72em; color:#4a148c; background:#f3e5f5; border:1px solid #ce93d8; border-radius:8px; padding:1px 6px; margin-left:4px;">📡 Datapoints</span>';
@@ -19920,6 +20257,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         <p><strong>Total Demand VPD (Base + Target):</strong> ${totalDemandVpd.toLocaleString()} vpd</p>
         <p><strong>Total Demand Peak Hour (80th):</strong> ${totalDemandPeakHourVol.toLocaleString()} vph</p>
         <p><strong>Lane Capacity:</strong> ${totalCapacity.toLocaleString()} vph</p>
+        <p><strong>Capacity Inputs:</strong> Base ${Number.isFinite(capBaseLaneCapacity) ? numberRoundUp(capBaseLaneCapacity, 0) : '-'} vph/lane, ${Number.isFinite(capLaneWidth) ? numberRoundUp(capLaneWidth, 2) : '-'}m lane, ${Number.isFinite(capClearance) ? numberRoundUp(capClearance, 2) : '-'}m clearance, HV ${Number.isFinite(capHvPct) ? numberRoundUp(capHvPct, 1) : '-'}%, ${capGradeType}</p>
         <p><strong>Worst Period VCR:</strong> ${numberRoundUp(maxNewVcr, 2)}${worstPeriod !== '-' ? ` (${worstPeriod})` : ''}</p>
         <p><strong>80th-Hour V/C:</strong> ${numberRoundUp(peakHourVc, 2)}</p>
         <p style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e1ded8;"><strong>${statusEmoji} 80th-Hour Capacity Status:</strong> ${statusText}</p>
@@ -20039,6 +20377,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     syncPedestrianDetourFromTraffic({ skipRecalc: true });
     updateDetourClosureUi();
     updateRouteDistanceDisplay();
+    const hvSuitabilityConfirmed = !!(document.getElementById('detourHvRouteSuitabilityConfirmed') && document.getElementById('detourHvRouteSuitabilityConfirmed').checked);
+    const geometryWarningEl = document.getElementById('detourGeometryWarningText');
+    if (geometryWarningEl) {
+      if (hvSuitabilityConfirmed) {
+        geometryWarningEl.style.display = 'none';
+        geometryWarningEl.innerHTML = '';
+      } else {
+        geometryWarningEl.style.display = 'block';
+        geometryWarningEl.innerHTML = '⚠️ <strong>Geometric Suitability Pending:</strong> Heavy vehicle route suitability has not been confirmed. Capacity/delay outputs do not verify bridge load limits, low-clearance structures, or swept-path compliance. Complete this check in line with AGTTM Part 2 and AGTM Part 12 before finalizing detour adoption.';
+      }
+    }
     const selectedRoadPath = Array.isArray(window.selectedTrafficDetourRoadNames)
       ? window.selectedTrafficDetourRoadNames.map(v => String(v || '').trim()).filter(Boolean)
       : [];
@@ -20220,6 +20569,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const inputVadt = Number(num('VADT')) || 0;
     const inputD1Vadt = dtcaYes ? (Number(num('D1_VADT')) || (inputVadt / 2)) : (inputVadt / 2);
     const inputD2Vadt = dtcaYes ? (Number(num('D2_VADT')) || (inputVadt / 2)) : (inputVadt / 2);
+    const detourLaneWidth = Math.max(2.0, Number((document.getElementById('detourLaneWidth') && document.getElementById('detourLaneWidth').value) || 3.7));
+    const detourLateralClearance = Math.max(0, Number((document.getElementById('detourLateralClearance') && document.getElementById('detourLateralClearance').value) || 2.0));
+    const detourGradeTypeRaw = String((document.getElementById('detourGradeType') && document.getElementById('detourGradeType').value) || 'level').toLowerCase();
+    const detourGradeType = ['level', 'moderate', 'steep'].includes(detourGradeTypeRaw) ? detourGradeTypeRaw : 'level';
+    const detourBaseLaneCapacity = Math.max(500, Math.min(2500, Number((document.getElementById('detourBaseLaneCapacity') && document.getElementById('detourBaseLaneCapacity').value) || 1800)));
+    const detourCapacityHvPercent = Math.max(0, Math.min(100, Math.max(
+      ((Number(getHVPercent(1)) || 0) + (Number(getRTPercent(1)) || 0)) * 100,
+      ((Number(getHVPercent(2)) || 0) + (Number(getRTPercent(2)) || 0)) * 100
+    )));
 
     const primaryD1Profile = getDirectionalProfile(primarySite, 'GAZETTAL', inputD1Vadt);
     const primaryD2Profile = getDirectionalProfile(primarySite, 'AGAINST GAZETTAL', inputD2Vadt);
@@ -20250,7 +20608,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           const d1Lanes = laneSplit.d1Lanes;
           const d2Lanes = laneSplit.d2Lanes;
           const defaultDbLanes = Math.max(1, (Number(matchedSite.d1_lanes) || 1) + (Number(matchedSite.d2_lanes) || 1));
-          const perLaneCapacity = Math.max(500, (baseVpd > 0 ? (baseVpd * 0.12) : (Number(matchedSite.vadt || 5000) * 0.12)) / defaultDbLanes);
+          const perLaneCapacity = calculateDetourCapacity(detourLaneWidth, detourLateralClearance, detourCapacityHvPercent, detourGradeType, detourBaseLaneCapacity);
           const totalCapacity = Math.round(perLaneCapacity * lanes);
           detourModels.push({
             site: matchedSite,
@@ -20263,7 +20621,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             d2Lanes,
             d1Profile: sourceD1Profile,
             d2Profile: sourceD2Profile,
-            totalCapacity
+            totalCapacity,
+            capacityInputs: {
+              baseLaneCapacity: detourBaseLaneCapacity,
+              laneWidth: detourLaneWidth,
+              lateralClearance: detourLateralClearance,
+              heavyVehiclePercent: detourCapacityHvPercent,
+              gradeType: detourGradeType
+            }
           });
           return;
         }
@@ -20285,7 +20650,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const d2Profile = profile.map(value => Math.max(0, (Number(value) || 0) * 0.5));
         const d1Lanes = Math.max(1, Math.ceil(lanes / 2));
         const d2Lanes = Math.max(1, Math.floor(lanes / 2));
-        const totalCapacity = lanes * 900;
+        const perLaneCapacity = calculateDetourCapacity(detourLaneWidth, detourLateralClearance, detourCapacityHvPercent, detourGradeType, detourBaseLaneCapacity);
+        const totalCapacity = Math.round(perLaneCapacity * lanes);
         detourModels.push({
           site: null,
           roadName,
@@ -20297,7 +20663,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           d2Lanes,
           d1Profile,
           d2Profile,
-          totalCapacity
+          totalCapacity,
+          capacityInputs: {
+            baseLaneCapacity: detourBaseLaneCapacity,
+            laneWidth: detourLaneWidth,
+            lateralClearance: detourLateralClearance,
+            heavyVehiclePercent: detourCapacityHvPercent,
+            gradeType: detourGradeType
+          }
         });
       });
     } else {
@@ -21052,6 +21425,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   // Trigger calculation on page load
   document.addEventListener('DOMContentLoaded', () => {
+    setupIntersectionQueueCapacityCalculator();
+    syncQueueOperationModeUi(false);
     if(typeof calculateAgttmGeometry === 'function') calculateAgttmGeometry();
     calculateASD();
     applyGlobalFormulaAnnotations();
@@ -21215,7 +21590,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   // });
   
   // detour inputs also update overlay
-  ['detourSiteSearch','detourDiversionRate','detourClosureType','detourClosedDirection','detourRouteLengthKm','detourAvgSpeedKmh','detourControlledIntCount','detourUncontrolledIntCount','detourControlledDelaySec','detourUncontrolledDelaySec'].forEach(id => {
+  ['detourSiteSearch','detourDiversionRate','detourClosureType','detourClosedDirection','detourHvRouteSuitabilityConfirmed','detourLaneWidth','detourLateralClearance','detourGradeType','detourBaseLaneCapacity','detourRouteLengthKm','detourAvgSpeedKmh','detourControlledIntCount','detourUncontrolledIntCount','detourControlledDelaySec','detourUncontrolledDelaySec'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     const syncPedIfLinked = () => {
@@ -21934,6 +22309,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return dirs[Math.round(brng / 45) % 8];
   }
 
+  function isValidSearchCoordinatePair(lat, lon) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return false;
+    // Guard against null-island fallback values from malformed geocoder records.
+    if (Math.abs(lat) < 1e-9 && Math.abs(lon) < 1e-9) return false;
+    return true;
+  }
+
   function inferRoadTypeFromText(text) {
     const value = String(text || '').toLowerCase();
     if (!value) return 'unknown';
@@ -22005,9 +22388,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const requestedRoad = extractSearchRoadName(address);
     const toLocation = (item) => {
       if (!item) return null;
-      const lat = Number(item.lat);
-      const lon = Number(item.lon);
-      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+      const lat = numberOrNull(item.lat);
+      const lon = numberOrNull(item.lon);
+      if (!isValidSearchCoordinatePair(lat, lon)) return null;
       return {
         lat,
         lon,
@@ -22062,7 +22445,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   async function reverseGeocodeByCoordinates(lat, lon) {
     const safeLat = Number(lat);
     const safeLon = Number(lon);
-    if (!Number.isFinite(safeLat) || !Number.isFinite(safeLon)) return null;
+    if (!isValidSearchCoordinatePair(safeLat, safeLon)) return null;
 
     const cache = window.__quickReverseGeocodeCache || (window.__quickReverseGeocodeCache = new Map());
     const cacheKey = `${safeLat.toFixed(5)},${safeLon.toFixed(5)}`;
@@ -22116,7 +22499,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   function runBackgroundCoordinateFallback(location, typedSearchInput = '') {
     const safeLat = Number(location && location.lat);
     const safeLon = Number(location && location.lon);
-    if (!Number.isFinite(safeLat) || !Number.isFinite(safeLon)) return;
+    if (!isValidSearchCoordinatePair(safeLat, safeLon)) return;
 
     const token = Date.now();
     window.__quickTiaCoordFallbackToken = token;
@@ -23930,6 +24313,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
       const scenarioKey = scenarioSelect.value;
       const scenarioData = window.tripGenerationScenarios[scenarioKey] || window.tripGenerationScenarios.custom;
+      updateTripGenerationReferenceSourceUi();
       
       console.log('Trip Generation: Selected scenario =', scenarioKey, 'Rate =', scenarioData.rate);
 
@@ -23952,6 +24336,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const rate = Number(document.getElementById('tripRate')?.value) || 0;
       const scenarioKey = document.getElementById('landUseScenario')?.value || 'custom';
       const scenarioData = window.tripGenerationScenarios[scenarioKey] || window.tripGenerationScenarios.custom;
+      const sourceDetails = updateTripGenerationReferenceSourceUi();
       
       console.log('Calculating trip generation: quantity =', quantity, 'rate =', rate, 'scenario =', scenarioKey);
     
@@ -24048,6 +24433,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       
       <div style="background: #fff9e6; border-left: 3px solid #ffc107; padding: 8px; margin-bottom: 10px; font-size: 0.83em; line-height: 1.4;">
         <strong>📍 Scenario:</strong> ${scenarioData.description}<br>
+        <strong>📚 Reference Source:</strong> ${sourceDetails.label}<br>
         <strong>🔀 Directional Split:</strong> ${inboundPercent.toFixed(0)}% In / ${outboundPercent.toFixed(0)}% Out (AM Peak)
       </div>
     `;
@@ -24086,7 +24472,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       peakPM_Out,
       scenario: scenarioKey,
       quantity,
-      rate
+      rate,
+      referenceSourceKey: sourceDetails.key,
+      referenceSourceLabel: sourceDetails.label,
+      referenceSourceShort: sourceDetails.shortLabel
     };
     } catch (error) {
       console.error('Error in calculateTripGeneration:', error);
@@ -24111,6 +24500,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     // Get the stored calculation data
     const data = window.manualTrafficGenData || {};
     const scenarioData = window.tripGenerationScenarios[data.scenario] || window.tripGenerationScenarios.custom;
+    const referenceSourceLabel = String(data.referenceSourceLabel || getTripGenerationReferenceSourceDetails().label || '').trim();
     
     // Apply total VADT
     mainVadtField.value = String(generatedVadt);
@@ -24138,7 +24528,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     showCustomAddressDetails({
       siteId: 'CUSTOM ADDRESS',
       roadName: currentAddress,
-      description: `Manual traffic generation calculation (${generatedVadt} total trips/day from ${data.quantity} ${scenarioData.unit})`,
+      description: `Manual traffic generation calculation (${generatedVadt} total trips/day from ${data.quantity} ${scenarioData.unit})${referenceSourceLabel ? ` [${referenceSourceLabel}]` : ''}`,
       countYear: 'Manual calculation',
       d1Label: getCurrentDirectionalLabelContext().d1Raw,
       d2Label: getCurrentDirectionalLabelContext().d2Raw,
@@ -24153,7 +24543,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       peakAM_Out: data.peakAM_Out,
       peakPM_In: data.peakPM_In,
       peakPM_Out: data.peakPM_Out,
-      scenario: scenarioData.description
+      scenario: `${scenarioData.description}${referenceSourceLabel ? ` | Source: ${referenceSourceLabel}` : ''}`
     });
     
     // Build detailed alert message
@@ -24194,6 +24584,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     console.log('Trip Generation: Initializing on DOMContentLoaded');
     // Small delay to ensure all elements are ready
     setTimeout(function() {
+      updateTripGenerationReferenceSourceUi();
       const scenarioSelect = document.getElementById('landUseScenario');
       if (scenarioSelect) {
         console.log('Trip Generation: Initial scenario =', scenarioSelect.value);
@@ -24271,10 +24662,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     });
 
     const quickSearchAddressEl = document.getElementById('quickTiaSearchAddress');
+    const manualRefSource = String(window.manualTrafficGenData && window.manualTrafficGenData.referenceSourceLabel || '').trim();
     
     let descriptionText;
     if (selectedMethod === 'manual') {
-      descriptionText = `Manual traffic generation calculation (${window.manualTrafficGenData?.totalTrips || 0} total trips/day)`;
+      descriptionText = `Manual traffic generation calculation (${window.manualTrafficGenData?.totalTrips || 0} total trips/day)${manualRefSource ? ` [${manualRefSource}]` : ''}`;
     } else if (isOneWayApplied) {
       descriptionText = `Calculated from nearby references (one-way adjusted at ${Number(window.selectedTiaData.oneWayPercent) || 100}% of selected datapoint AADT)`;
     } else {
