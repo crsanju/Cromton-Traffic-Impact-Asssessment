@@ -5193,6 +5193,29 @@
     <div class="copyright-footer">© 2026 Crompton Concepts. All rights reserved.</div>
 <script>
   const AUTH_SESSION_KEY = 'crompton_tia_auth';
+  let authSessionFallback = false;
+
+  function isAuthSessionActive() {
+    try {
+      return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
+    } catch (_) {
+      return authSessionFallback === true;
+    }
+  }
+
+  function setAuthSessionActive(isActive) {
+    authSessionFallback = !!isActive;
+    try {
+      if (isActive) {
+        sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+      } else {
+        sessionStorage.removeItem(AUTH_SESSION_KEY);
+      }
+    } catch (_) {
+      // Fallback is kept in memory for this tab when storage is unavailable.
+    }
+  }
+
   let loadingHintTimer = null;
   let loadingFunnyCommentTimer = null;
   let loadingProgressPulseTimer = null;
@@ -8109,7 +8132,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       }
     }
 
-    if (sessionStorage.getItem(AUTH_SESSION_KEY) === 'true') {
+    if (isAuthSessionActive()) {
       unlockApplication();
       return;
     }
@@ -8124,7 +8147,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const enteredPin = String(loginPin.value || '').trim();
 
       if (enteredPin === DEVELOPER_PIN) {
-        sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+        setAuthSessionActive(true);
         loginError.textContent = '';
         // Instead of reloading, unlock app (will wait for data if needed)
         try {
@@ -8133,7 +8156,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           console.error('[Login] Unlock failed:', error);
           loginError.textContent = 'Login succeeded but app initialization failed. Please refresh and try again.';
           setAppStatusBanner('<strong>❌ App initialization failed:</strong> Please refresh the page and sign in again.', 'error');
-          sessionStorage.removeItem(AUTH_SESSION_KEY);
+          setAuthSessionActive(false);
           document.body.classList.add('app-locked');
           loginGate.style.display = 'flex';
         }
@@ -8151,7 +8174,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (!logoutBtn) return;
 
     logoutBtn.addEventListener('click', function () {
-      sessionStorage.removeItem(AUTH_SESSION_KEY);
+      setAuthSessionActive(false);
       window.location.reload();
     });
   }
@@ -11396,7 +11419,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     try {
       // Only show overlay if user is authenticated (after login)
       // During login, data loads silently in background
-      const isAuthenticated = sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
+      const isAuthenticated = isAuthSessionActive();
       console.log('[Data Load] isAuthenticated:', isAuthenticated);
       
       if (showOverlay && isAuthenticated && loadingOverlay) {
@@ -13086,7 +13109,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     });
 
     // Initialize UI components only after authentication
-    if (sessionStorage.getItem(AUTH_SESSION_KEY) !== 'true') {
+    if (!isAuthSessionActive()) {
       return;
     }
 
@@ -22103,7 +22126,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     setQuickTiaRoadModeDetectedState(suggestedMode === 'ONE-WAY' ? 'ONE-WAY' : 'TWO-WAY');
 
     window.quickTiaOneWayMeta = detection || null;
-    applyQuickTiaRoadModeChoice(suggestedMode === 'ONE-WAY' ? 'ONE-WAY' : 'TWO-WAY');
+    // Do not auto-apply one-way from OSM hints. Keep two-way default unless user explicitly confirms.
+    setQuickTiaRoadModeButtonState('TWO-WAY');
+    const operationEl = document.getElementById('roadOperationMode');
+    if (operationEl) operationEl.value = 'TWO-WAY';
+    if (typeof syncOneWayModeUi === 'function') syncOneWayModeUi();
   }
 
   function resetQuickTiaOneWayState() {
@@ -24174,7 +24201,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }, { once: true });
 
     setTimeout(() => {
-      if (sessionStorage.getItem(AUTH_SESSION_KEY) === 'true') {
+      if (isAuthSessionActive()) {
         const quickInput = getQuickTiaInputElement();
         if (quickInput) {
           try {

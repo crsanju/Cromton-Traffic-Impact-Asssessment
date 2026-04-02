@@ -22829,7 +22829,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     setQuickTiaRoadModeDetectedState(suggestedMode === 'ONE-WAY' ? 'ONE-WAY' : 'TWO-WAY');
 
     window.quickTiaOneWayMeta = detection || null;
-    applyQuickTiaRoadModeChoice(suggestedMode === 'ONE-WAY' ? 'ONE-WAY' : 'TWO-WAY');
+    // Do not auto-apply one-way from OSM hints. Keep two-way default unless user explicitly confirms.
+    setQuickTiaRoadModeButtonState('TWO-WAY');
+    const operationEl = document.getElementById('roadOperationMode');
+    if (operationEl) operationEl.value = 'TWO-WAY';
+    if (typeof syncOneWayModeUi === 'function') syncOneWayModeUi();
   }
 
   function resetQuickTiaOneWayState() {
