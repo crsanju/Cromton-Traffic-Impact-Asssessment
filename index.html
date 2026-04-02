@@ -15516,11 +15516,19 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   function getDirectionalHourlySource(siteData, directionKey) {
     if (!siteData) return null;
+    // Require at least 6 non-zero hours to treat as genuine measured hourly data.
+    // This prevents artificial zero-filled arrays (from non-hourly sources like
+    // Gold Coast, Brisbane, Ipswich) from bypassing the Austroads proportional fallback.
+    const MINIMUM_NONZERO_HOURS = 6;
+    const hasSufficientData = (arr) => {
+      if (!Array.isArray(arr) || arr.length < 24) return false;
+      return arr.filter(v => Number(v) > 0).length >= MINIMUM_NONZERO_HOURS;
+    };
 
     const directHourly = Array.isArray(siteData.hourly_volumes)
       ? siteData.hourly_volumes
       : null;
-    if (directHourly && directHourly.length === 24) {
+    if (directHourly && directHourly.length === 24 && hasSufficientData(directHourly)) {
       return directHourly.map(v => Math.max(0, Number(v) || 0));
     }
 
@@ -15528,6 +15536,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       siteData.directions_weekday
       && Array.isArray(siteData.directions_weekday[directionKey])
       && siteData.directions_weekday[directionKey].length === 24
+      && hasSufficientData(siteData.directions_weekday[directionKey])
     ) {
       return siteData.directions_weekday[directionKey].map(v => Math.max(0, Number(v) || 0));
     }
