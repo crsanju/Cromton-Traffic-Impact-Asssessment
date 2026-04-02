@@ -14308,64 +14308,30 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         EV: buildTmrPeriod(evLv, evHv, evRt, 0.15)
       };
     }
-    else if (source === 'IPSWICH') {
-      const peakOneWayBase = Math.ceil(Math.max(0, Number(dailyVolume) || 0) * (IPSWICH_CONSTANTS.PEAK_HOUR_PERCENT / 100));
-      const peakHv = Math.ceil(peakOneWayBase * hvPct);
-      const peakRt = 0;
-      const peakLv = Math.max(0, peakOneWayBase);
-      const peakTotal = peakLv + peakHv + peakRt;
-
-      const offBase = Math.ceil(peakOneWayBase * IPSWICH_CONSTANTS.OFFPEAK_FROM_PEAK_RATIO);
-      const offHv = Math.ceil(offBase * hvPct);
-      const offRt = 0;
-      const offLv = Math.max(0, offBase);
-      const offTotal = offLv + offHv + offRt;
-
-      amVol = pmVol = peakTotal;
-      opVol = evVol = offTotal;
-      amParts = pmParts = { lv: peakLv, hv: peakHv, rt: peakRt };
-      opParts = evParts = { lv: offLv, hv: offHv, rt: offRt };
-    }
-    else if (source === 'GOLD COAST') {
-      const rawPeakVol = Math.ceil(dailyVolume * 0.15 * 0.85);
-      const rawOpVol = Math.ceil(rawPeakVol * 0.48548);
-
-      const peakHv = numberRoundUp(rawPeakVol * hvPct, 0);
-      const peakRt = numberRoundUp(rawPeakVol * rtPct, 0);
-      const peakLv = Math.max(0, rawPeakVol - peakHv - peakRt);
-
-      const offHv = numberRoundUp(rawOpVol * hvPct, 0);
-      const offRt = numberRoundUp(rawOpVol * rtPct, 0);
-      const offLv = Math.max(0, rawOpVol - offHv - offRt);
-
-      amVol = pmVol = rawPeakVol;
-      opVol = evVol = rawOpVol;
-      amParts = pmParts = { lv: peakLv, hv: peakHv, rt: peakRt };
-      opParts = evParts = { lv: offLv, hv: offHv, rt: offRt };
-    }
-    else if (source === 'BRISBANE' || source === 'LOGAN' || source === 'TOOWOOMBA' || source === 'NSW') {
-      const peakBase = numberRoundUp(Math.max(0, Number(dailyVolume) || 0) * 0.12 * 0.85, 0);
-      const offBase = numberRoundUp(peakBase * 0.45, 0);
-
-      const peakHv = numberRoundUp(peakBase * hvPct, 0);
-      const peakRt = numberRoundUp(peakBase * rtPct, 0);
-      const peakLv = Math.max(0, peakBase - peakHv - peakRt);
-
-      const offHv = numberRoundUp(offBase * hvPct, 0);
-      const offRt = numberRoundUp(offBase * rtPct, 0);
-      const offLv = Math.max(0, offBase - offHv - offRt);
-
-      amVol = pmVol = peakBase;
-      opVol = evVol = offBase;
-      amParts = pmParts = { lv: peakLv, hv: peakHv, rt: peakRt };
-      opParts = evParts = { lv: offLv, hv: offHv, rt: offRt };
-    }
     else {
-      const peakTotal = numberRoundUp(dailyVolume * 0.60 * 0.85, 0);
-      const offPeakTotal = numberRoundUp(dailyVolume * 0.15 * 0.85, 0);
+      const syntheticHourly = buildSyntheticHourlyFromDaily(dailyVolume, direction);
+      const sumHours = (hours) => hours.reduce((sum, h) => sum + (Number(syntheticHourly[h]) || 0), 0);
 
-      amVol = pmVol = peakTotal;
-      opVol = evVol = offPeakTotal;
+      const amBase = sumHours([7, 8]);
+      const opBase = sumHours([9, 10, 11, 12, 13, 14, 15]);
+      const pmBase = sumHours([16, 17]);
+      const evBase = sumHours([18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6]);
+
+      const calcParts = (totalVol) => {
+        const hv = numberRoundUp(totalVol * hvPct, 0);
+        const rt = numberRoundUp(totalVol * rtPct, 0);
+        const lv = Math.max(0, totalVol - hv - rt);
+        return { lv, hv, rt };
+      };
+
+      amVol = numberRoundUp(amBase, 0);
+      opVol = numberRoundUp(opBase, 0);
+      pmVol = numberRoundUp(pmBase, 0);
+      evVol = numberRoundUp(evBase, 0);
+      amParts = calcParts(amVol);
+      opParts = calcParts(opVol);
+      pmParts = calcParts(pmVol);
+      evParts = calcParts(evVol);
     }
 
     const buildPeriod = (vol, presetParts = null) => {
