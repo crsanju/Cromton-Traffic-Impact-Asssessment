@@ -24874,9 +24874,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (selectedMethod === 'manual') {
       descriptionText = `Manual traffic generation calculation (${window.manualTrafficGenData?.totalTrips || 0} total trips/day)${manualRefSource ? ` [${manualRefSource}]` : ''}`;
     } else if (isOneWayApplied) {
-      descriptionText = `Calculated from nearby references (one-way adjusted at ${Number(window.selectedTiaData.oneWayPercent) || 100}% of selected datapoint AADT)`;
+      descriptionText = `Calculated from TMR datapoint or specific council datapoint (one-way adjusted at ${Number(window.selectedTiaData.oneWayPercent) || 100}% of selected datapoint AADT)`;
     } else {
-      descriptionText = 'Calculated from nearby references (within 5km)';
+      descriptionText = 'Calculated from TMR datapoint or specific council datapoint (within 5km)';
     }
     
     showCustomAddressDetails({
