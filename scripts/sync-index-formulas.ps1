@@ -16,33 +16,7 @@ if (-not (Test-Path $indexPath)) {
 $indexContent = Get-Content -Path $indexPath -Raw
 $outputContent = $indexContent
 
-# Keep formula page title distinct while mirroring everything else from index.html.
-$outputContent = [regex]::Replace(
-  $outputContent,
-  '(?is)<title>.*?</title>',
-  '<title>Traffic Impact Assessment - Formula Detailed</title>',
-  1
-)
-
-# Ensure formula page starts in formula-mode immediately on first paint.
-$outputContent = $outputContent.Replace(
-  '<body class="app-locked input-color-mode">',
-  '<body class="app-locked input-color-mode formula-mode">'
-)
-
-$existingFormulasContent = if (Test-Path $formulasPath) {
-  Get-Content -Path $formulasPath -Raw
-} else {
-  ''
-}
-
-$formulaBlockPattern = '(?is)<!-- FORMULA MODE ENFORCER START -->.*?<!-- FORMULA MODE ENFORCER END -->'
-$formulaBlockMatch = [regex]::Match($existingFormulasContent, $formulaBlockPattern)
-
-if ($formulaBlockMatch.Success) {
-  $formulaEnforcerBlock = $formulaBlockMatch.Value.Trim()
-} else {
-  $formulaEnforcerBlock = @'
+$formulaEnforcerBlock = @'
 <!-- FORMULA MODE ENFORCER START -->
 <script>
 (function () {
@@ -66,16 +40,9 @@ if ($formulaBlockMatch.Success) {
       el.style.display = 'block';
     });
 
-    var trace = document.getElementById('formulaTraceSection');
-    if (trace) {
-      trace.style.display = 'block';
-      trace.classList.remove('report-section-excluded');
-      trace.open = true;
-    }
-
     document.querySelectorAll('details').forEach(function (d) {
       var text = (d.textContent || '').toLowerCase();
-      if (d.id === 'formulaTraceSection' || text.indexOf('formula') !== -1 || text.indexOf('step') !== -1) {
+      if (d.id !== 'formulaTraceSection' && (text.indexOf('formula') !== -1 || text.indexOf('step') !== -1)) {
         d.open = true;
       }
     });
@@ -101,7 +68,22 @@ if ($formulaBlockMatch.Success) {
 </script>
 <!-- FORMULA MODE ENFORCER END -->
 '@.Trim()
-}
+
+# Keep formula page title distinct while mirroring everything else from index.html.
+$outputContent = [regex]::Replace(
+  $outputContent,
+  '(?is)<title>.*?</title>',
+  '<title>Traffic Impact Assessment - Formula Detailed</title>',
+  1
+)
+
+# Ensure formula page starts in formula-mode immediately on first paint.
+$outputContent = $outputContent.Replace(
+  '<body class="app-locked input-color-mode">',
+  '<body class="app-locked input-color-mode formula-mode">'
+)
+
+$formulaBlockPattern = '(?is)<!-- FORMULA MODE ENFORCER START -->.*?<!-- FORMULA MODE ENFORCER END -->'
 
 # Remove any pre-existing enforcer block from copied content before re-inserting once.
 $outputContent = [regex]::Replace($outputContent, $formulaBlockPattern, '').TrimEnd()

@@ -17,9 +17,10 @@
   <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script async src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
-    /* Production build: beta panel is developer-only. */
+    /* Production build: beta panel and formula trace are developer-only. */
 #optionalFeaturesSection,
-#betaFeaturesCard {
+#betaFeaturesCard,
+#formulaTraceSection {
   display: none !important;
 }
 :root {
@@ -4655,48 +4656,6 @@
       </div>
     </details>
 
-    <div class="card queue-calculator-card" id="intersectionQueueCapacityCard">
-      <h3>Intersection Queue &amp; Capacity Calculator</h3>
-
-      <div class="input-grid">
-        <div class="input-group">
-          <label for="arrivalVol">Arrival Volume (vph)</label>
-          <input type="number" id="arrivalVol" value="750" step="10">
-        </div>
-        <div class="input-group">
-          <label for="laneCap">Base Lane Capacity (vph)</label>
-          <input type="number" id="laneCap" value="900" step="10">
-        </div>
-        <div class="input-group">
-          <label for="redTime">Red Time (seconds)</label>
-          <input type="number" id="redTime" value="60" step="5">
-        </div>
-        <div class="input-group">
-          <label for="hvPercent">Heavy Vehicles (%)</label>
-          <input type="number" id="hvPercent" value="5" step="1" max="100">
-        </div>
-      </div>
-
-      <div class="results-panel">
-        <div class="result-box">
-          <span>Volume/Capacity Ratio</span>
-          <strong id="vcrResult">0.83</strong>
-        </div>
-        <div class="result-box">
-          <span>Level of Service</span>
-          <span id="losBadge" class="los-badge los-d">LOS D</span>
-        </div>
-        <div class="result-box">
-          <span>Dynamic Spacing (m/veh)</span>
-          <strong id="spacingResult">7.25m</strong>
-        </div>
-        <div class="result-box highlight">
-          <span>Estimated Queue Length</span>
-          <strong id="queueResult">90.6m</strong>
-        </div>
-      </div>
-    </div>
-
     <div class="card" id="detourCard" style="border: 2px solid #8e24aa;">
       <h2 class="optional-card-title">
         🔄 Detailed Detour Route Capacity
@@ -4951,6 +4910,48 @@
       <h3 class="optional-section-note">Trial Features — Use for exploratory assessment only. Always validate outputs with independent manual engineering checks before reporting.</h3>
       <p class="field-instruction user">🔴 In Beta Features, editable input boxes are red and should be reviewed before use.</p>
       <p class="field-instruction auto">🟢 Auto-filled/read-only boxes are green. If a field is auto-filled but marked editable, you can still adjust it.</p>
+
+    <div class="card queue-calculator-card" id="intersectionQueueCapacityCard">
+      <h3>Intersection Queue &amp; Capacity Calculator</h3>
+
+      <div class="input-grid">
+        <div class="input-group">
+          <label for="arrivalVol">Arrival Volume (vph)</label>
+          <input type="number" id="arrivalVol" value="750" step="10">
+        </div>
+        <div class="input-group">
+          <label for="laneCap">Base Lane Capacity (vph)</label>
+          <input type="number" id="laneCap" value="900" step="10">
+        </div>
+        <div class="input-group">
+          <label for="redTime">Red Time (seconds)</label>
+          <input type="number" id="redTime" value="60" step="5">
+        </div>
+        <div class="input-group">
+          <label for="hvPercent">Heavy Vehicles (%)</label>
+          <input type="number" id="hvPercent" value="5" step="1" max="100">
+        </div>
+      </div>
+
+      <div class="results-panel">
+        <div class="result-box">
+          <span>Volume/Capacity Ratio</span>
+          <strong id="vcrResult">0.83</strong>
+        </div>
+        <div class="result-box">
+          <span>Level of Service</span>
+          <span id="losBadge" class="los-badge los-d">LOS D</span>
+        </div>
+        <div class="result-box">
+          <span>Dynamic Spacing (m/veh)</span>
+          <strong id="spacingResult">7.25m</strong>
+        </div>
+        <div class="result-box highlight">
+          <span>Estimated Queue Length</span>
+          <strong id="queueResult">90.6m</strong>
+        </div>
+      </div>
+    </div>
 
     <!-- ===== MULTI-STAGE SCENARIO MANAGER ===== -->
     <div class="card" id="scenarioManagerCard" style="border: 2px solid #0056b3; background: #f8fbff;">
@@ -25484,38 +25485,19 @@ const LoganTrafficEngine = (function() {
       el.style.display = 'block';
     });
 
-    var trace = document.getElementById('formulaTraceSection');
-    if (trace) {
-      trace.style.display = 'block';
-      trace.classList.remove('report-section-excluded');
-      trace.open = true;
-
-      var container = document.querySelector('.container');
-      if (container) {
-        var printHeader = container.querySelector('.print-header');
-        if (printHeader) {
-          printHeader.insertAdjacentElement('afterend', trace);
-        } else {
-          container.insertAdjacentElement('afterbegin', trace);
-        }
-      }
-    }
-
     document.querySelectorAll('details').forEach(function (d) {
       var text = (d.textContent || '').toLowerCase();
-      if (d.id === 'formulaTraceSection' || text.indexOf('formula') !== -1 || text.indexOf('step') !== -1) {
+      if (d.id !== 'formulaTraceSection' && (text.indexOf('formula') !== -1 || text.indexOf('step') !== -1)) {
         d.open = true;
       }
     });
   }
 
-  // Run immediately, then keep formula mode pinned during async UI updates.
   enforceFormulaView();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', enforceFormulaView, { once: true });
   }
 
-  // Watch for dynamic DOM updates that may hide formulas again.
   var observer = new MutationObserver(function () {
     scheduleEnforce();
   });
@@ -25526,7 +25508,6 @@ const LoganTrafficEngine = (function() {
     attributeFilter: ['class', 'style', 'open']
   });
 
-  // Lightweight periodic fallback in case observers miss a style mutation path.
   setInterval(enforceFormulaView, 2000);
 })();
 </script>

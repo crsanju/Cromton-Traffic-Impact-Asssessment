@@ -27,7 +27,7 @@ $outputContent = [regex]::Replace(
 # Developer build should keep beta features visible.
 $outputContent = [regex]::Replace(
   $outputContent,
-  '(?is)/\*\s*Production build: beta panel is developer-only\.\s*\*/\s*#optionalFeaturesSection,\s*#betaFeaturesCard\s*\{\s*display:\s*none\s*!important;\s*\}',
+  '(?is)/\*\s*Production build: beta panel and formula trace are developer-only\.\s*\*/\s*#optionalFeaturesSection,\s*#betaFeaturesCard,\s*#formulaTraceSection\s*\{\s*display:\s*none\s*!important;\s*\}',
   ''
 )
 
