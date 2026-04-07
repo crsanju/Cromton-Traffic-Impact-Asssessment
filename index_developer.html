@@ -3722,6 +3722,28 @@
       </div>
     </div>
 
+    <div id="pdfPreviewModal" role="dialog" aria-modal="true" aria-labelledby="pdfPreviewTitle" class="hide-print" style="display:none; position:fixed; inset:0; background:rgba(15, 23, 42, 0.78); z-index:100002; padding:18px; overflow:auto;">
+      <div style="max-width:1120px; height:min(90vh, 920px); margin:0 auto; background:#fff; border-radius:12px; border:1px solid #dbe2ea; box-shadow:0 16px 40px rgba(0,0,0,0.24); padding:18px; display:flex; flex-direction:column; gap:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+          <div>
+            <h2 id="pdfPreviewTitle" style="margin:0; color:#0f2f32;">Site PDF Report Preview</h2>
+            <p id="pdfPreviewStatus" style="margin:4px 0 0 0; color:#475569; font-size:0.92em;">Loading PDF preview...</p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <a id="pdfPreviewOpenTabBtn" href="#" target="_blank" rel="noopener noreferrer" class="contact-dev-button" style="text-decoration:none; display:inline-flex; align-items:center; background:#1d4ed8;">Open in New Tab</a>
+            <button id="closePdfPreviewBtn" type="button" class="contact-dev-button" style="background:#b91c1c;">Close</button>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background:#f8fafc; border:1px solid #dbe2ea; border-radius:8px; padding:10px 12px; color:#334155; font-size:0.88em;">
+          <span>If the preview is blank or blocked, use Open in New Tab. Some external servers do not allow embedded PDF display.</span>
+          <code id="pdfPreviewUrlLabel" style="background:#e2e8f0; color:#0f172a; padding:4px 6px; border-radius:4px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></code>
+        </div>
+        <div style="flex:1 1 auto; min-height:420px; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; background:#e2e8f0; position:relative;">
+          <iframe id="pdfPreviewFrame" title="PDF preview" src="about:blank" style="width:100%; height:100%; border:0; background:#fff;"></iframe>
+        </div>
+      </div>
+    </div>
+
     <h1 class="main-report-heading">Traffic Impact Assessment</h1>
     <p class="subtitle">database-integrated directional traffic, queue metrics, and capacity checks</p>
 
@@ -8588,11 +8610,16 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (safeUrl) {
       linkEl.href = safeUrl;
       linkEl.textContent = 'Open PDF Report';
-      linkEl.title = 'Open source PDF report in a new tab';
+      linkEl.title = 'Preview source PDF report in a popup';
       linkEl.style.pointerEvents = 'auto';
       linkEl.style.opacity = '1';
       linkEl.style.color = '#0056b3';
       linkEl.removeAttribute('aria-disabled');
+      linkEl.onclick = function(event) {
+        if (event) event.preventDefault();
+        openPdfPreviewModal(safeUrl);
+        return false;
+      };
     } else {
       linkEl.href = 'javascript:void(0)';
       linkEl.textContent = 'No PDF available for this site';
@@ -8601,7 +8628,66 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       linkEl.style.opacity = '0.75';
       linkEl.style.color = '#6b7280';
       linkEl.setAttribute('aria-disabled', 'true');
+      linkEl.onclick = null;
     }
+  }
+
+  function setPdfPreviewStatus(message) {
+    const statusEl = document.getElementById('pdfPreviewStatus');
+    if (statusEl) statusEl.textContent = message;
+  }
+
+  function closePdfPreviewModal() {
+    const modal = document.getElementById('pdfPreviewModal');
+    const frame = document.getElementById('pdfPreviewFrame');
+    if (frame) frame.src = 'about:blank';
+    if (modal) modal.style.display = 'none';
+    setPdfPreviewStatus('Loading PDF preview...');
+    document.body.style.overflow = '';
+  }
+
+  function openPdfPreviewModal(url) {
+    const safeUrl = normalizePdfUrl(url);
+    if (!safeUrl) return;
+
+    const modal = document.getElementById('pdfPreviewModal');
+    const frame = document.getElementById('pdfPreviewFrame');
+    const tabBtn = document.getElementById('pdfPreviewOpenTabBtn');
+    const urlLabel = document.getElementById('pdfPreviewUrlLabel');
+    if (!modal || !frame || !tabBtn || !urlLabel) {
+      window.open(safeUrl, '_blank', 'noopener');
+      return;
+    }
+
+    tabBtn.href = safeUrl;
+    urlLabel.textContent = safeUrl;
+    setPdfPreviewStatus('Loading PDF preview...');
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    frame.src = 'about:blank';
+    window.setTimeout(() => {
+      frame.src = safeUrl;
+    }, 0);
+  }
+
+  function setupPdfPreviewModal() {
+    const modal = document.getElementById('pdfPreviewModal');
+    const closeBtn = document.getElementById('closePdfPreviewBtn');
+    const frame = document.getElementById('pdfPreviewFrame');
+    if (!modal || !closeBtn || !frame) return;
+
+    closeBtn.addEventListener('click', closePdfPreviewModal);
+    modal.addEventListener('click', function(event) {
+      if (event.target === modal) closePdfPreviewModal();
+    });
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape' && modal.style.display !== 'none') {
+        closePdfPreviewModal();
+      }
+    });
+    frame.addEventListener('load', function() {
+      setPdfPreviewStatus('Preview loaded. If the page is blank, the PDF host may require a new tab.');
+    });
   }
 
   function bindRepoSafeLinks() {
@@ -8612,6 +8698,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   }
 
   bindRepoSafeLinks();
+  setupPdfPreviewModal();
 
   // ===== DATA CONFIG & LOADING =====
   const GITHUB_TMR_URL = 'https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/tmr.geojson';
@@ -11356,6 +11443,23 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       if (dir2Label) {
         const match = String(dir2Label).match(/(North|South|East|West|Northbound|Southbound|Eastbound|Westbound|N|S|E|W|NB|SB|EB|WB)/i);
         if (match) site.direction_descriptions['AGAINST GAZETTAL'] = expandDirectionLabel(match[0]);
+      }
+
+      const d1HourlyFromProps = parseHourlySeriesFromRow(props, 'd1') || parseHourlySeriesFromRow(props, 'gazettal') || parseHourlySeriesFromRow(props, 'dir1');
+      const d2HourlyFromProps = parseHourlySeriesFromRow(props, 'd2') || parseHourlySeriesFromRow(props, 'against_gazettal') || parseHourlySeriesFromRow(props, 'ag') || parseHourlySeriesFromRow(props, 'dir2');
+      const hasDirectionalHourlyProps = (Array.isArray(d1HourlyFromProps) && d1HourlyFromProps.length === 24)
+        || (Array.isArray(d2HourlyFromProps) && d2HourlyFromProps.length === 24);
+
+      if (Array.isArray(d1HourlyFromProps) && d1HourlyFromProps.length === 24) {
+        site.directions_weekday['GAZETTAL'] = d1HourlyFromProps.slice();
+        site.directions['GAZETTAL'] = d1HourlyFromProps.slice();
+      }
+      if (Array.isArray(d2HourlyFromProps) && d2HourlyFromProps.length === 24) {
+        site.directions_weekday['AGAINST GAZETTAL'] = d2HourlyFromProps.slice();
+        site.directions['AGAINST GAZETTAL'] = d2HourlyFromProps.slice();
+      }
+      if (hasDirectionalHourlyProps) {
+        site.direction_split_mode = 'hourly';
       }
 
       const hours = props['HOURS'];
