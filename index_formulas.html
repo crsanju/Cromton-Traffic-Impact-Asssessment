@@ -13888,6 +13888,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         };
 
         const geocodeOnline = async (address) => {
+          const requestedRoad = extractSearchRoadName(address);
+          const requestedHouseNumber = extractSearchHouseNumber(address);
           const stateHints = getQuickTiaStateSearchHints();
           const queries = [address, ...stateHints.map((hint) => `${address}, ${hint}`), `${address}, Australia`];
           for (const q of queries) {
@@ -13902,10 +13904,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             for (const pack of responses) {
               const data = pack.data;
               if (!Array.isArray(data) || data.length === 0) continue;
-              const preferredAu = data.find(item => String(item.display_name || '').toLowerCase().includes('australia'));
-              const chosen = preferredAu || data[0];
-              chosen.provider = pack.provider;
-              const location = toLocation(chosen);
+              const preferredAu = data.filter(item => String(item.display_name || '').toLowerCase().includes('australia'));
+              const pool = preferredAu.length ? preferredAu : data;
+              const ranked = pool
+                .map(item => ({ item, score: scoreGeocodeCandidate(item, requestedRoad, requestedHouseNumber) }))
+                .sort((a, b) => b.score - a.score);
+              const chosen = ranked.length ? ranked[0].item : pool[0];
+              const location = toLocation({ ...chosen, provider: pack.provider });
               if (location) return location;
             }
           }
@@ -22671,13 +22676,31 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return Math.max(0, Math.min(100, Math.round(blended * 100)));
   }
 
-  function extractSearchRoadName(text) {
+  function getPrimaryAddressSegment(text) {
     const raw = String(text || '').trim();
     if (!raw) return '';
-    const primary = raw.split(',')[0] || raw;
+    return String(raw.split(',')[0] || raw)
+      .replace(/^\s*(unit|apt|apartment|suite|level)\s*\d+[a-zA-Z]?\s*/i, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function normalizeHouseNumber(value) {
+    return String(value || '').toLowerCase().replace(/\s+/g, '');
+  }
+
+  function extractSearchHouseNumber(text) {
+    const primary = getPrimaryAddressSegment(text);
+    if (!primary) return '';
+    const match = primary.match(/^\s*(?:(\d+[a-zA-Z]?)\s*\/\s*)?(\d+[a-zA-Z]?)\b/);
+    return normalizeHouseNumber((match && (match[2] || match[1])) || '');
+  }
+
+  function extractSearchRoadName(text) {
+    const primary = getPrimaryAddressSegment(text);
+    if (!primary) return '';
     return primary
-      .replace(/^\s*\d+[a-zA-Z]?\s+/, '')
-      .replace(/^\s*(unit|apt|apartment|suite|level)\s*\d+\s*/i, '')
+      .replace(/^\s*(?:\d+[a-zA-Z]?\s*\/\s*)?\d+[a-zA-Z]?\s+/, '')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -22698,6 +22721,81 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const r1 = standardizeRoadName(road1);
     const r2 = standardizeRoadName(road2);
     return r1 === r2 || (r1.length > 5 && r2.includes(r1)) || (r2.length > 5 && r1.includes(r2));
+  }
+
+  function extractCandidateHouseNumber(item) {
+    if (!item) return '';
+    const address = item.address || {};
+    const directMatch = normalizeHouseNumber(address.house_number || address.housenumber || item.house_number || item.housenumber || '');
+    if (directMatch) return directMatch;
+
+    const displayName = String(item.display_name || item.displayName || '').trim();
+    if (!displayName) return '';
+
+    const parts = displayName.split(',').map(part => String(part || '').trim()).filter(Boolean);
+    for (const part of parts.slice(0, 3)) {
+      const match = part.match(/^(\d+[a-zA-Z]?)$/);
+      if (match) return normalizeHouseNumber(match[1]);
+    }
+    return '';
+  }
+
+  function scoreGeocodeCandidate(item, requestedRoad, requestedHouseNumber) {
+    if (!item) return Number.NEGATIVE_INFINITY;
+
+    const candidateRoad = item.address ? (item.address.road || item.address.pedestrian || '') : '';
+    const candidateHouseNumber = extractCandidateHouseNumber(item);
+    const category = String(item.category || '').toLowerCase();
+    const type = String(item.type || '').toLowerCase();
+    const addresstype = String(item.addresstype || '').toLowerCase();
+    let score = Number(item.importance) || 0;
+
+    if (requestedRoad) {
+      if (isSameRoad(requestedRoad, candidateRoad)) {
+        score += 60;
+      } else if (standardizeRoadName(candidateRoad) && standardizeRoadName(String(item.display_name || '')).includes(standardizeRoadName(requestedRoad))) {
+        score += 20;
+      } else {
+        score -= 35;
+      }
+    }
+
+    if (requestedHouseNumber) {
+      if (candidateHouseNumber && candidateHouseNumber === requestedHouseNumber) {
+        score += 90;
+      } else if (candidateHouseNumber) {
+        score -= 75;
+      } else {
+        score -= 12;
+      }
+    }
+
+    if (addresstype === 'house' || addresstype === 'building' || addresstype === 'address') score += 18;
+    if (category === 'building' || type === 'house') score += 12;
+    if (category === 'highway' || addresstype === 'road') score -= requestedHouseNumber ? 18 : 4;
+    if (category === 'amenity' || category === 'shop' || category === 'tourism' || category === 'leisure') score -= requestedHouseNumber ? 25 : 8;
+
+    return score;
+  }
+
+  function resolvePreferredSearchAddress(typedSearchInput, resolvedAddress, resolvedHouseNumber = '') {
+    const typed = String(typedSearchInput || '').trim();
+    const resolved = String(resolvedAddress || '').trim();
+    const formattedTyped = formatAddressForReport(typed) || typed;
+    const formattedResolved = formatAddressForReport(resolved) || resolved;
+
+    if (!resolved) return formattedTyped;
+    if (!typed) return formattedResolved;
+
+    const typedRoad = extractSearchRoadName(typed);
+    const resolvedRoad = extractSearchRoadName(resolved);
+    if (typedRoad && resolvedRoad && !isSameRoad(typedRoad, resolvedRoad)) return formattedTyped;
+
+    const typedHouseNumber = extractSearchHouseNumber(typed);
+    const resolvedHouse = normalizeHouseNumber(resolvedHouseNumber || extractSearchHouseNumber(resolved));
+    if (typedHouseNumber && typedHouseNumber !== resolvedHouse) return formattedTyped;
+
+    return formattedResolved || formattedTyped;
   }
 
   function getBearingDirection(lat1, lon1, lat2, lon2) {
@@ -22788,6 +22886,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   // Converts the user's typed address into exact latitude and longitude
   async function geocodeAddress(address) {
     const requestedRoad = extractSearchRoadName(address);
+    const requestedHouseNumber = extractSearchHouseNumber(address);
     const toLocation = (item) => {
       if (!item) return null;
       const lat = numberOrNull(item.lat);
@@ -22798,6 +22897,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         lon,
         displayName: item.display_name || item.name || address,
         road: item.address ? (item.address.road || item.address.pedestrian || null) : null,
+        houseNumber: extractCandidateHouseNumber(item),
         provider: item.provider || 'Geocoder'
       };
     };
@@ -22831,13 +22931,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
         const preferredAu = data.filter(item => String(item.display_name || '').toLowerCase().includes('australia'));
         const pool = preferredAu.length ? preferredAu : data;
-        const sameRoadCandidate = pool.find(item => {
-          const candidateRoad = item && item.address ? (item.address.road || item.address.pedestrian || '') : '';
-          return requestedRoad && isSameRoad(requestedRoad, candidateRoad);
-        });
-        const chosen = sameRoadCandidate || pool[0];
-        chosen.provider = responsePack.provider;
-        const location = toLocation(chosen);
+        const ranked = pool
+          .map(item => ({ item, score: scoreGeocodeCandidate(item, requestedRoad, requestedHouseNumber) }))
+          .sort((a, b) => b.score - a.score);
+        const chosen = ranked.length ? ranked[0].item : pool[0];
+        const location = toLocation({ ...chosen, provider: responsePack.provider });
         if (location) return location;
       }
     }
@@ -22889,6 +22987,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         lon: safeLon,
         displayName: String(data.display_name || '').trim(),
         road: data && data.address ? (data.address.road || data.address.pedestrian || null) : null,
+        houseNumber: extractCandidateHouseNumber(data),
         provider: endpoint.provider
       };
       cache.set(cacheKey, result);
@@ -22914,10 +23013,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const resolvedAddress = String(resolved.displayName || '').trim();
       if (!resolvedAddress) return;
 
-      window.lastQuickTiaResolvedAddress = resolvedAddress;
+      const preferredAddress = resolvePreferredSearchAddress(typedSearchInput, resolvedAddress, resolved.houseNumber);
+      window.lastQuickTiaResolvedAddress = preferredAddress;
 
       const quickAddressEl = document.getElementById('quickTiaSearchAddress');
-      const formattedAddress = formatAddressForReport(resolvedAddress)
+      const formattedAddress = preferredAddress
         || formatAddressForReport(typedSearchInput)
         || typedSearchInput;
       if (quickAddressEl && formattedAddress) quickAddressEl.textContent = formattedAddress;
@@ -22935,7 +23035,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       if (window.selectedTiaData) {
         window.selectedTiaData.lat = safeLat;
         window.selectedTiaData.lon = safeLon;
-        window.selectedTiaData.resolvedAddress = resolvedAddress;
+        window.selectedTiaData.resolvedAddress = preferredAddress || resolvedAddress;
         if (!window.selectedTiaData.road && resolved.road) {
           window.selectedTiaData.road = resolved.road;
         }
@@ -23904,10 +24004,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     updateQuickAddressSearchOverlay('Address found. Matching reference roads...', 'Checking connected datapoint roads within maximum 5.0 km.', 56);
     if (geoSourceEl) geoSourceEl.textContent = location.provider;
-    const resolvedAddressForReport = String(location.displayName || searchInput || '').trim();
+    const resolvedAddressForReport = resolvePreferredSearchAddress(searchInput, String(location.displayName || searchInput || '').trim(), location.houseNumber);
     window.lastQuickTiaResolvedAddress = resolvedAddressForReport;
     const quickAddressEl = document.getElementById('quickTiaSearchAddress');
-    if (quickAddressEl) quickAddressEl.textContent = formatAddressForReport(resolvedAddressForReport) || formatAddressForReport(searchInput) || searchInput;
+    if (quickAddressEl) quickAddressEl.textContent = resolvedAddressForReport || formatAddressForReport(searchInput) || searchInput;
     addSearchMarker(location.lat, location.lon, searchInput);
     window.lastQuickTiaSearchLocation = { lat: location.lat, lon: location.lon };
     window.detourPrimaryOverride = {
