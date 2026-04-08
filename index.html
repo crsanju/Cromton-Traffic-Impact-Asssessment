@@ -1767,12 +1767,12 @@
     }
 
     @media (max-width: 760px) {
-      #detourDetailedTable { min-width: 0 !important; width: 100% !important; border-collapse: separate; border-spacing: 0 8px; }
-      #detourDetailedTable thead { display: none; }
-      #detourDetailedTable tbody tr { display: block; background: #fff; border: 1px solid #e1bee7; border-radius: 8px; padding: 8px; }
-      #detourDetailedTable tbody td { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; border: none !important; padding: 6px 4px; text-align: right; }
-      #detourDetailedTable tbody td::before { content: attr(data-label); font-weight: 700; color: #6a1b9a; text-align: left; flex: 1; }
-      #detourDetailedTable tbody td .vcr-badge { margin-left: auto; }
+      #detourDetailedTable, #detourSegmentDetailedTable { min-width: 0 !important; width: 100% !important; border-collapse: separate; border-spacing: 0 8px; }
+      #detourDetailedTable thead, #detourSegmentDetailedTable thead { display: none; }
+      #detourDetailedTable tbody tr, #detourSegmentDetailedTable tbody tr { display: block; background: #fff; border: 1px solid #e1bee7; border-radius: 8px; padding: 8px; }
+      #detourDetailedTable tbody td, #detourSegmentDetailedTable tbody td { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; border: none !important; padding: 6px 4px; text-align: right; }
+      #detourDetailedTable tbody td::before, #detourSegmentDetailedTable tbody td::before { content: attr(data-label); font-weight: 700; color: #6a1b9a; text-align: left; flex: 1; }
+      #detourDetailedTable tbody td .vcr-badge, #detourSegmentDetailedTable tbody td .vcr-badge { margin-left: auto; }
 
       #hourlyQueueTable, #hourlyVcrTable { min-width: 0 !important; width: 100% !important; border-collapse: separate; border-spacing: 0 8px; }
       #hourlyQueueTable thead, #hourlyVcrTable thead { display: none; }
@@ -4737,6 +4737,9 @@
         <div id="detourResolvedBaseVpd" style="display: none; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 6px; padding: 10px; margin-bottom: 10px;"></div>
 
         <div id="detourRoadVpdSummary" style="display: none; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 6px; padding: 10px; margin-bottom: 10px;"></div>
+        <div style="font-size: 0.8em; color: #6a1b9a; margin: 0 0 10px 0; background: #faf5ff; border: 1px dashed #ce93d8; border-radius: 6px; padding: 8px 10px;">
+          Route-level summary: the cards above show each selected detour road separately. The table below shows the worst directional capacity result across the selected detour segments for each period.
+        </div>
 
         <div style="background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
           <label style="color: #6a1b9a; font-weight: bold;">Estimated Detour Delay Inputs</label>
@@ -4803,11 +4806,27 @@
             <tbody id="detourDetailedBody"></tbody>
           </table>
         </div>
+        <div style="font-size: 0.8em; color: #6a1b9a; margin: 10px 0 8px 0;">Per-road detail: this table shows each selected detour road separately for each period.</div>
+        <div class="table-wrap">
+          <table id="detourSegmentDetailedTable" style="width: 100%;">
+            <thead>
+              <tr>
+                <th style="background: #8e24aa;">Road</th>
+                <th style="background: #8e24aa;">Metric</th>
+                <th style="background: #8e24aa;">AM (7–9)</th>
+                <th style="background: #8e24aa;">OP (9–16)</th>
+                <th style="background: #8e24aa;">PM (16–18)</th>
+                <th style="background: #8e24aa;">EV (18–7)</th>
+              </tr>
+            </thead>
+            <tbody id="detourSegmentDetailedBody"></tbody>
+          </table>
+        </div>
         <div id="detourGeometryWarningText" style="display:none; margin-top: 8px; padding: 10px; border-radius: 6px; border: 1px solid #ffcdd2; background: #ffebee; color: #b71c1c; font-size: 0.82em; line-height: 1.4;"></div>
         <p class="optional-warning-note" id="detourWarningText"></p>
 
         <div id="detourAnalysisResults" style="display: none; margin-top: 15px;">
-          <h3 style="color: #6a1b9a; margin: 0 0 10px 0; border-bottom: 2px solid #ce93d8; padding-bottom: 6px;">📈 Detour Route Capacity Check (Peak Diverted Load)</h3>
+          <h3 style="color: #6a1b9a; margin: 0 0 10px 0; border-bottom: 2px solid #ce93d8; padding-bottom: 6px;">📈 Detour Route Capacity Check (Worst Selected Segment by Period)</h3>
         </div>
 
         <div id="postDiversionResults" style="display: none; margin-top: 15px;">
@@ -20592,9 +20611,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const totalDemandPeakHourVol = basePeakHourVol + divertedPeakHourVol;
 
       const maxNewVcr = Math.max(0, Number(roadStatus && roadStatus.maxNewVcr) || 0);
-      const peakHourVc = totalCapacity > 0 ? (totalDemandPeakHourVol / totalCapacity) : 0;
-      // Capacity status for cards is based on converted 80th-hour demand only.
-      const statusVcr = peakHourVc;
+      const worstDirection = String((roadStatus && roadStatus.worstDirection) || '-');
+      const worstDirectionalCapacity = Math.max(0, Number(roadStatus && roadStatus.worstDirectionalCapacity) || 0);
+      const statusVcr = maxNewVcr;
       const worstPeriod = String((roadStatus && roadStatus.worstPeriod) || '-');
       const isOverCapacity = statusVcr > 1.0;
       const isHeavy = !isOverCapacity && statusVcr > 0.85;
@@ -20624,11 +20643,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         <p><strong>Target Year Diverted Peak Hour (80th):</strong> +${divertedPeakHourVol.toLocaleString()} vph</p>
         <p><strong>Total Demand VPD (Base + Target):</strong> ${totalDemandVpd.toLocaleString()} vpd</p>
         <p><strong>Total Demand Peak Hour (80th):</strong> ${totalDemandPeakHourVol.toLocaleString()} vph</p>
-        <p><strong>Lane Capacity:</strong> ${totalCapacity.toLocaleString()} vph</p>
+        <p><strong>Total Road Capacity:</strong> ${totalCapacity.toLocaleString()} vph</p>
+        <p><strong>Worst Direction Capacity:</strong> ${worstDirectionalCapacity > 0 ? `${worstDirectionalCapacity.toLocaleString()} vph${worstDirection !== '-' ? ` (${worstDirection})` : ''}` : '-'}</p>
         <p><strong>Capacity Inputs:</strong> Base ${Number.isFinite(capBaseLaneCapacity) ? numberRoundUp(capBaseLaneCapacity, 0) : '-'} vph/lane, ${Number.isFinite(capLaneWidth) ? numberRoundUp(capLaneWidth, 2) : '-'}m lane, ${Number.isFinite(capClearance) ? numberRoundUp(capClearance, 2) : '-'}m clearance, HV ${Number.isFinite(capHvPct) ? numberRoundUp(capHvPct, 1) : '-'}%, ${capGradeType}</p>
         <p><strong>Worst Period VCR:</strong> ${numberRoundUp(maxNewVcr, 2)}${worstPeriod !== '-' ? ` (${worstPeriod})` : ''}</p>
-        <p><strong>80th-Hour V/C:</strong> ${numberRoundUp(peakHourVc, 2)}</p>
-        <p style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e1ded8;"><strong>${statusEmoji} 80th-Hour Capacity Status:</strong> ${statusText}</p>
+        <p><strong>Worst Direction Hourly V/C:</strong> ${numberRoundUp(statusVcr, 2)}</p>
+        <p style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e1ded8;"><strong>${statusEmoji} Directional Capacity Status:</strong> ${statusText}</p>
       `;
       container.appendChild(card);
     });
@@ -20987,6 +21007,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             laneCount: lanes,
             d1Lanes,
             d2Lanes,
+            perLaneCapacity,
             d1Profile: sourceD1Profile,
             d2Profile: sourceD2Profile,
             totalCapacity,
@@ -21029,6 +21050,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           laneCount: lanes,
           d1Lanes,
           d2Lanes,
+          perLaneCapacity,
           d1Profile,
           d2Profile,
           totalCapacity,
@@ -21050,6 +21072,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       renderDetourRoadVpdSummary([], 0);
       const tbody = document.getElementById('detourDetailedBody');
       if (tbody) tbody.innerHTML = '';
+      const segmentTbody = document.getElementById('detourSegmentDetailedBody');
+      if (segmentTbody) segmentTbody.innerHTML = '';
       return;
     }
 
@@ -21069,6 +21093,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       renderDetourRoadVpdSummary([], 0);
       const tbody = document.getElementById('detourDetailedBody');
       if (tbody) tbody.innerHTML = '';
+      const segmentTbody = document.getElementById('detourSegmentDetailedBody');
+      if (segmentTbody) segmentTbody.innerHTML = '';
       return;
     }
 
@@ -21141,11 +21167,18 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (detourThead) {
       detourThead.innerHTML = `<th style="background:#6a1b9a;">Metric</th>${periods.map(p => `<th style="background:#6a1b9a;">${p.key}</th>`).join('')}`;
     }
+    const segmentTbody = document.getElementById('detourSegmentDetailedBody');
+    if (segmentTbody) segmentTbody.innerHTML = '';
+    const detourSegmentThead = document.querySelector('#detourSegmentDetailedTable thead tr');
+    if (detourSegmentThead) {
+      detourSegmentThead.innerHTML = `<th style="background:#8e24aa;">Road</th><th style="background:#8e24aa;">Metric</th>${periods.map(p => `<th style="background:#8e24aa;">${p.key}</th>`).join('')}`;
+    }
     let maxNewVcr = 0;
     let peakDivertedVol = 0;
     let peakRoadDemandPerLane = 0;
     let worstCapacitySnapshot = null;
     const periodResults = [];
+    const segmentResultsByRoad = new Map();
 
     const { d1Label, d2Label } = getCurrentDetourDirectionLabels();
     const closedDirectionLabel = closedDirection === 'D2' ? d2Label : d1Label;
@@ -21212,11 +21245,19 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const d1Lanes = Math.max(1, Number(model.d1Lanes) || Math.ceil((Number(model.laneCount) || 1) / 2));
         const d2Lanes = Math.max(1, Number(model.d2Lanes) || Math.floor((Number(model.laneCount) || 1) / 2));
 
-        // VCR = peak-hour demand / total lane capacity (simple demand/capacity ratio)
-        // Base VPD and diverted VPD are first converted to peak-hour (80th-highest-hour) volumes.
-        const effectiveCap = Math.max(1, Number(model.totalCapacity) || 1);
-        const base = (maxBaseD1 + maxBaseD2) / effectiveCap;
-        const updated = (maxBaseD1 + maxBaseD2 + addedD1 + addedD2) / effectiveCap;
+        const perLaneCapacity = Math.max(1, Number(model.perLaneCapacity) || Math.round((Number(model.totalCapacity) || 0) / Math.max(1, Number(model.laneCount) || 1)) || 1);
+        const d1Capacity = Math.max(1, Math.round(perLaneCapacity * d1Lanes));
+        const d2Capacity = Math.max(1, Math.round(perLaneCapacity * d2Lanes));
+        const updatedD1 = maxBaseD1 + addedD1;
+        const updatedD2 = maxBaseD2 + addedD2;
+        const baseD1Vcr = maxBaseD1 / d1Capacity;
+        const baseD2Vcr = maxBaseD2 / d2Capacity;
+        const updatedD1Vcr = updatedD1 / d1Capacity;
+        const updatedD2Vcr = updatedD2 / d2Capacity;
+        const base = Math.max(baseD1Vcr, baseD2Vcr);
+        const updated = Math.max(updatedD1Vcr, updatedD2Vcr);
+        const worstDirection = updatedD1Vcr >= updatedD2Vcr ? 'D1' : 'D2';
+        const effectiveCap = worstDirection === 'D2' ? d2Capacity : d1Capacity;
 
         const roadKey = getDetourManualRoadKey(model.roadName) || String(model.roadName || '').trim();
         if (roadKey) {
@@ -21224,7 +21265,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             roadCapacityStatusByKey[roadKey] = {
               maxBaseVcr: 0,
               maxNewVcr: 0,
-              worstPeriod: '-'
+              worstPeriod: '-',
+              worstDirection: '-',
+              worstDirectionalCapacity: 0
             };
           }
           if (base > roadCapacityStatusByKey[roadKey].maxBaseVcr) {
@@ -21233,11 +21276,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           if (updated > roadCapacityStatusByKey[roadKey].maxNewVcr) {
             roadCapacityStatusByKey[roadKey].maxNewVcr = updated;
             roadCapacityStatusByKey[roadKey].worstPeriod = p.key;
+            roadCapacityStatusByKey[roadKey].worstDirection = worstDirection;
+            roadCapacityStatusByKey[roadKey].worstDirectionalCapacity = effectiveCap;
           }
         }
 
-        const laneCount = Math.max(1, Number(model.laneCount) || 1);
-        const updatedDemandPerLane = (maxBaseD1 + maxBaseD2 + addedD1 + addedD2) / laneCount;
+        const updatedDemandPerLane = Math.max(updatedD1 / d1Lanes, updatedD2 / d2Lanes);
         if (updatedDemandPerLane > peakRoadDemandPerLane) peakRoadDemandPerLane = updatedDemandPerLane;
         if (base > baseVcr) baseVcr = base;
         if (updated > newVcr) newVcr = updated;
@@ -21248,7 +21292,26 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             risk: updated > 1.0 ? 'High' : (updated > 0.85 ? 'Moderate' : 'Low'),
             operationalCapacity: effectiveCap,
             recommendedMaxDemand: Math.round(effectiveCap * 0.85),
+            direction: worstDirection,
             delayHours: 0
+          };
+        }
+
+        const segmentKey = roadKey || String(model.roadName || '').trim();
+        if (segmentKey) {
+          if (!segmentResultsByRoad.has(segmentKey)) {
+            segmentResultsByRoad.set(segmentKey, {
+              roadName: String(model.roadName || '').trim() || 'Detour road',
+              periods: {}
+            });
+          }
+          const roadResult = segmentResultsByRoad.get(segmentKey);
+          roadResult.periods[p.key] = {
+            baseVcr: base,
+            newVcr: updated,
+            addedVol: addedD1 + addedD2,
+            worstDirection,
+            worstDirectionalCapacity: effectiveCap
           };
         }
       });
@@ -21270,6 +21333,38 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const newRow = document.createElement('tr');
     newRow.innerHTML = `<td class="rowhead" data-label="Metric">New Detour VCR</td>${periodResults.map(r => `<td data-label="${r.key}">${formatVCR(r.newVcr)}</td>`).join('')}`;
     tbody.appendChild(newRow);
+
+    if (segmentTbody) {
+      const orderedRoadResults = Array.from(segmentResultsByRoad.values())
+        .sort((a, b) => String(a.roadName || '').localeCompare(String(b.roadName || '')));
+
+      orderedRoadResults.forEach((roadResult) => {
+        const roadLabel = String(roadResult.roadName || 'Detour road');
+
+        const baseDetailRow = document.createElement('tr');
+        baseDetailRow.innerHTML = `<td class="rowhead" data-label="Road">${roadLabel}</td><td class="rowhead" data-label="Metric">Base VCR</td>${periods.map(p => {
+          const result = roadResult.periods[p.key];
+          return `<td data-label="${p.key}">${result ? formatVCR(result.baseVcr) : '-'}</td>`;
+        }).join('')}`;
+        segmentTbody.appendChild(baseDetailRow);
+
+        const addedDetailRow = document.createElement('tr');
+        addedDetailRow.innerHTML = `<td class="rowhead" data-label="Road">${roadLabel}</td><td class="rowhead" data-label="Metric">Added Diverted Vol</td>${periods.map(p => {
+          const result = roadResult.periods[p.key];
+          if (!result) return `<td data-label="${p.key}">-</td>`;
+          return `<td data-label="${p.key}" style="color: #6a1b9a;">+${Math.round(result.addedVol).toLocaleString()} vph<br><span style="font-size: 0.74em; color: #7b1fa2;">${result.worstDirection} cap ${Math.round(result.worstDirectionalCapacity).toLocaleString()} vph</span></td>`;
+        }).join('')}`;
+        segmentTbody.appendChild(addedDetailRow);
+
+        const newDetailRow = document.createElement('tr');
+        newDetailRow.innerHTML = `<td class="rowhead" data-label="Road">${roadLabel}</td><td class="rowhead" data-label="Metric">New VCR</td>${periods.map(p => {
+          const result = roadResult.periods[p.key];
+          if (!result) return `<td data-label="${p.key}">-</td>`;
+          return `<td data-label="${p.key}">${formatVCR(result.newVcr)}<br><span style="font-size: 0.74em; color: #7b1fa2;">Worst ${result.worstDirection}</span></td>`;
+        }).join('')}`;
+        segmentTbody.appendChild(newDetailRow);
+      });
+    }
 
     const divertedVpdTotal = closureType === 'oneway'
       ? (closedDirection === 'D2' ? inputD2Vadt : inputD1Vadt)
