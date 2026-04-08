@@ -1767,12 +1767,15 @@
     }
 
     @media (max-width: 760px) {
-      #detourDetailedTable, #detourSegmentDetailedTable { min-width: 0 !important; width: 100% !important; border-collapse: separate; border-spacing: 0 8px; }
-      #detourDetailedTable thead, #detourSegmentDetailedTable thead { display: none; }
-      #detourDetailedTable tbody tr, #detourSegmentDetailedTable tbody tr { display: block; background: #fff; border: 1px solid #e1bee7; border-radius: 8px; padding: 8px; }
-      #detourDetailedTable tbody td, #detourSegmentDetailedTable tbody td { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; border: none !important; padding: 6px 4px; text-align: right; }
-      #detourDetailedTable tbody td::before, #detourSegmentDetailedTable tbody td::before { content: attr(data-label); font-weight: 700; color: #6a1b9a; text-align: left; flex: 1; }
-      #detourDetailedTable tbody td .vcr-badge, #detourSegmentDetailedTable tbody td .vcr-badge { margin-left: auto; }
+      #detourSegmentDetailedTable, #postDiversionTable { min-width: 0 !important; width: 100% !important; border-collapse: separate; border-spacing: 0 8px; }
+      #detourSegmentDetailedTable thead, #postDiversionTable thead { display: none; }
+      #detourSegmentDetailedTable tbody tr, #postDiversionTable tbody tr { display: block; background: #fff; border: 1px solid #e1bee7; border-radius: 8px; padding: 8px; }
+      #detourSegmentDetailedTable tbody td, #postDiversionTable tbody td { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; border: none !important; padding: 6px 4px; text-align: right; }
+      #detourSegmentDetailedTable tbody td::before, #postDiversionTable tbody td::before { content: attr(data-label); font-weight: 700; color: #6a1b9a; text-align: left; flex: 1; }
+      #detourSegmentDetailedTable tbody td .vcr-badge, #postDiversionTable tbody td .vcr-badge { margin-left: auto; }
+      #detourSegmentDetailedTable tbody td .directional-stack, #postDiversionTable tbody td .directional-stack { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; width: 100%; }
+      #detourSegmentDetailedTable tbody td .directional-row, #postDiversionTable tbody td .directional-row { display: flex; justify-content: flex-end; align-items: center; gap: 6px; width: 100%; flex-wrap: wrap; }
+      #detourSegmentDetailedTable tbody td .direction-label, #postDiversionTable tbody td .direction-label { min-width: 24px; text-align: left; font-size: 0.78em; font-weight: 700; }
 
       #hourlyQueueTable, #hourlyVcrTable { min-width: 0 !important; width: 100% !important; border-collapse: separate; border-spacing: 0 8px; }
       #hourlyQueueTable thead, #hourlyVcrTable thead { display: none; }
@@ -4792,21 +4795,7 @@
           <div id="detourDelayEstimate" style="margin-top: 8px; background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 10px; color: #4a148c;">Estimated delay per diverted vehicle: -</div>
         </div>
         
-        <div class="table-wrap">
-          <table id="detourDetailedTable" style="width: 100%;">
-            <thead>
-              <tr>
-                <th style="background: #6a1b9a;">Metric</th>
-                <th style="background: #6a1b9a;">AM (7–9)</th>
-                <th style="background: #6a1b9a;">OP (9–16)</th>
-                <th style="background: #6a1b9a;">PM (16–18)</th>
-                <th style="background: #6a1b9a;">EV (18–7)</th>
-              </tr>
-            </thead>
-            <tbody id="detourDetailedBody"></tbody>
-          </table>
-        </div>
-        <div style="font-size: 0.8em; color: #6a1b9a; margin: 10px 0 8px 0;">Per-road detail: this table shows each selected detour road separately for each period.</div>
+        <div style="font-size: 0.8em; color: #6a1b9a; margin: 10px 0 8px 0;">Detour road summary: each selected road is assessed separately, with D1 and D2 LOS shown for every period.</div>
         <div class="table-wrap">
           <table id="detourSegmentDetailedTable" style="width: 100%;">
             <thead>
@@ -4825,13 +4814,9 @@
         <div id="detourGeometryWarningText" style="display:none; margin-top: 8px; padding: 10px; border-radius: 6px; border: 1px solid #ffcdd2; background: #ffebee; color: #b71c1c; font-size: 0.82em; line-height: 1.4;"></div>
         <p class="optional-warning-note" id="detourWarningText"></p>
 
-        <div id="detourAnalysisResults" style="display: none; margin-top: 15px;">
-          <h3 style="color: #6a1b9a; margin: 0 0 10px 0; border-bottom: 2px solid #ce93d8; padding-bottom: 6px;">📈 Detour Route Capacity Check (Worst Selected Segment by Period)</h3>
-        </div>
-
         <div id="postDiversionResults" style="display: none; margin-top: 15px;">
           <h3 style="color: #00695c; margin: 0 0 10px 0; border-bottom: 2px solid #80cbc4; padding-bottom: 6px;">🛣️ Road Status After Diversion (Existing Road)</h3>
-          <p style="font-size: 0.85em; color: #555; margin-bottom: 8px;">Shows the Level of Service (LOS) and V/C ratio for the remaining traffic on the work zone road.</p>
+          <p style="font-size: 0.85em; color: #555; margin-bottom: 8px;">Shows the remaining traffic on the work zone road after diversion, with separate D1 and D2 LOS for each period.</p>
           <div class="table-wrap">
             <table id="postDiversionTable" style="font-size: 0.82em; width: 100%; text-align: center;">
               <thead>
@@ -21162,11 +21147,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const roadCapacityStatusByKey = {};
 
     const tbody = document.getElementById('detourDetailedBody');
-    tbody.innerHTML = '';
-    const detourThead = document.querySelector('#detourDetailedTable thead tr');
-    if (detourThead) {
-      detourThead.innerHTML = `<th style="background:#6a1b9a;">Metric</th>${periods.map(p => `<th style="background:#6a1b9a;">${p.key}</th>`).join('')}`;
-    }
+    if (tbody) tbody.innerHTML = '';
     const segmentTbody = document.getElementById('detourSegmentDetailedBody');
     if (segmentTbody) segmentTbody.innerHTML = '';
     const detourSegmentThead = document.querySelector('#detourSegmentDetailedTable thead tr');
@@ -21308,8 +21289,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           const roadResult = segmentResultsByRoad.get(segmentKey);
           roadResult.periods[p.key] = {
             baseVcr: base,
+            baseD1Vcr,
+            baseD2Vcr,
             newVcr: updated,
+            updatedD1Vcr,
+            updatedD2Vcr,
             addedVol: addedD1 + addedD2,
+            addedD1,
+            addedD2,
             worstDirection,
             worstDirectionalCapacity: effectiveCap
           };
@@ -21318,21 +21305,20 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
       if (newVcr > maxNewVcr) maxNewVcr = newVcr;
 
-      periodResults.push({ key: p.key, baseVcr, newVcr, totalDivertedVol, sourceVol, debugMaxBaseD1, debugMaxBaseD2, debugAddedD1, debugAddedD2 });
+      periodResults.push({
+        key: p.key,
+        baseVcr,
+        newVcr,
+        totalDivertedVol,
+        sourceVol,
+        maxPrimaryD1,
+        maxPrimaryD2,
+        debugMaxBaseD1,
+        debugMaxBaseD2,
+        debugAddedD1,
+        debugAddedD2
+      });
     });
-
-    // Build transposed table: 3 metric rows × 4 period columns
-    const baseRow = document.createElement('tr');
-    baseRow.innerHTML = `<td class="rowhead" data-label="Metric">Base Detour VCR</td>${periodResults.map(r => `<td data-label="${r.key}">${formatVCR(r.baseVcr)}</td>`).join('')}`;
-    tbody.appendChild(baseRow);
-
-    const divRow = document.createElement('tr');
-    divRow.innerHTML = `<td class="rowhead" data-label="Metric">Added Diverted Vol<br><span style="font-size:0.74em;color:#8e24aa;font-weight:400;">${diversionBasisText}</span></td>${periodResults.map(r => `<td data-label="${r.key}" style="color: #6a1b9a;">+${Math.round(r.totalDivertedVol).toLocaleString()} vph<br><span style="font-size: 0.74em; color: #7b1fa2;">D1: ${Math.round(r.debugMaxBaseD1).toLocaleString()} | D2: ${Math.round(r.debugMaxBaseD2).toLocaleString()} | +D1: ${Math.round(r.debugAddedD1).toLocaleString()} | +D2: ${Math.round(r.debugAddedD2).toLocaleString()}</span></td>`).join('')}`;
-    tbody.appendChild(divRow);
-
-    const newRow = document.createElement('tr');
-    newRow.innerHTML = `<td class="rowhead" data-label="Metric">New Detour VCR</td>${periodResults.map(r => `<td data-label="${r.key}">${formatVCR(r.newVcr)}</td>`).join('')}`;
-    tbody.appendChild(newRow);
 
     if (segmentTbody) {
       const orderedRoadResults = Array.from(segmentResultsByRoad.values())
@@ -21342,9 +21328,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const roadLabel = String(roadResult.roadName || 'Detour road');
 
         const baseDetailRow = document.createElement('tr');
-        baseDetailRow.innerHTML = `<td class="rowhead" data-label="Road">${roadLabel}</td><td class="rowhead" data-label="Metric">Base VCR</td>${periods.map(p => {
+        baseDetailRow.innerHTML = `<td class="rowhead" data-label="Road">${roadLabel}</td><td class="rowhead" data-label="Metric">Base Direction LOS</td>${periods.map(p => {
           const result = roadResult.periods[p.key];
-          return `<td data-label="${p.key}">${result ? formatVCR(result.baseVcr) : '-'}</td>`;
+          if (!result) return `<td data-label="${p.key}">-</td>`;
+          return `<td data-label="${p.key}"><div class="directional-stack"><div class="directional-row"><span class="direction-label" style="color:#6a1b9a;">D1</span>${formatVCR(result.baseD1Vcr)}</div><div class="directional-row"><span class="direction-label" style="color:#6a1b9a;">D2</span>${formatVCR(result.baseD2Vcr)}</div></div></td>`;
         }).join('')}`;
         segmentTbody.appendChild(baseDetailRow);
 
@@ -21352,15 +21339,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         addedDetailRow.innerHTML = `<td class="rowhead" data-label="Road">${roadLabel}</td><td class="rowhead" data-label="Metric">Added Diverted Vol</td>${periods.map(p => {
           const result = roadResult.periods[p.key];
           if (!result) return `<td data-label="${p.key}">-</td>`;
-          return `<td data-label="${p.key}" style="color: #6a1b9a;">+${Math.round(result.addedVol).toLocaleString()} vph<br><span style="font-size: 0.74em; color: #7b1fa2;">${result.worstDirection} cap ${Math.round(result.worstDirectionalCapacity).toLocaleString()} vph</span></td>`;
+          return `<td data-label="${p.key}" style="color: #6a1b9a;"><div class="directional-stack"><div class="directional-row"><span class="direction-label">D1</span><span>+${Math.round(result.addedD1).toLocaleString()} vph</span></div><div class="directional-row"><span class="direction-label">D2</span><span>+${Math.round(result.addedD2).toLocaleString()} vph</span></div></div></td>`;
         }).join('')}`;
         segmentTbody.appendChild(addedDetailRow);
 
         const newDetailRow = document.createElement('tr');
-        newDetailRow.innerHTML = `<td class="rowhead" data-label="Road">${roadLabel}</td><td class="rowhead" data-label="Metric">New VCR</td>${periods.map(p => {
+        newDetailRow.innerHTML = `<td class="rowhead" data-label="Road">${roadLabel}</td><td class="rowhead" data-label="Metric">New Direction LOS</td>${periods.map(p => {
           const result = roadResult.periods[p.key];
           if (!result) return `<td data-label="${p.key}">-</td>`;
-          return `<td data-label="${p.key}">${formatVCR(result.newVcr)}<br><span style="font-size: 0.74em; color: #7b1fa2;">Worst ${result.worstDirection}</span></td>`;
+          return `<td data-label="${p.key}"><div class="directional-stack"><div class="directional-row"><span class="direction-label" style="color:#6a1b9a;">D1</span>${formatVCR(result.updatedD1Vcr)}</div><div class="directional-row"><span class="direction-label" style="color:#6a1b9a;">D2</span>${formatVCR(result.updatedD2Vcr)}</div></div></td>`;
         }).join('')}`;
         segmentTbody.appendChild(newDetailRow);
       });
@@ -21424,13 +21411,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const warningText = document.getElementById('detourWarningText');
     if (maxNewVcr > 1.0) {
-      warningText.innerHTML = `⚠️ <strong>Warning:</strong> The selected ${validDetourModels.length} detour segment(s) operate over capacity during at least one period (worst segment shown). Mode: <strong>${diversionBasisText}</strong>.${worstCapacitySnapshot ? ` Capacity model risk: <strong>${worstCapacitySnapshot.risk}</strong>.` : ''}`;
+      warningText.innerHTML = `⚠️ <strong>Warning:</strong> One or more selected detour roads exceed directional capacity in at least one period. Diversion scenario: <strong>${diversionBasisText}</strong>.${worstCapacitySnapshot ? ` Controlling direction: <strong>${worstCapacitySnapshot.direction}</strong>. Operational risk: <strong>${worstCapacitySnapshot.risk}</strong>.` : ''}`;
       warningText.style.color = '#c30000';
     } else if (maxNewVcr > 0.85) {
-      warningText.innerHTML = `⚠️ <strong>Caution:</strong> The selected ${validDetourModels.length} detour segment(s) will experience heavy congestion (worst segment shown). Mode: <strong>${diversionBasisText}</strong>.${worstCapacitySnapshot ? ` Capacity model risk: <strong>${worstCapacitySnapshot.risk}</strong>.` : ''}`;
+      warningText.innerHTML = `⚠️ <strong>Caution:</strong> The selected detour roads are likely to experience heavy directional congestion. Diversion scenario: <strong>${diversionBasisText}</strong>.${worstCapacitySnapshot ? ` Controlling direction: <strong>${worstCapacitySnapshot.direction}</strong>. Operational risk: <strong>${worstCapacitySnapshot.risk}</strong>.` : ''}`;
       warningText.style.color = '#e65100';
     } else {
-      warningText.innerHTML = `✅ The selected ${validDetourModels.length} detour segment(s) have sufficient capacity across all periods. Mode: <strong>${diversionBasisText}</strong>.${worstCapacitySnapshot ? ` Capacity model risk: <strong>${worstCapacitySnapshot.risk}</strong>.` : ''}`;
+      warningText.innerHTML = `✅ The selected detour roads have acceptable directional spare capacity across all periods. Diversion scenario: <strong>${diversionBasisText}</strong>.${worstCapacitySnapshot ? ` Controlling direction: <strong>${worstCapacitySnapshot.direction}</strong>. Operational risk: <strong>${worstCapacitySnapshot.risk}</strong>.` : ''}`;
       warningText.style.color = '#2e7d32';
     }
 
@@ -21456,22 +21443,38 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const workZoneLanes = Math.max(1, closedDirLanes - laneClosures);
       const existingRoadCapacity = detourBaseLaneCapacity * workZoneLanes;
 
+      const d1PrimaryLanes = Math.max(1, Number(num('D1_Lanes')) || 1);
+      const d2PrimaryLanes = Math.max(1, Number(num('D2_Lanes')) || 1);
       let remainingVolRow = '<tr><td style="font-weight:bold; text-align:left; padding:5px 8px;">Remaining Volume (vph)</td>';
-      let remainingVcrRow = '<tr><td style="font-weight:bold; text-align:left; padding:5px 8px;">Revised V/C Ratio</td>';
-      let remainingLosRow = '<tr><td style="font-weight:bold; text-align:left; padding:5px 8px;">Revised LOS</td>';
+      let remainingLosRow = '<tr><td style="font-weight:bold; text-align:left; padding:5px 8px;">Revised Direction LOS</td>';
 
       periodResults.forEach(r => {
-        const remainingVol = Math.max(0, (r.sourceVol || 0) * remainingRate);
-        const revisedVcr = existingRoadCapacity > 0 ? (remainingVol / existingRoadCapacity) : 0;
-        remainingVolRow += `<td style="padding:5px 8px;">${Math.round(remainingVol).toLocaleString()}</td>`;
-        remainingVcrRow += `<td style="padding:5px 8px;">${revisedVcr.toFixed(3)}</td>`;
-        remainingLosRow += `<td style="padding:5px 8px;">${formatVCR(revisedVcr)}</td>`;
+        const baseD1 = Math.max(0, Number(r.maxPrimaryD1) || 0);
+        const baseD2 = Math.max(0, Number(r.maxPrimaryD2) || 0);
+        const remainingD1 = closureType === 'oneway'
+          ? (closedDirection === 'D1' ? baseD1 * remainingRate : baseD1)
+          : baseD1 * remainingRate;
+        const remainingD2 = closureType === 'oneway'
+          ? (closedDirection === 'D2' ? baseD2 * remainingRate : baseD2)
+          : baseD2 * remainingRate;
+
+        const d1Capacity = closureType === 'oneway'
+          ? (closedDirection === 'D1' ? existingRoadCapacity : (detourBaseLaneCapacity * d1PrimaryLanes))
+          : existingRoadCapacity;
+        const d2Capacity = closureType === 'oneway'
+          ? (closedDirection === 'D2' ? existingRoadCapacity : (detourBaseLaneCapacity * d2PrimaryLanes))
+          : existingRoadCapacity;
+
+        const revisedD1Vcr = d1Capacity > 0 ? (remainingD1 / d1Capacity) : 0;
+        const revisedD2Vcr = d2Capacity > 0 ? (remainingD2 / d2Capacity) : 0;
+
+        remainingVolRow += `<td style="padding:5px 8px;"><div class="directional-stack"><div class="directional-row"><span class="direction-label">D1</span><span>${Math.round(remainingD1).toLocaleString()} vph</span></div><div class="directional-row"><span class="direction-label">D2</span><span>${Math.round(remainingD2).toLocaleString()} vph</span></div></div></td>`;
+        remainingLosRow += `<td style="padding:5px 8px;"><div class="directional-stack"><div class="directional-row"><span class="direction-label" style="color:#00897b;">D1</span>${formatVCR(revisedD1Vcr)}</div><div class="directional-row"><span class="direction-label" style="color:#00897b;">D2</span>${formatVCR(revisedD2Vcr)}</div></div></td>`;
       });
 
       remainingVolRow += '</tr>';
-      remainingVcrRow += '</tr>';
       remainingLosRow += '</tr>';
-      postDivBody.innerHTML = remainingVolRow + remainingVcrRow + remainingLosRow;
+      postDivBody.innerHTML = remainingVolRow + remainingLosRow;
       postDivResultsPanel.style.display = 'block';
     }
 
