@@ -4288,19 +4288,6 @@
       </div>
     </div>
 
-    <details class="card">
-      <summary style="font-weight:700; color:#1f5e63; cursor:pointer;">Quick KPI (Click to Expand)</summary>
-      <div class="kpi-grid" style="margin-top:12px;">
-        <div class="kpi"><div class="kpi-label">Design Volume (DV)</div><div class="kpi-value" id="kpiDV">-</div></div>
-        <div class="kpi"><div class="kpi-label">D1 Peak Queue (2m)</div><div class="kpi-value" id="kpiD1PeakQueue">-</div></div>
-        <div class="kpi"><div class="kpi-label">D2 Peak Queue (2m)</div><div class="kpi-value" id="kpiD2PeakQueue">-</div></div>
-        <div class="kpi"><div class="kpi-label">Worst V/C Ratio</div><div class="kpi-value" id="kpiWorstVcr">-</div></div>
-        <div class="kpi"><div class="kpi-label">SLRF Peak</div><div class="kpi-value" id="kpiSlrfPeak">-</div></div>
-        <div class="kpi"><div class="kpi-label">Road Train Rule</div><div class="kpi-value" id="kpiRoadTrain">-</div></div>
-      </div>
-      <div id="kpiModelProfile" style="margin-top:10px; padding:8px 10px; border-radius:6px; background:#eef3f7; border:1px solid #d0dde6; color:#1f5e63; font-size:0.88em; font-weight:700;">Model Profile: -</div>
-    </details>
-
     <!-- Data Visualization -->
     <details class="card" id="macroDataVizSection" style="display:none;" open>
       <summary id="macroDataVizSummaryText" style="cursor: pointer; font-size: 1.1em; font-weight: 700; color: #1f5e63; padding: 10px 0;">
@@ -6699,6 +6686,19 @@
       return String(text || '').replace(/\s+/g, ' ').trim();
     }
 
+    function normalizeTitleText(text) {
+      const cleaned = normalizeCellText(text)
+        .replace(/^🖨️\s*/u, '')
+        .replace(/^📊\s*/u, '')
+        .replace(/^📈\s*/u, '')
+        .replace(/^🛣️\s*/u, '')
+        .replace(/^🔄\s*/u, '')
+        .replace(/\s*\(Click to Expand\)$/i, '')
+        .replace(/\s*[-:]\s*Include in Print:\s*(Yes|No)$/i, '')
+        .trim();
+      return cleaned;
+    }
+
     function getCellPlainText(cellEl) {
       if (!cellEl) return '';
       const clone = cellEl.cloneNode(true);
@@ -6719,17 +6719,19 @@
 
     function findNearbyTableHeading(tableEl) {
       if (!tableEl) return '';
-      const headingSelector = 'h3, h4, h5, .table-title, .section-title, strong';
+      const headingSelector = 'h2, h3, h4, h5, .table-title, .section-title, .card-title';
       let node = tableEl;
       for (let depth = 0; depth < 4 && node; depth += 1) {
         let prev = node.previousElementSibling;
         while (prev) {
           if (prev.matches && prev.matches(headingSelector)) {
-            return normalizeCellText(prev.textContent);
+            const candidate = normalizeTitleText(prev.textContent);
+            if (candidate && !/include in print/i.test(candidate)) return candidate;
           }
           const nested = prev.querySelector ? prev.querySelector(headingSelector) : null;
           if (nested) {
-            return normalizeCellText(nested.textContent);
+            const candidate = normalizeTitleText(nested.textContent);
+            if (candidate && !/include in print/i.test(candidate)) return candidate;
           }
           prev = prev.previousElementSibling;
         }
@@ -6739,7 +6741,112 @@
       return '';
     }
 
+    function extractDirectionalCellParts(cellEl) {
+      if (!cellEl) return null;
+      const rows = Array.from(cellEl.querySelectorAll('.directional-row'));
+      if (!rows.length) return null;
+      const mapped = {};
+      rows.forEach((rowEl) => {
+        const labelEl = rowEl.querySelector('.direction-label');
+        const label = normalizeCellText(labelEl ? labelEl.textContent : '').toUpperCase();
+        const clone = rowEl.cloneNode(true);
+        clone.querySelectorAll('.direction-label').forEach((node) => node.remove());
+        const value = normalizeCellText(clone.textContent || '');
+        if (label && value) mapped[label] = value;
+      });
+      return Object.keys(mapped).length ? mapped : null;
+    }
+
+    function extractDetourDirectionalTable(tableEl) {
+      const periodHeaders = Array.from(tableEl.querySelectorAll('thead th')).slice(2).map((cell) => getCellPlainText(cell));
+      const rows = [];
+      Array.from(tableEl.querySelectorAll('tbody tr')).forEach((rowEl) => {
+        const cellEls = Array.from(rowEl.querySelectorAll('th, td'));
+        if (cellEls.length < 3) return;
+        const road = getCellPlainText(cellEls[0]);
+        const metric = getCellPlainText(cellEls[1]);
+        const directionalValues = { D1: [], D2: [] };
+        let hasDirectionalData = false;
+
+        cellEls.slice(2).forEach((cellEl) => {
+          const parts = extractDirectionalCellParts(cellEl);
+          if (parts) {
+            directionalValues.D1.push(parts.D1 || '-');
+            directionalValues.D2.push(parts.D2 || '-');
+            hasDirectionalData = true;
+          } else {
+            const text = getCellPlainText(cellEl) || '-';
+            directionalValues.D1.push(text);
+            directionalValues.D2.push(text);
+          }
+        });
+
+        if (hasDirectionalData) {
+          rows.push([road, metric, 'D1', ...directionalValues.D1]);
+          rows.push([road, metric, 'D2', ...directionalValues.D2]);
+        } else {
+          rows.push([road, metric, '-', ...directionalValues.D1]);
+        }
+      });
+
+      return {
+        columns: ['Road', 'Metric', 'Direction', ...periodHeaders],
+        rows
+      };
+    }
+
+    function extractPostDiversionDirectionalTable(tableEl) {
+      const periodHeaders = Array.from(tableEl.querySelectorAll('thead th')).slice(1).map((cell) => getCellPlainText(cell));
+      const rows = [];
+
+      Array.from(tableEl.querySelectorAll('tbody tr')).forEach((rowEl) => {
+        const cellEls = Array.from(rowEl.querySelectorAll('th, td'));
+        if (cellEls.length < 2) return;
+        const metric = getCellPlainText(cellEls[0]);
+        const directionalValues = { D1: [], D2: [] };
+        let hasDirectionalData = false;
+
+        cellEls.slice(1).forEach((cellEl) => {
+          const parts = extractDirectionalCellParts(cellEl);
+          if (parts) {
+            directionalValues.D1.push(parts.D1 || '-');
+            directionalValues.D2.push(parts.D2 || '-');
+            hasDirectionalData = true;
+            return;
+          }
+
+          const text = getCellPlainText(cellEl);
+          const d1Match = text.match(/D1\s*:?[\s]*([^D]+?)(?=D2\s*:|$)/i);
+          const d2Match = text.match(/D2\s*:?[\s]*(.+)$/i);
+          if (d1Match || d2Match) {
+            directionalValues.D1.push(normalizeCellText(d1Match ? d1Match[1] : '-'));
+            directionalValues.D2.push(normalizeCellText(d2Match ? d2Match[1] : '-'));
+            hasDirectionalData = true;
+          } else {
+            directionalValues.D1.push(text || '-');
+            directionalValues.D2.push(text || '-');
+          }
+        });
+
+        if (hasDirectionalData) {
+          rows.push([metric, 'D1', ...directionalValues.D1]);
+          rows.push([metric, 'D2', ...directionalValues.D2]);
+        } else {
+          rows.push([metric, '-', ...directionalValues.D1]);
+        }
+      });
+
+      return {
+        columns: ['Metric', 'Direction', ...periodHeaders],
+        rows
+      };
+    }
+
     function extractStructuredTable(tableEl) {
+      if (!tableEl) return { columns: [], rows: [] };
+      if (tableEl.id === 'detourSegmentDetailedTable') return extractDetourDirectionalTable(tableEl);
+      if (tableEl.id === 'postDiversionTable') return extractPostDiversionDirectionalTable(tableEl);
+
       const headerCells = Array.from(tableEl.querySelectorAll('thead th'));
       const bodyRows = Array.from(tableEl.querySelectorAll('tbody tr'));
       const fallbackRows = bodyRows.length ? bodyRows : Array.from(tableEl.querySelectorAll('tr'));
@@ -6773,29 +6880,54 @@
 
     const tableEls = Array.from(document.querySelectorAll('table'))
       .filter((tableEl) => !tableEl.closest('.exclude-from-print'))
+      .filter((tableEl) => !tableEl.closest('#printCustomizationCard, #formulaTraceSection, #selfDiagnosticsCard'))
+      .filter((tableEl) => {
+        const tableId = String(tableEl.id || '');
+        if (['traceTable'].includes(tableId)) return false;
+        return true;
+      })
       .filter((tableEl) => {
         const rect = tableEl.getBoundingClientRect();
         return rect.width > 0 && rect.height > 0;
       })
       .slice(0, maxTables);
 
+    const explicitTitleById = {
+      groupedTableD1: 'Grouped Directional Summary - D1',
+      groupedTableD2: 'Grouped Directional Summary - D2',
+      queueGroupedTableD1: 'Directional Queue Summary - D1',
+      queueGroupedTableD2: 'Directional Queue Summary - D2',
+      vcrGroupedTableD1: 'Directional VCR Summary - D1',
+      vcrGroupedTableD2: 'Directional VCR Summary - D2',
+      detourSegmentDetailedTable: 'Detour Road Directional Capacity Summary',
+      postDiversionTable: 'Existing Road Status After Diversion'
+    };
+
     return tableEls.map((tableEl, idx) => {
       const card = tableEl.closest('.card');
-      const cardTitle = card ? (card.querySelector('h2, h3, .card-title')?.textContent || '').trim() : '';
-      const caption = (tableEl.querySelector('caption')?.textContent || '').trim();
+      const cardTitle = normalizeTitleText(card ? (card.querySelector('h2, h3, .card-title')?.textContent || '') : '');
+      const caption = normalizeTitleText(tableEl.querySelector('caption')?.textContent || '');
       const nearbyHeading = findNearbyTableHeading(tableEl);
-      const baseTitle = caption || cardTitle || `Table ${idx + 1}`;
+      const explicitTitle = explicitTitleById[String(tableEl.id || '')] || '';
+      const baseTitle = explicitTitle || caption || cardTitle || `Table ${idx + 1}`;
       const title = nearbyHeading && nearbyHeading.toLowerCase() !== baseTitle.toLowerCase()
         ? `${baseTitle} - ${nearbyHeading}`
         : baseTitle;
       const structured = extractStructuredTable(tableEl);
 
-      if (/\bformula\b/i.test(title) && !structured.rows.some((row) => row.some((cell) => hasNumericValue(cell)))) {
+      const normalizedTitle = normalizeTitleText(title);
+      const columnSignature = structured.columns.map((col) => normalizeTitleText(col).toLowerCase()).join('|');
+
+      if (!structured.rows.length) return null;
+      if (/reference points beyond|excluded reference points|print customization|internal diagnostics/i.test(normalizedTitle)) return null;
+      if (columnSignature === '#|datapoint|vpd|dist|use|weight %') return null;
+
+      if (/\bformula\b/i.test(normalizedTitle) && !structured.rows.some((row) => row.some((cell) => hasNumericValue(cell)))) {
         return null;
       }
 
       return {
-        title,
+        title: normalizedTitle,
         columns: structured.columns,
         rows: structured.rows
       };
@@ -6976,6 +7108,7 @@
       `Run the copied commands line by line. They will create <code>${serviceFolderHint}</code>, move into it, and check/download <code>report_service.py</code>.`,
       `If <code>report_service.py</code> is still missing, click <strong>Download Report-Service</strong> or use the raw link: <a href="${reportServiceDownloadUrl}" target="_blank" rel="noopener noreferrer">GitHub raw link</a>.`,
       `Optional: Download <code>logo.jpeg</code> from <a href="${logoDownloadUrl}" target="_blank" rel="noopener noreferrer">GitHub raw link</a> and save it in the same folder for branding.`,
+      'Set <code>GEMINI_API_KEY</code> in the same Command Prompt before starting the report service if you want Gemini-generated executive summary notes.',
       'Confirm the import-check command prints <code>import ok</code>.',
       'If you see "Could not import module report_service", re-run the download/check commands and confirm the file name is exactly <code>report_service.py</code>.',
       'Keep that Command Prompt window running (do not close it).',
@@ -6999,6 +7132,7 @@
       'dir report_service.py',
       'python -m venv .venv',
       '.\\.venv\\Scripts\\activate',
+      'set GEMINI_API_KEY=PASTE_YOUR_GEMINI_KEY_HERE',
       'python -m pip install --upgrade pip',
       'python -m pip install fastapi uvicorn python-docx jinja2 pydantic',
       'python -c "import os, pathlib; p=pathlib.Path(\'report_service.py\'); print(\'cwd=\', os.getcwd()); print(\'exists=\', p.exists()); print(\'size=\', p.stat().st_size if p.exists() else 0)"',
