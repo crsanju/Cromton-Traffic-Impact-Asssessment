@@ -136,6 +136,9 @@ def _build_report_context(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _normalize_title_key(value: Any) -> str:
   text = _safe_text(value, "").lower()
+  text = text.replace("direction 1", "d1")
+  text = text.replace("direction 2", "d2")
+  text = text.replace("directional", "direction")
   text = re.sub(r"[^a-z0-9]+", " ", text)
   return re.sub(r"\s+", " ", text).strip()
 
@@ -148,11 +151,11 @@ def _title_tokens(value: Any) -> set[str]:
   return {token for token in _normalize_title_key(value).split() if token and token not in ignored}
 
 
-def _mapping_to_table(title: str, data: Any, key_label: str, value_label: str) -> dict[str, Any]:
+def _mapping_to_table(title: str, data: Any, key_label: str, value_label: str, table_id: str = "") -> dict[str, Any]:
   if not isinstance(data, dict):
-    return {"title": title, "columns": [key_label, value_label], "rows": []}
+    return {"table_id": table_id, "title": title, "columns": [key_label, value_label], "rows": []}
   rows = [[str(key).replace("_", " ").title(), _safe_text(value)] for key, value in data.items()]
-  return {"title": title, "columns": [key_label, value_label], "rows": rows}
+  return {"table_id": table_id, "title": title, "columns": [key_label, value_label], "rows": rows}
 
 
 def _build_report_tables(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -162,9 +165,9 @@ def _build_report_tables(payload: dict[str, Any]) -> list[dict[str, Any]]:
 
   tables: list[dict[str, Any]] = []
   if inputs:
-    tables.append(_mapping_to_table("Analysis Parameters", inputs, "Parameter", "Value"))
+    tables.append(_mapping_to_table("Analysis Parameters", inputs, "Parameter", "Value", "analysis_parameters"))
   if results:
-    tables.append(_mapping_to_table("Summary of Computed Results", results, "Metric", "Value"))
+    tables.append(_mapping_to_table("Summary of Computed Results", results, "Metric", "Value", "summary_computed_results"))
   tables.extend(table for table in payload_tables if isinstance(table, dict))
   return tables
 
@@ -227,6 +230,7 @@ def _summarize_table_for_prompt(table_data: dict[str, Any]) -> dict[str, Any]:
   ]
 
   return {
+    "table_id": _safe_text(table_data.get("table_id"), ""),
     "title": analysis["title"],
     "columns": analysis["columns"][:12],
     "row_count": analysis["row_count"],
@@ -630,8 +634,10 @@ def _collect_chart_items(payload: dict[str, Any]) -> list[dict[str, str]]:
   return chart_items
 
 
-def _score_chart_match(table_title: str, chart_item: dict[str, str]) -> int:
+def _score_chart_match(table_data: dict[str, Any], chart_item: dict[str, str]) -> int:
   score = 0
+  table_title = _safe_text(table_data.get("title"), "")
+  table_id = _normalize_title_key(table_data.get("table_id"))
   title_key = _normalize_title_key(table_title)
   chart_key = _normalize_title_key(chart_item.get("title"))
   canvas_id = _normalize_title_key(chart_item.get("canvas_id"))
@@ -639,6 +645,29 @@ def _score_chart_match(table_title: str, chart_item: dict[str, str]) -> int:
   table_tokens = _title_tokens(table_title)
   chart_tokens = _title_tokens(chart_key + " " + canvas_id)
   score += len(table_tokens & chart_tokens) * 3
+
+  if table_id in {"analysis_parameters"} and "macrohourlychart" in canvas_id:
+    score += 80
+  if table_id in {"summary_computed_results"} and "managementvizcanvas" in canvas_id:
+    score += 80
+  if table_id in {"groupedtabled1", "groupedtabled2"} and "macrohourlychart" in canvas_id:
+    score += 80
+  if table_id == "queuegroupedtabled1" and "queuechartd1" in canvas_id:
+    score += 120
+  if table_id == "queuegroupedtabled2" and "queuechartd2" in canvas_id:
+    score += 120
+  if table_id == "queueswtsummarytable" and "hourlyqueuechart" in canvas_id:
+    score += 90
+  if table_id in {"hourlyqueuetabled1", "hourlyqueuetabled2"} and "hourlyqueuechart" in canvas_id:
+    score += 120
+  if table_id == "vcrgroupedtabled1" and "vcrchartd1" in canvas_id:
+    score += 120
+  if table_id == "vcrgroupedtabled2" and "vcrchartd2" in canvas_id:
+    score += 120
+  if table_id in {"hourlyvcrtabled1", "hourlyvcrtabled2"} and "hourlyvcrchart" in canvas_id:
+    score += 120
+  if table_id == "detoursegmentdetailedtable" and ("managementvizcanvas" in canvas_id or "macrohourlychart" in canvas_id):
+    score += 20
 
   if "queuechartd1" in canvas_id and "queue" in title_key and ("d1" in title_key or "direction 1" in title_key):
     score += 30
@@ -669,46 +698,52 @@ def _score_chart_match(table_title: str, chart_item: dict[str, str]) -> int:
   return score
 
 
-def _claim_chart_for_table(
-  table_title: str,
+def _select_charts_for_table(
+  table_data: dict[str, Any],
   chart_items: list[dict[str, str]],
-  used_chart_indexes: set[int],
-) -> dict[str, str] | None:
-  best_index = -1
-  best_score = 0
-  for idx, chart_item in enumerate(chart_items):
-    if idx in used_chart_indexes:
+) -> list[dict[str, str]]:
+  scored: list[tuple[int, dict[str, str]]] = []
+  for chart_item in chart_items:
+    score = _score_chart_match(table_data, chart_item)
+    if score <= 0:
       continue
-    score = _score_chart_match(table_title, chart_item)
-    if score > best_score:
-      best_index = idx
-      best_score = score
-  if best_index < 0:
-    return None
-  used_chart_indexes.add(best_index)
-  return chart_items[best_index]
+    scored.append((score, chart_item))
+
+  if not scored:
+    return []
+
+  scored.sort(key=lambda item: item[0], reverse=True)
+  top_score = scored[0][0]
+  selected = [item for score, item in scored if score == top_score]
+  return selected[:2]
 
 
 def _render_embedded_chart(chart_item: dict[str, str] | None, title: str, caption: str) -> str:
   if not chart_item:
     return ""
-  chart_title = _escape(title)
+  chart_title = _escape(_safe_text(chart_item.get("title"), title))
   chart_caption = _escape(caption or "This chart summarises the controlling pattern before the detailed table below.")
   image_title = _escape(chart_item.get("title"), title)
   return (
     "<figure class=\"embedded-chart avoid-break\">"
-    f"<h5 class=\"chart-title editable-text\" contenteditable=\"true\">{chart_title} chart</h5>"
+    f"<h5 class=\"chart-title editable-text\" contenteditable=\"true\">{chart_title}</h5>"
     f"<img class=\"chart-img\" src=\"{chart_item.get('image', '')}\" alt=\"{image_title}\" />"
     f"<figcaption class=\"editable chart-caption editable-text\" contenteditable=\"true\">{chart_caption}</figcaption>"
     "</figure>"
   )
 
 
+def _render_embedded_charts(chart_items: list[dict[str, str]] | None, title: str, caption: str) -> str:
+  if not chart_items:
+    return ""
+  return "".join(_render_embedded_chart(item, title, caption) for item in chart_items)
+
+
 def _render_key_value_table(
   title: str,
   data: dict[str, Any],
   analysis: dict[str, str] | None = None,
-  chart_item: dict[str, str] | None = None,
+  chart_items: list[dict[str, str]] | None = None,
 ) -> str:
   if not isinstance(data, dict) or not data:
     return ""
@@ -725,7 +760,7 @@ def _render_key_value_table(
   summary_text = _escape((analysis or {}).get("summary"), "This section summarises the key values used to interpret the modeled outcome.")
   scenario_text = _escape((analysis or {}).get("scenario"), "Review these values together with the detailed result tables to confirm when the controlling condition is expected to emerge.")
   chart_caption = (analysis or {}).get("chart_caption", "")
-  chart_html = _render_embedded_chart(chart_item, title, chart_caption)
+  chart_html = _render_embedded_charts(chart_items, title, chart_caption)
 
   return (
     f"<div class=\"report-section report-block avoid-break\">"
@@ -749,7 +784,7 @@ def _render_notes(notes: Any) -> str:
 def _render_data_table(
     table_data: Any,
     analysis: dict[str, str] | None = None,
-    chart_item: dict[str, str] | None = None,
+  chart_items: list[dict[str, str]] | None = None,
 ) -> str:
     if not isinstance(table_data, dict):
         return ""
@@ -862,7 +897,7 @@ def _render_data_table(
       )
 
     table_classes = "wide-table" if col_count >= 10 else ""
-    chart_html = _render_embedded_chart(chart_item, title, (analysis or {}).get("chart_caption", ""))
+    chart_html = _render_embedded_charts(chart_items, title, (analysis or {}).get("chart_caption", ""))
 
     return (
         f"<div class=\"report-section report-block avoid-break\">"
@@ -879,9 +914,12 @@ def _render_data_table(
 
 def _render_additional_chart_blocks(
   chart_items: list[dict[str, str]],
-  used_chart_indexes: set[int],
+  embedded_chart_keys: set[str],
 ) -> str:
-  remaining = [item for idx, item in enumerate(chart_items) if idx not in used_chart_indexes]
+  remaining = [
+    item for item in chart_items
+    if _normalize_title_key(item.get("canvas_id") or item.get("title")) not in embedded_chart_keys
+  ]
   if not remaining:
     return (
       "<div class=\"report-section avoid-break\">"
@@ -982,7 +1020,7 @@ def editor_page(draft_id: str) -> str:
       if isinstance(item, dict) and _normalize_title_key(item.get("title"))
     }
     chart_items = _collect_chart_items(payload)
-    used_chart_indexes: set[int] = set()
+    embedded_chart_keys: set[str] = set()
 
     def _table_priority(table_obj: Any) -> int:
         if not isinstance(table_obj, dict):
@@ -995,27 +1033,47 @@ def editor_page(draft_id: str) -> str:
         return 2
 
     prioritized_tables = sorted(tables, key=_table_priority)
+    analysis_parameters_table = {
+      "table_id": "analysis_parameters",
+      "title": "Analysis Parameters",
+      "columns": ["Parameter", "Value"],
+      "rows": [[str(key).replace("_", " ").title(), _safe_text(value)] for key, value in inputs.items()],
+    }
+    computed_results_table = {
+      "table_id": "summary_computed_results",
+      "title": "Summary of Computed Results",
+      "columns": ["Metric", "Value"],
+      "rows": [[str(key).replace("_", " ").title(), _safe_text(value)] for key, value in results.items()],
+    }
+    input_charts = _select_charts_for_table(analysis_parameters_table, chart_items)
+    results_charts = _select_charts_for_table(computed_results_table, chart_items)
+    embedded_chart_keys.update(_normalize_title_key(item.get("canvas_id") or item.get("title")) for item in input_charts)
+    embedded_chart_keys.update(_normalize_title_key(item.get("canvas_id") or item.get("title")) for item in results_charts)
     inputs_section_html = _render_key_value_table(
       'Analysis Parameters',
       inputs,
       table_analysis_map.get(_normalize_title_key('Analysis Parameters')),
-      _claim_chart_for_table('Analysis Parameters', chart_items, used_chart_indexes),
+      input_charts,
     )
     results_section_html = _render_key_value_table(
       'Summary of Computed Results',
       results,
       table_analysis_map.get(_normalize_title_key('Summary of Computed Results')),
-      _claim_chart_for_table('Summary of Computed Results', chart_items, used_chart_indexes),
+      results_charts,
     )
-    table_sections = "".join(
-      _render_data_table(
-        table,
-        table_analysis_map.get(_normalize_title_key(table.get('title'))),
-        _claim_chart_for_table(_safe_text(table.get('title'), ''), chart_items, used_chart_indexes),
+    table_blocks: list[str] = []
+    for table in prioritized_tables:
+      matched_charts = _select_charts_for_table(table, chart_items)
+      embedded_chart_keys.update(_normalize_title_key(item.get("canvas_id") or item.get("title")) for item in matched_charts)
+      table_blocks.append(
+        _render_data_table(
+          table,
+          table_analysis_map.get(_normalize_title_key(table.get('title'))),
+          matched_charts,
+        )
       )
-      for table in prioritized_tables
-    )
-    chart_sections = _render_additional_chart_blocks(chart_items, used_chart_indexes)
+    table_sections = "".join(table_blocks)
+    chart_sections = _render_additional_chart_blocks(chart_items, embedded_chart_keys)
     payload_json = escape(json.dumps(payload))
 
     return f"""<!DOCTYPE html>

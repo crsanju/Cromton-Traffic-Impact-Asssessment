@@ -6897,8 +6897,13 @@
       groupedTableD2: 'Grouped Directional Summary - D2',
       queueGroupedTableD1: 'Directional Queue Summary - D1',
       queueGroupedTableD2: 'Directional Queue Summary - D2',
+        queueSwtSummaryTable: 'Directional Queue Summary - SWT',
       vcrGroupedTableD1: 'Directional VCR Summary - D1',
       vcrGroupedTableD2: 'Directional VCR Summary - D2',
+        hourlyQueueTableD1: 'Hourly Queue Summary - D1',
+        hourlyQueueTableD2: 'Hourly Queue Summary - D2',
+        hourlyVcrTableD1: 'Hourly VCR Summary - D1',
+        hourlyVcrTableD2: 'Hourly VCR Summary - D2',
       detourSegmentDetailedTable: 'Detour Road Directional Capacity Summary',
       postDiversionTable: 'Existing Road Status After Diversion'
     };
@@ -6927,6 +6932,7 @@
       }
 
       return {
+        table_id: String(tableEl.id || ''),
         title: normalizedTitle,
         columns: structured.columns,
         rows: structured.rows
@@ -21310,9 +21316,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const { d1Label, d2Label } = getCurrentDetourDirectionLabels();
     const closedDirectionLabel = closedDirection === 'D2' ? d2Label : d1Label;
+    const diversionRateLabel = `${Math.round(diversionRate * 100)}%`;
     const diversionBasisText = closureType === 'oneway'
-      ? `${closedDirectionLabel} closed (100%)`
-      : 'Full road closure (100%)';
+      ? `${closedDirectionLabel} closed (${diversionRateLabel} diverted)`
+      : `Full road closure (${diversionRateLabel} diverted)`;
 
     periods.forEach(p => {
       let maxPrimaryD1 = 0;
@@ -21500,9 +21507,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       });
     }
 
-    const divertedVpdTotal = closureType === 'oneway'
+    const divertedVpdSource = closureType === 'oneway'
       ? (closedDirection === 'D2' ? inputD2Vadt : inputD1Vadt)
       : inputVadt;
+    const divertedVpdTotal = Math.round(Math.max(0, Number(divertedVpdSource) || 0) * diversionRate);
     renderDetourRoadVpdSummary(validDetourModels, divertedVpdTotal, roadCapacityStatusByKey);
     renderDetourResolvedBaseVpd(validDetourModels);
 
