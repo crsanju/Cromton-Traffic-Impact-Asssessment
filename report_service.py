@@ -99,9 +99,18 @@ def _build_report_context(payload: dict[str, Any]) -> dict[str, Any]:
   raw = payload.get("raw_js_results", {}) if isinstance(payload.get("raw_js_results"), dict) else {}
   notes = payload.get("notes", []) if isinstance(payload.get("notes"), list) else []
 
-  d1_vadt = _to_float(inputs.get("d1_vadt") or raw.get("d1_vadt"))
-  d2_vadt = _to_float(inputs.get("d2_vadt") or raw.get("d2_vadt"))
-  total_vadt = _to_float(inputs.get("aadt") or raw.get("vadt"))
+  # Support both old key names (aadt/d1_vadt/d2_vadt) and new projected-year names
+  d1_vadt = _to_float(
+    inputs.get("d1_vadt_opening_year") or inputs.get("d1_vadt") or raw.get("d1_vadt")
+  )
+  d2_vadt = _to_float(
+    inputs.get("d2_vadt_opening_year") or inputs.get("d2_vadt") or raw.get("d2_vadt")
+  )
+  total_vadt = _to_float(
+    inputs.get("opening_year_aadt") or inputs.get("aadt") or raw.get("vadt")
+  )
+  base_year_aadt = _to_float(inputs.get("base_year_aadt") or inputs.get("aadt") or raw.get("vadt"))
+  opening_year = _safe_text(inputs.get("opening_year") or raw.get("opening_year"), "")
   growth_rate = _to_float(inputs.get("growth_rate_percent") or raw.get("growth_rate_percent"))
   worst_vcr = _to_float(results.get("worst_vcr") or raw.get("worst_vcr"))
   queue_peak = _to_float(results.get("queue_peak_m") or raw.get("queue_peak_m"))
@@ -117,8 +126,10 @@ def _build_report_context(payload: dict[str, Any]) -> dict[str, Any]:
     "location": _safe_text(project.get("location"), "Site location not specified"),
     "report_date": _safe_text(project.get("report_date"), datetime.now().strftime("%Y-%m-%d")),
     "road_mode": _safe_text(inputs.get("road_operation_mode"), "TWO-WAY"),
-    "base_year": _safe_text(raw.get("base_year"), "Current year"),
+    "base_year": _safe_text(inputs.get("base_year") or raw.get("base_year"), "Current year"),
+    "opening_year": opening_year,
     "total_vadt": total_vadt,
+    "base_year_aadt": base_year_aadt,
     "d1_vadt": d1_vadt,
     "d2_vadt": d2_vadt,
     "d1_pct": d1_pct,
@@ -389,8 +400,9 @@ def _build_fallback_executive_paragraphs(payload: dict[str, Any]) -> list[str]:
   )
 
   traffic_bits: list[str] = []
+  year_tag = f" at opening year ({ctx['opening_year']})" if ctx.get("opening_year") else " at opening year"
   if ctx["total_vadt"] is not None:
-    traffic_bits.append(f"the modeled daily traffic volume is approximately {_format_number(ctx['total_vadt'])} vehicles per day")
+    traffic_bits.append(f"the modeled daily traffic volume is approximately {_format_number(ctx['total_vadt'])} vehicles per day{year_tag}")
   if ctx["d1_vadt"] is not None and ctx["d2_vadt"] is not None:
     d1_share = f", {ctx['d1_pct']:.1f}% of total" if ctx["d1_pct"] is not None else ""
     d2_share = f", {ctx['d2_pct']:.1f}% of total" if ctx["d2_pct"] is not None else ""
@@ -398,7 +410,10 @@ def _build_fallback_executive_paragraphs(payload: dict[str, Any]) -> list[str]:
       f"directional demand is split between D1 ({_format_number(ctx['d1_vadt'])} vpd{d1_share}) and D2 ({_format_number(ctx['d2_vadt'])} vpd{d2_share})"
     )
   if ctx["growth_rate"] is not None:
-    traffic_bits.append(f"an annual growth rate of {_format_number(ctx['growth_rate'], 2)}% has been applied")
+    base_yr = ctx.get("base_year", "")
+    open_yr = ctx.get("opening_year", "")
+    yr_range = f" ({base_yr} → {open_yr})" if base_yr and open_yr and base_yr != open_yr else ""
+    traffic_bits.append(f"an annual growth rate of {_format_number(ctx['growth_rate'], 2)}% has been applied{yr_range}")
   if traffic_bits:
     paragraphs.append("Traffic demand context indicates that " + ", ".join(traffic_bits) + ".")
 
@@ -428,8 +443,9 @@ def _build_fallback_explanation_notes(payload: dict[str, Any]) -> list[str]:
     f"Assessment location and basis: {ctx['project_name']} at {ctx['location']} under {ctx['road_mode']} road operation settings."
   ]
   if ctx["total_vadt"] is not None:
+    year_tag = f" at {ctx['opening_year']}" if ctx.get("opening_year") else " at opening year"
     notes.append(
-      f"Demand profile: total modeled traffic is about {_format_number(ctx['total_vadt'])} vpd, with D1 at {_format_number(ctx['d1_vadt'])} vpd and D2 at {_format_number(ctx['d2_vadt'])} vpd."
+      f"Demand profile: total modeled traffic{year_tag} is about {_format_number(ctx['total_vadt'])} vpd, with D1 at {_format_number(ctx['d1_vadt'])} vpd and D2 at {_format_number(ctx['d2_vadt'])} vpd."
     )
   if ctx["worst_vcr"] is not None:
     notes.append(

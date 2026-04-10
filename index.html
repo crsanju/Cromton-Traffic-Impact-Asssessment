@@ -6638,9 +6638,18 @@
       ? getCurrentGrowthProjectionContext()
       : null;
 
-    const projectedAadt = (typeof num === 'function') ? Number(num('VADT')) : Number(getNumberFromElement('VADT'));
-    const d1Vadt = (typeof num === 'function') ? Number(num('D1_VADT')) : Number(getNumberFromElement('D1_VADT'));
-    const d2Vadt = (typeof num === 'function') ? Number(num('D2_VADT')) : Number(getNumberFromElement('D2_VADT'));
+    // Use projected (opening year) VADT from predictedVADT field set by calculateAll().
+    // Fall back to raw input fields if predicted fields are not yet computed.
+    const projectedAadt = (typeof num === 'function')
+      ? (Number(num('predictedVADT')) || Number(num('VADT')))
+      : (Number(getNumberFromElement('predictedVADT')) || Number(getNumberFromElement('VADT')));
+    const d1Vadt = (typeof num === 'function')
+      ? (Number(num('predictedD1VADT')) || Number(num('D1_VADT')))
+      : (Number(getNumberFromElement('predictedD1VADT')) || Number(getNumberFromElement('D1_VADT')));
+    const d2Vadt = (typeof num === 'function')
+      ? (Number(num('predictedD2VADT')) || Number(num('D2_VADT')))
+      : (Number(getNumberFromElement('predictedD2VADT')) || Number(getNumberFromElement('D2_VADT')));
+    const baseYearAadt = (typeof num === 'function') ? Number(num('VADT')) : Number(getNumberFromElement('VADT'));
     const growthRate = growthContext && Number.isFinite(Number(growthContext.growthRatePct))
       ? Number(growthContext.growthRatePct)
       : Number(getNumberFromElement('macroGrowthRate'));
@@ -6651,6 +6660,7 @@
       siteId: getElementValueOrText('macroSiteId') || 'N/A',
       baseYear: getElementValueOrText('baseYear') || 'N/A',
       projectedAadt: Number.isFinite(projectedAadt) ? projectedAadt : 0,
+      baseYearAadt: Number.isFinite(baseYearAadt) ? baseYearAadt : 0,
       growthRatePercent: Number.isFinite(growthRate) ? growthRate : 0,
       d1Vadt: Number.isFinite(d1Vadt) ? d1Vadt : 0,
       d2Vadt: Number.isFinite(d2Vadt) ? d2Vadt : 0,
@@ -6664,9 +6674,12 @@
   function collectInputSnapshot() {
     const fields = [
       ['Road operation mode', 'roadOperationMode'],
-      ['AADT', 'VADT'],
-      ['Directional VADT D1', 'D1_VADT'],
-      ['Directional VADT D2', 'D2_VADT'],
+      ['Base Year AADT', 'VADT'],
+      ['Base Year D1 VADT', 'D1_VADT'],
+      ['Base Year D2 VADT', 'D2_VADT'],
+      ['Predicted AADT @ Opening Year', 'predictedVADT'],
+      ['Predicted D1 VADT @ Opening Year', 'predictedD1VADT'],
+      ['Predicted D2 VADT @ Opening Year', 'predictedD2VADT'],
       ['Growth rate (%)', 'macroGrowthRate'],
       ['Lane closure mode', 'laneClosureCount'],
       ['Road lanes', 'roadLanesCount'],
@@ -7071,9 +7084,12 @@
       },
       inputs: {
         road_operation_mode: roadMode,
-        aadt: rawCalc.projectedAadt || 0,
-        d1_vadt: rawCalc.d1Vadt || 0,
-        d2_vadt: rawCalc.d2Vadt || 0,
+        base_year: rawCalc.baseYear,
+        opening_year: getElementValueOrText('macroOpeningYear') || '',
+        base_year_aadt: rawCalc.baseYearAadt || 0,
+        opening_year_aadt: rawCalc.projectedAadt || 0,
+        d1_vadt_opening_year: rawCalc.d1Vadt || 0,
+        d2_vadt_opening_year: rawCalc.d2Vadt || 0,
         growth_rate_percent: rawCalc.growthRatePercent || 0
       },
       results: {
@@ -21092,9 +21108,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     };
 
     const dtcaYes = txt('DTCA').toUpperCase() === 'YES';
-    const inputVadt = Number(num('VADT')) || 0;
-    const inputD1Vadt = dtcaYes ? (Number(num('D1_VADT')) || (inputVadt / 2)) : (inputVadt / 2);
-    const inputD2Vadt = dtcaYes ? (Number(num('D2_VADT')) || (inputVadt / 2)) : (inputVadt / 2);
+    // Use opening-year projected volumes (set by calculateAll) so detour calculations
+    // reflect the target year traffic, not the base-year count-year input.
+    const inputVadt = Number(num('predictedVADT')) || Number(num('VADT')) || 0;
+    const inputD1Vadt = Number(num('predictedD1VADT')) || (dtcaYes ? (Number(num('D1_VADT')) || (inputVadt / 2)) : (inputVadt / 2));
+    const inputD2Vadt = Number(num('predictedD2VADT')) || (dtcaYes ? (Number(num('D2_VADT')) || (inputVadt / 2)) : (inputVadt / 2));
     const detourLaneWidth = Math.max(2.0, Number((document.getElementById('detourLaneWidth') && document.getElementById('detourLaneWidth').value) || 3.7));
     const detourLateralClearance = Math.max(0, Number((document.getElementById('detourLateralClearance') && document.getElementById('detourLateralClearance').value) || 2.0));
     const detourGradeTypeRaw = String((document.getElementById('detourGradeType') && document.getElementById('detourGradeType').value) || 'level').toLowerCase();
