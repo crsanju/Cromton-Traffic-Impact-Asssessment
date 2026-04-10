@@ -7031,7 +7031,26 @@
     return summaryBits.join(' ');
   }
 
-  function buildEditableReportPayload() {
+  async function buildEditableReportPayload() {
+    // Temporarily unhide all chart containers to ensure Chart.js renders them with valid dimensions
+    const hiddenContainers = [];
+    const chartIds = ['queueChartView', 'vcrChartView', 'hourlyQueueChartView', 'hourlyVcrChartView', 'vizCanvasContainer', 'scenarioTableWrap'];
+
+    chartIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && window.getComputedStyle(el).display === 'none') {
+        hiddenContainers.push({ el, origDisplay: el.style.display });
+        el.style.display = 'block';
+      }
+    });
+
+    // Force a resize event so Chart.js recalculates dimensions for the newly visible canvases
+    if (hiddenContainers.length > 0) {
+      window.dispatchEvent(new Event('resize'));
+      // Wait briefly for Chart.js animations/resizing to complete
+      await new Promise(r => setTimeout(r, 250));
+    }
+
     const rawCalc = getRawCalculationSnapshot();
     const primaryChart = capturePrimaryChartImageBase64('myChartCanvasId');
 
@@ -7124,6 +7143,13 @@
       tables: collectVisibleTables(),
       charts: collectChartImages()
     };
+
+    // Restore original display states
+    hiddenContainers.forEach(({ el, origDisplay }) => {
+      el.style.display = origDisplay;
+    });
+
+    return payload;
   }
 
   function openBrowserEditableReportFallback(reasonText = '') {
@@ -7209,14 +7235,14 @@
 
   async function buildShortEditableReportPayload() {
     const body = document.body;
-    if (!body) return buildEditableReportPayload();
+    if (!body) return await buildEditableReportPayload();
 
     const hadShortMode = body.classList.contains('report-mode-short');
     if (!hadShortMode) body.classList.add('report-mode-short');
 
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-    const payload = buildEditableReportPayload();
+    const payload = await buildEditableReportPayload();
     payload.report_variant = 'short';
 
     if (!hadShortMode) body.classList.remove('report-mode-short');
@@ -7227,7 +7253,7 @@
     const normalizedMode = String(mode || 'detailed').toLowerCase() === 'short' ? 'short' : 'detailed';
     const payload = normalizedMode === 'short'
       ? await buildShortEditableReportPayload()
-      : buildEditableReportPayload();
+      : await buildEditableReportPayload();
 
     payload.report_variant = normalizedMode;
     const baseTitle = (payload && payload.project && payload.project.name) || 'TIA Report';

@@ -662,9 +662,9 @@ def _score_chart_match(table_data: dict[str, Any], chart_item: dict[str, str]) -
   chart_tokens = _title_tokens(chart_key + " " + canvas_id)
   score += len(table_tokens & chart_tokens) * 3
 
-  if table_id in {"analysis_parameters"} and "macrohourlychart" in canvas_id:
+  if table_id in {"analysis parameters", "analysis_parameters"} and "macrohourlychart" in canvas_id:
     score += 80
-  if table_id in {"summary_computed_results"} and "managementvizcanvas" in canvas_id:
+  if table_id in {"summary computed results", "summary_computed_results"} and "managementvizcanvas" in canvas_id:
     score += 80
   if table_id == "groupedtabled1" and "queuechartd1" in canvas_id:
     score += 100
@@ -703,7 +703,7 @@ def _score_chart_match(table_data: dict[str, Any], chart_item: dict[str, str]) -
     score += 30
   if "hourlyvcrchart" in canvas_id and "hourly" in title_key and ("vcr" in title_key or "los" in title_key):
     score += 30
-  if "macrohourlychart" in canvas_id and ("directional" in title_key or "analysis parameters" in title_key):
+  if "macrohourlychart" in canvas_id and ("direction" in title_key or "analysis parameters" in title_key):
     score += 16
   if "managementvizcanvas" in canvas_id and "summary of computed results" in title_key:
     score += 24
