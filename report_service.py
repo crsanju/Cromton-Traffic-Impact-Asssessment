@@ -650,8 +650,14 @@ def _score_chart_match(table_data: dict[str, Any], chart_item: dict[str, str]) -
     score += 80
   if table_id in {"summary_computed_results"} and "managementvizcanvas" in canvas_id:
     score += 80
-  if table_id in {"groupedtabled1", "groupedtabled2"} and "macrohourlychart" in canvas_id:
-    score += 80
+  if table_id == "groupedtabled1" and "queuechartd1" in canvas_id:
+    score += 100
+  if table_id == "groupedtabled1" and "vcrchartd1" in canvas_id:
+    score += 100
+  if table_id == "groupedtabled2" and "queuechartd2" in canvas_id:
+    score += 100
+  if table_id == "groupedtabled2" and "vcrchartd2" in canvas_id:
+    score += 100
   if table_id == "queuegroupedtabled1" and "queuechartd1" in canvas_id:
     score += 120
   if table_id == "queuegroupedtabled2" and "queuechartd2" in canvas_id:
