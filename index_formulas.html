@@ -4731,7 +4731,7 @@
 
         <div id="detourManualVpdPanel" style="display: none; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
           <label style="color: #6a1b9a; font-weight: bold;">Manual Inputs for Selected Roads (when no nearby counter is found)</label>
-          <div style="font-size: 0.76em; color: #8e24aa; margin-top: 4px;">Choose a <strong>Base VPD method</strong> for each road: <strong>📡 Nearby Datapoints</strong> uses weighted reference counters; <strong>🚗 Trip Generation</strong> uses calculated VADT. Base VPD is editable when using Datapoints method.</div>
+          <div style="font-size: 0.76em; color: #8e24aa; margin-top: 4px;">Choose a <strong>Road VPD method</strong> for each road: <strong>📡 Nearby Datapoints</strong> calculates a weighted current-road VPD from the selected reference counters; <strong>🚗 Trip Generation</strong> uses calculated VADT. Datapoint mode is read-only and updates from the selected weights below.</div>
           <div id="detourManualVpdRows" style="margin-top: 8px; display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
 
@@ -6965,6 +6965,52 @@
   }
 
   function collectChartImages(maxCharts = 1000) {
+    const reportChartTableIds = {
+      queueChartD1: ['queueGroupedTableD1'],
+      queueChartD2: ['queueGroupedTableD2'],
+      vcrChartD1: ['vcrGroupedTableD1'],
+      vcrChartD2: ['vcrGroupedTableD2'],
+      hourlyQueueChart: ['hourlyQueueTableD1', 'hourlyQueueTableD2'],
+      hourlyVcrChart: ['hourlyVcrTableD1', 'hourlyVcrTableD2'],
+      macroHourlyChart: [],
+      managementVizCanvas: []
+    };
+
+    function getReportChartTableIds(canvasId) {
+      return Array.isArray(reportChartTableIds[canvasId]) ? reportChartTableIds[canvasId] : [];
+    }
+
+    function isReportEligibleCanvas(canvasEl) {
+      const canvasId = String(canvasEl && canvasEl.id || '').trim();
+      if (!canvasId || !Object.prototype.hasOwnProperty.call(reportChartTableIds, canvasId)) return false;
+      if (canvasId === 'managementVizCanvas') {
+        const templateEl = document.getElementById('vizTemplate');
+        return String(templateEl && templateEl.value || 'none').toLowerCase() !== 'none';
+      }
+      return true;
+    }
+
+    function canvasHasMeaningfulContent(canvasEl) {
+      try {
+        const ctx = canvasEl.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return true;
+        const width = Math.max(1, Number(canvasEl.width) || 0);
+        const height = Math.max(1, Number(canvasEl.height) || 0);
+        const imageData = ctx.getImageData(0, 0, width, height).data;
+        let nonTransparentSamples = 0;
+        const stride = Math.max(16, Math.floor(imageData.length / 4000));
+        for (let idx = 3; idx < imageData.length; idx += stride) {
+          if ((imageData[idx] || 0) > 0) {
+            nonTransparentSamples += 1;
+            if (nonTransparentSamples >= 10) return true;
+          }
+        }
+        return false;
+      } catch (_) {
+        return true;
+      }
+    }
+
     function getChartHeading(canvasEl, idx) {
       const explicit = String(canvasEl.getAttribute('data-report-title') || '').trim();
       if (explicit) return explicit;
@@ -7002,24 +7048,47 @@
 
     const chartEls = Array.from(document.querySelectorAll('canvas'))
       .filter((canvasEl) => !canvasEl.closest('.exclude-from-print'))
+      .filter((canvasEl) => isReportEligibleCanvas(canvasEl))
       .filter((canvasEl) => Number(canvasEl.width) > 0 && Number(canvasEl.height) > 0)
       .slice(0, maxCharts);
 
     const charts = [];
     chartEls.forEach((canvasEl, idx) => {
       try {
+        if (!canvasHasMeaningfulContent(canvasEl)) return;
         const dataUrl = canvasEl.toDataURL('image/png');
         if (!dataUrl || !dataUrl.startsWith('data:image/')) return;
         charts.push({
           title: getChartHeading(canvasEl, idx),
           image_data_url: dataUrl,
-          canvas_id: String(canvasEl.id || '').trim()
+          canvas_id: String(canvasEl.id || '').trim(),
+          table_ids: getReportChartTableIds(String(canvasEl.id || '').trim())
         });
       } catch (_) {
         // Canvas export can fail for tainted canvases; skip silently.
       }
     });
     return charts;
+  }
+
+  function prepareReportChartsForExport() {
+    if (typeof updateManagementViz === 'function') {
+      const templateEl = document.getElementById('vizTemplate');
+      if (String(templateEl && templateEl.value || 'none').toLowerCase() !== 'none') {
+        updateManagementViz();
+      }
+    }
+
+    if (window.Chart && typeof window.Chart.getChart === 'function') {
+      ['queueChartD1', 'queueChartD2', 'vcrChartD1', 'vcrChartD2', 'hourlyQueueChart', 'hourlyVcrChart', 'macroHourlyChart'].forEach((canvasId) => {
+        const chartInstance = window.Chart.getChart(canvasId);
+        if (!chartInstance) return;
+        try {
+          chartInstance.resize();
+          chartInstance.update('none');
+        } catch (_) {}
+      });
+    }
   }
 
   function buildAutoSummary({ roadMode, worstVcr, los, queuePeak, detourRecommended, notes }) {
@@ -7103,6 +7172,9 @@
       // Wait briefly for Chart.js animations/resizing to complete
       await new Promise(r => setTimeout(r, 250));
     }
+
+    prepareReportChartsForExport();
+    await new Promise(r => setTimeout(r, 150));
 
     const rawCalc = getRawCalculationSnapshot();
     const primaryChart = capturePrimaryChartImageBase64('myChartCanvasId');
@@ -19608,6 +19680,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     return {
       baseVpd: finalAvgVADT,
+      weightedVolumeSum: Math.max(0, Math.round(adjustedSum)),
+      totalWeightPercent: Math.max(0, Number(totalWeightPercent.toFixed(2))),
       source: sameRoadSites.length ? 'Estimated (same-road references)' : 'Estimated (nearby references)',
       refsCount: refs.length,
       areaType: 'User weighted only',
@@ -19672,9 +19746,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const safeKeyId = key.replace(/[^a-z0-9]/gi, '_');
       const _tgData = (inputData && inputData.tripGenVpd) ? inputData.tripGenVpd : {};
       const _totalTgVpd = ['EAST', 'WEST', 'NORTH', 'SOUTH'].reduce((s, d) => s + Math.max(0, Number(_tgData[d]) || 0), 0);
+      const weightedVolumeSum = Math.max(0, Math.round(Number(estimateMeta.weightedVolumeSum) || 0));
+      const activeWeightPercent = Math.max(0, Number(estimateMeta.totalWeightPercent) || 0);
 
       const row = document.createElement('div');
-      row.style.cssText = 'display: grid; grid-template-columns: 1.2fr 0.8fr 0.8fr 0.7fr; gap: 8px; align-items: end; background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;';
+      row.style.cssText = 'display: grid; grid-template-columns: 1.15fr 0.78fr 0.82fr 0.8fr 0.62fr; gap: 8px; align-items: end; background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;';
       row.innerHTML = `
         <div style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid #e1bee7; margin-bottom: 2px; flex-wrap: wrap;">
           <span style="font-size: 0.75em; font-weight: 700; color: #4a148c; white-space: nowrap;">⚙️ Base VPD Method:</span>
@@ -19687,14 +19763,20 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         <div>
           <label style="color: #6a1b9a; font-size: 0.75em;">Road</label>
           <input type="text" value="${roadName.replace(/"/g, '&quot;')}" readonly style="border: 1px solid #ce93d8; background: #f8f2fb; width: 100%;" />
-          <div style="font-size: 0.72em; color: ${hasEstimate ? '#8e24aa' : '#c62828'}; margin-top: 2px;">${hasEstimate ? `${String(estimateMeta.source || 'Estimated')} • ${Number(estimateMeta.refsCount) || 0} refs • user-entered % only` : 'No reference counters within 5 km to estimate Base VPD.'}</div>
+          <div style="font-size: 0.72em; color: ${hasEstimate ? '#8e24aa' : '#c62828'}; margin-top: 2px;">${hasEstimate ? `${String(estimateMeta.source || 'Estimated')} • ${Number(estimateMeta.refsCount) || 0} refs • ${numberRoundUp(activeWeightPercent, 0)}% active selected` : 'No reference counters within 5 km to estimate road VPD.'}</div>
         </div>
         <div data-datapoints-section="${safeKeyAttr}" style="${vpdMethod === 'tripgen' ? 'display:none;' : ''}">
-          <label style="color: ${hasEstimate ? '#6a1b9a' : '#c62828'}; font-size: 0.75em;">Datapoints Base VPD (Editable)</label>
-          <input type="number" class="detour-base-vpd-display" data-detour-base-key="${key}" data-detour-manual-key="${key}" data-detour-manual-field="baseVpd" value="${baseEstimate}" min="0" step="1" style="border: 1px solid ${hasEstimate ? '#ce93d8' : '#e53935'}; background: #fff; width: 100%;" />
+          <label style="color: ${hasEstimate ? '#6a1b9a' : '#c62828'}; font-size: 0.75em;">Weighted Volume Sum (% × VPD)</label>
+          <input type="text" class="detour-weighted-volume-display" data-detour-weight-key="${key}" value="${weightedVolumeSum.toLocaleString()}" readonly style="border: 1px solid ${hasEstimate ? '#ce93d8' : '#e53935'}; background: #f8f2fb; width: 100%;" />
+          <div style="font-size: 0.71em; color: ${hasEstimate ? '#8e24aa' : '#c62828'}; margin-top: 2px;">Raw selected share before normalization.</div>
         </div>
-        <div data-tripgen-section="${safeKeyAttr}" style="${vpdMethod === 'tripgen' ? '' : 'display:none;'}">
-          <label style="color: #2a4045; font-size: 0.75em;">🚗 Trip Gen Base VPD (resolved)</label>
+        <div data-datapoints-section="${safeKeyAttr}" style="${vpdMethod === 'tripgen' ? 'display:none;' : ''}">
+          <label style="color: ${hasEstimate ? '#6a1b9a' : '#c62828'}; font-size: 0.75em;">Current Road VPD (Used for Capacity)</label>
+          <input type="text" class="detour-base-vpd-display" data-detour-base-key="${key}" value="${baseEstimate.toLocaleString()}" readonly style="border: 1px solid ${hasEstimate ? '#ce93d8' : '#e53935'}; background: #f8f2fb; width: 100%;" />
+          <div style="font-size: 0.71em; color: ${hasEstimate ? '#8e24aa' : '#c62828'}; margin-top: 2px;">Normalized by active selected weight.</div>
+        </div>
+        <div data-tripgen-section="${safeKeyAttr}" style="${vpdMethod === 'tripgen' ? 'grid-column: span 2;' : 'display:none;'}">
+          <label style="color: #2a4045; font-size: 0.75em;">🚗 Current Road VPD (Trip Gen Resolved)</label>
           <div style="border: 1px solid ${_totalTgVpd > 0 ? '#66bb6a' : '#ffb300'}; background: ${_totalTgVpd > 0 ? '#e8f5e9' : '#fff8e1'}; border-radius: 4px; padding: 6px 8px; font-size: 0.9em; font-weight: 700; color: ${_totalTgVpd > 0 ? '#1b5e20' : '#856404'}; text-align: center;">${_totalTgVpd > 0 ? _totalTgVpd.toLocaleString() + ' vpd' : '— run calculator above'}</div>
         </div>
         <div>
@@ -19793,7 +19875,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
         const refsTitle = document.createElement('div');
         refsTitle.style.cssText = 'font-size: 0.76em; color: #6a1b9a; font-weight: 700; margin-bottom: 6px;';
-        refsTitle.textContent = 'Nearby datapoints weight (%) — Base VPD uses only user-entered % values';
+        refsTitle.textContent = 'Nearby datapoints weight (%) — weighted volume sum uses selected % values; current road VPD normalizes by the active selected total.';
         refsWrap.appendChild(refsTitle);
 
         const totalBadge = document.createElement('div');
@@ -19974,8 +20056,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       window.detourManualRoadInputs[manualKey] = existing;
 
       if (options && options.liveOnly) {
+        const weightedDisplayEl = bodyEl.querySelector(`.detour-weighted-volume-display[data-detour-weight-key="${manualKey}"]`);
         const baseDisplayEl = bodyEl.querySelector(`.detour-base-vpd-display[data-detour-base-key="${manualKey}"]`);
-        if (baseDisplayEl) baseDisplayEl.value = String(Math.max(0, Math.round(existing.baseVpd || 0)));
+        if (weightedDisplayEl) weightedDisplayEl.value = Math.max(0, Math.round(Number(estimate.weightedVolumeSum) || 0)).toLocaleString();
+        if (baseDisplayEl) baseDisplayEl.value = Math.max(0, Math.round(existing.baseVpd || 0)).toLocaleString();
         calculateDetourOverlay();
         return;
       }
@@ -21013,7 +21097,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     });
 
     summaryEl.style.display = 'block';
-    summaryEl.innerHTML = '<div style="font-weight: 700; color: #4a148c; margin-bottom: 12px; font-size: 1rem;">📊 Detour Road Capacity Summary</div><div style="font-size: 0.78em; color: #7b1fa2; margin-top: -6px; margin-bottom: 10px;">Status uses hourly demand basis. Daily diverted VPD is converted to 80th highest-hour volume for card checks.</div>';
+  summaryEl.innerHTML = '<div style="font-weight: 700; color: #4a148c; margin-bottom: 12px; font-size: 1rem;">📊 Detour Road Capacity Summary</div><div style="font-size: 0.78em; color: #7b1fa2; margin-top: -6px; margin-bottom: 10px;">For datapoint mode, <strong>Weighted Volume Sum</strong> is the raw selected share (% × VPD). <strong>Current Road VPD Used for Capacity</strong> is the normalized value adopted in the model. Daily diverted VPD is converted to 80th highest-hour volume for the capacity checks below.</div>';
 
     // 2. Render Box-like output
     const container = document.createElement('div');
@@ -21047,8 +21131,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const card = document.createElement('div');
       card.className = 'detour-card';
       const roadInputData = getDetourManualRoadInput(roadName) || {};
+      const estimateMeta = roadInputData.estimateMeta || {};
       const speedLimitKmh = Math.max(10, Number(roadInputData.speedLimitKmh) || 60);
       const vpdMethodUsed = (roadInputData && roadInputData.vpdMethod) || 'datapoints';
+      const weightedVolumeSum = Math.max(0, Math.round(Number(estimateMeta.weightedVolumeSum) || 0));
+      const activeWeightPercent = Math.max(0, Number(estimateMeta.totalWeightPercent) || 0);
+      const laneCount = Math.max(1, Number(model.laneCount) || 1);
+      const perLaneCapacity = Math.max(0, Number(model.perLaneCapacity) || 0);
       const capInputs = model.capacityInputs || {};
       const capBaseLaneCapacity = Number(capInputs.baseLaneCapacity);
       const capLaneWidth = Number(capInputs.laneWidth);
@@ -21061,15 +21150,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       card.innerHTML = `
         <h4>🛣️ ${roadName}</h4>
         <p><strong>Legal Speed Limit:</strong> ${speedLimitKmh} km/h</p>
-        <p><strong>Base VPD</strong>${methodBadge}<strong>:</strong> ${baseVpd.toLocaleString()} vpd</p>
-        <p><strong>Base Peak Hour (80th):</strong> ${basePeakHourVol.toLocaleString()} vph</p>
-        <p><strong>Target Year Diverted VPD:</strong> +${divertedVpd.toLocaleString()} vpd</p>
-        <p><strong>Target Year Diverted Peak Hour (80th):</strong> +${divertedPeakHourVol.toLocaleString()} vph</p>
-        <p><strong>Total Demand VPD (Base + Target):</strong> ${totalDemandVpd.toLocaleString()} vpd</p>
-        <p><strong>Total Demand Peak Hour (80th):</strong> ${totalDemandPeakHourVol.toLocaleString()} vph</p>
-        <p><strong>Total Road Capacity:</strong> ${totalCapacity.toLocaleString()} vph</p>
+        ${vpdMethodUsed === 'tripgen' ? '' : `<p><strong>Weighted Volume Sum (% × VPD):</strong> ${weightedVolumeSum.toLocaleString()} vpd</p>`}
+        ${vpdMethodUsed === 'tripgen' ? '' : `<p><strong>Active Selected Weight:</strong> ${numberRoundUp(activeWeightPercent, 0)}%</p>`}
+        <p><strong>Current Road VPD Used for Capacity</strong>${methodBadge}<strong>:</strong> ${baseVpd.toLocaleString()} vpd</p>
+        <p><strong>Current Road Peak Hour (80th):</strong> ${basePeakHourVol.toLocaleString()} vph</p>
+        <p><strong>Added Diverted Demand (Target Year):</strong> +${divertedVpd.toLocaleString()} vpd</p>
+        <p><strong>Added Diverted Peak Hour (80th):</strong> +${divertedPeakHourVol.toLocaleString()} vph</p>
+        <p><strong>Total Assessed Demand VPD:</strong> ${totalDemandVpd.toLocaleString()} vpd</p>
+        <p><strong>Total Assessed Peak Hour (80th):</strong> ${totalDemandPeakHourVol.toLocaleString()} vph</p>
+        <p><strong>Capacity Basis:</strong> ${laneCount} lanes × ${numberRoundUp(perLaneCapacity, 0)} vph/lane = ${totalCapacity.toLocaleString()} vph total</p>
         <p><strong>Worst Direction Capacity:</strong> ${worstDirectionalCapacity > 0 ? `${worstDirectionalCapacity.toLocaleString()} vph${worstDirection !== '-' ? ` (${worstDirection})` : ''}` : '-'}</p>
-        <p><strong>Capacity Inputs:</strong> Base ${Number.isFinite(capBaseLaneCapacity) ? numberRoundUp(capBaseLaneCapacity, 0) : '-'} vph/lane, ${Number.isFinite(capLaneWidth) ? numberRoundUp(capLaneWidth, 2) : '-'}m lane, ${Number.isFinite(capClearance) ? numberRoundUp(capClearance, 2) : '-'}m clearance, HV ${Number.isFinite(capHvPct) ? numberRoundUp(capHvPct, 1) : '-'}%, ${capGradeType}</p>
+        <p><strong>Capacity Inputs Applied:</strong> base ${Number.isFinite(capBaseLaneCapacity) ? numberRoundUp(capBaseLaneCapacity, 0) : '-'} vph/lane, ${Number.isFinite(capLaneWidth) ? numberRoundUp(capLaneWidth, 2) : '-'}m lane, ${Number.isFinite(capClearance) ? numberRoundUp(capClearance, 2) : '-'}m clearance, HV ${Number.isFinite(capHvPct) ? numberRoundUp(capHvPct, 1) : '-'}%, ${capGradeType}</p>
         <p><strong>Worst Period VCR:</strong> ${numberRoundUp(maxNewVcr, 2)}${worstPeriod !== '-' ? ` (${worstPeriod})` : ''}</p>
         <p><strong>Worst Direction Hourly V/C:</strong> ${numberRoundUp(statusVcr, 2)}</p>
         <p style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e1ded8;"><strong>${statusEmoji} Directional Capacity Status:</strong> ${statusText}</p>
@@ -21098,15 +21189,19 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     });
 
     bannerEl.style.display = 'block';
-    let html = '<div style="font-weight:700; color:#1b5e20; margin-bottom:8px; font-size:0.9em;">📋 Resolved Base VPD (active method per road) — used for VCR calculation</div>';
+    let html = '<div style="font-weight:700; color:#1b5e20; margin-bottom:8px; font-size:0.9em;">📋 Road VPD adopted in detour capacity checks</div>';
+    html += '<div style="font-size:0.78em; color:#2e7d32; margin-bottom:8px;">Datapoint mode shows both the raw weighted volume sum and the normalized current-road VPD used in VCR/capacity calculations.</div>';
     html += '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px;">';
 
     uniqueRoads.forEach(model => {
       const roadName = model.roadName;
       const roadInput = getDetourManualRoadInput(roadName) || {};
+      const estimateMeta = roadInput.estimateMeta || {};
       const vpdMethod = (roadInput && roadInput.vpdMethod) || 'datapoints';
       const baseVpd = Math.max(0, Number(model.baseVpd) || 0);
       const basePeakHour = convertDailyVpdTo80thHourly(baseVpd);
+      const weightedVolumeSum = Math.max(0, Math.round(Number(estimateMeta.weightedVolumeSum) || 0));
+      const activeWeightPercent = Math.max(0, Number(estimateMeta.totalWeightPercent) || 0);
       const isTrip = vpdMethod === 'tripgen';
       const methodLabel = isTrip ? '🚗 Trip Generation' : '📡 Nearby Datapoints';
       const borderColor = isTrip ? '#a5d6a7' : '#ce93d8';
@@ -21116,8 +21211,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         <div style="background:${bgColor}; border:1px solid ${borderColor}; border-radius:6px; padding:8px;">
           <div style="font-size:0.72em; font-weight:700; color:${labelColor}; margin-bottom:3px;">${methodLabel}</div>
           <div style="font-size:0.73em; color:#555; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${roadName}">🛣️ ${roadName}</div>
-          <div style="font-size:1.05em; font-weight:700; color:#2e7d32;">${baseVpd.toLocaleString()} <span style="font-size:0.75em; font-weight:400; color:#555;">vpd</span></div>
-          <div style="font-size:0.78em; color:#388e3c; margin-top:2px;">80th hr peak: ${basePeakHour.toLocaleString()} vph</div>
+          ${isTrip ? '' : `<div style="font-size:0.76em; color:${labelColor};">Weighted sum: ${weightedVolumeSum.toLocaleString()} vpd</div>`}
+          ${isTrip ? '' : `<div style="font-size:0.76em; color:${labelColor};">Active selected weight: ${numberRoundUp(activeWeightPercent, 0)}%</div>`}
+          <div style="font-size:1.05em; font-weight:700; color:#2e7d32; margin-top:${isTrip ? '0' : '4px'};">${baseVpd.toLocaleString()} <span style="font-size:0.75em; font-weight:400; color:#555;">vpd used</span></div>
+          <div style="font-size:0.78em; color:#388e3c; margin-top:2px;">80th hr peak used: ${basePeakHour.toLocaleString()} vph</div>
         </div>
       `;
     });

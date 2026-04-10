@@ -628,11 +628,14 @@ def _collect_chart_items(payload: dict[str, Any]) -> list[dict[str, str]]:
     image_data_url = _safe_text(chart.get("image_data_url"), "")
     if not image_data_url.startswith("data:image/"):
       continue
+    raw_table_ids = chart.get("table_ids", []) if isinstance(chart.get("table_ids"), list) else []
+    table_ids = [_safe_text(item, "") for item in raw_table_ids if _safe_text(item, "")]
     chart_items.append(
       {
         "title": _safe_text(chart.get("title"), f"Chart {idx + 1}"),
         "image": image_data_url,
         "canvas_id": _safe_text(chart.get("canvas_id"), ""),
+        "table_ids": table_ids,
       }
     )
 
@@ -724,6 +727,30 @@ def _select_charts_for_table(
   table_data: dict[str, Any],
   chart_items: list[dict[str, str]],
 ) -> list[dict[str, str]]:
+  table_id = _normalize_title_key(table_data.get("table_id"))
+  explicit_matches: list[dict[str, str]] = []
+  has_explicit_links = False
+
+  for chart_item in chart_items:
+    raw_table_ids = chart_item.get("table_ids") if isinstance(chart_item, dict) else None
+    if not isinstance(raw_table_ids, list) or not raw_table_ids:
+      continue
+    normalized_table_ids = {
+      _normalize_title_key(item)
+      for item in raw_table_ids
+      if _safe_text(item, "")
+    }
+    if not normalized_table_ids:
+      continue
+    has_explicit_links = True
+    if table_id and table_id in normalized_table_ids:
+      explicit_matches.append(chart_item)
+
+  if explicit_matches:
+    return explicit_matches[:2]
+  if has_explicit_links:
+    return []
+
   scored: list[tuple[int, dict[str, str]]] = []
   for chart_item in chart_items:
     score = _score_chart_match(table_data, chart_item)
