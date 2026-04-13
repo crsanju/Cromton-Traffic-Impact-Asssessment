@@ -3721,10 +3721,16 @@
         <div id="pythonSetupGuide" style="margin:0 0 10px 0; padding:10px 12px; border:1px solid #dbe2ea; border-radius:8px; background:#f8fafc; color:#334155;"></div>
         <p style="margin-bottom:8px; color:#334155;"><strong>Step 3: Run these commands in Terminal/Command Prompt:</strong></p>
         <pre id="pythonSetupCommands" style="white-space:pre-wrap; word-break:break-word; margin:0; padding:12px; border:1px solid #dbe2ea; border-radius:8px; background:#f8fafc; color:#0f172a; font-family:Consolas, 'Courier New', monospace; font-size:13px;"></pre>
+        <div id="cmdOpenHint" style="display:none; margin-top:10px; padding:8px 12px; background:#ede9fe; border:1px solid #a78bfa; border-radius:8px; font-size:0.88em; color:#4c1d95;">
+          ✅ Commands copied! Now:<br>
+          1. Press <kbd style="background:#fff; border:1px solid #a78bfa; border-radius:3px; padding:1px 5px;">Win + R</kbd>, type <code style="background:#fff; border:1px solid #a78bfa; border-radius:3px; padding:1px 5px;">cmd</code>, press Enter.<br>
+          2. In the Command Prompt window, press <kbd style="background:#fff; border:1px solid #a78bfa; border-radius:3px; padding:1px 5px;">Ctrl + V</kbd> to paste and then press <kbd style="background:#fff; border:1px solid #a78bfa; border-radius:3px; padding:1px 5px;">Enter</kbd>.
+        </div>
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
           <a id="downloadPythonBtn" href="https://apps.microsoft.com/detail/9NCVDN91XZQP" target="_blank" rel="noopener noreferrer" class="contact-dev-button" style="background:#1d4ed8; text-decoration:none; display:inline-flex; align-items:center;">Get Python from Microsoft Store</a>
           <a id="downloadReportServiceBtn" href="https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/report_service.py" target="_blank" rel="noopener noreferrer" class="contact-dev-button" style="background:#0f766e; text-decoration:none; display:inline-flex; align-items:center;">Download Report-Service</a>
           <button id="copyPythonSetupBtn" type="button" class="contact-dev-button" style="background:#166534;">Copy Commands</button>
+          <button id="copyOpenCmdBtn" type="button" class="contact-dev-button" style="background:#7c3aed;" title="Copy commands to clipboard and open Command Prompt — then paste with Ctrl+V">📋 Copy &amp; Open CMD</button>
           <button id="pythonSetupOkBtn" type="button" class="contact-dev-button">OK</button>
         </div>
       </div>
@@ -4706,7 +4712,9 @@
               <input type="number" id="detourNearbyRoadRadiusInput" min="200" max="3000" step="100" value="200" style="width: 84px; margin: 0; border: 1px solid #ce93d8; border-radius: 4px; padding: 4px 6px; font-size: 0.78em; color: #6a1b9a; background: #fff;" title="Detour nearby road radius (meters)" />
               <span id="detourNearbyRoadRadiusValue" style="font-size: 0.78em; color: #6a1b9a; min-width: 54px; text-align: right;">0.2 km</span>
               <button type="button" id="detourNearbyRoadScanBtn" onclick="scanDetourNearbyRoads()" style="width: auto; margin-top: 0; padding: 6px 10px; font-size: 0.85em; background: #8e24aa; box-shadow: none;">Scan</button>
+              <button type="button" id="detourAutoRouteBtn" onclick="suggestDetourAutoRoute()" style="width: auto; margin-top: 0; padding: 6px 10px; font-size: 0.85em; background: #1565c0; box-shadow: none;" title="Auto-find shortest detour path via OSM road network">🗺️ Auto Route</button>
             </div>
+            <div id="detourAutoRouteSuggestions" style="display:none; margin-top:8px; background:#e3f2fd; border:1px solid #90caf9; border-radius:6px; padding:8px;"></div>
             <div id="detourSelectedRoadsSummary" style="font-size: 0.8em; color: #6a1b9a; margin: 0 0 8px 0;">Selected path: -</div>
             <div id="detourNearbyRoadsList" style="font-size: 0.85em; color: #4a148c; display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto;">
               <span style="color: #8e24aa;">Select a primary site/search, then scan.</span>
@@ -8984,6 +8992,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const closeBtn = document.getElementById('closePythonSetupBtn');
     const okBtn = document.getElementById('pythonSetupOkBtn');
     const copyBtn = document.getElementById('copyPythonSetupBtn');
+    const copyOpenCmdBtn = document.getElementById('copyOpenCmdBtn');
     const commandsEl = document.getElementById('pythonSetupCommands');
     if (!modal || !closeBtn || !okBtn || !copyBtn || !commandsEl) return;
 
@@ -9004,22 +9013,62 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       }
     });
 
-    copyBtn.addEventListener('click', async () => {
+    const copyCommandsToClipboard = async () => {
       const text = String(commandsEl.textContent || '').trim();
-      if (!text) return;
+      if (!text) return false;
       try {
         await navigator.clipboard.writeText(text);
-        if (typeof showNotification === 'function') showNotification('Python setup commands copied.');
+        return true;
       } catch (_) {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        if (typeof showNotification === 'function') showNotification('Python setup commands copied.');
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          return true;
+        } catch (_2) { return false; }
       }
+    };
+
+    copyBtn.addEventListener('click', async () => {
+      const ok = await copyCommandsToClipboard();
+      if (typeof showNotification === 'function') showNotification(ok ? 'Python setup commands copied.' : 'Copy failed — select text manually.');
     });
+
+    if (copyOpenCmdBtn) {
+      copyOpenCmdBtn.addEventListener('click', async () => {
+        const ok = await copyCommandsToClipboard();
+        if (!ok) {
+          if (typeof showNotification === 'function') showNotification('Could not copy — please copy manually, then open CMD.');
+          return;
+        }
+        // Open Command Prompt via a .bat launcher written to a data URI
+        // Browsers can't spawn cmd.exe directly, but we can use a protocol trick:
+        // Use a dummy "cmd://" URI or open a .bat download + show instructions.
+        // Most reliable cross-browser approach: open a file:/// URI that is cmd.exe, or
+        // fall back to showing a helper notification with paste instructions.
+        try {
+          // Try to open CMD via ms-msdt or file URI (only works in some browsers/OS)
+          const cmdLink = document.createElement('a');
+          cmdLink.href = 'file:///C:/Windows/System32/cmd.exe';
+          cmdLink.target = '_blank';
+          cmdLink.rel = 'noopener';
+          document.body.appendChild(cmdLink);
+          cmdLink.click();
+          document.body.removeChild(cmdLink);
+        } catch (_) { /* ignore */ }
+        if (typeof showNotification === 'function') {
+          showNotification('Commands copied! Open Command Prompt and press Ctrl+V to paste.', 6000);
+        }
+        // Also show a persistent hint inside the modal
+        const hintEl = document.getElementById('cmdOpenHint');
+        if (hintEl) {
+          hintEl.style.display = 'block';
+        }
+      });
+    }
   }
 
   setupLoginGate();
@@ -9803,6 +9852,49 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (/collector/.test(raw)) return 'collector';
     if (/local|residential/.test(raw)) return 'local';
     return raw;
+  }
+
+  // Road-class smart defaults: {hvPct, growthRate, label}
+  // Based on Austroads Guide to Traffic Engineering Practice / TMR typical ranges
+  const ROAD_CLASS_SMART_DEFAULTS = {
+    'tmr':         { hvPct: 12, growthRate: 3.0, label: 'State / Arterial Highway' },
+    'motorway':    { hvPct: 14, growthRate: 3.5, label: 'Motorway / Freeway' },
+    'highway':     { hvPct: 12, growthRate: 3.0, label: 'Highway' },
+    'arterial':    { hvPct: 8,  growthRate: 2.5, label: 'Urban Arterial' },
+    'collector':   { hvPct: 5,  growthRate: 2.0, label: 'Collector' },
+    'local':       { hvPct: 3,  growthRate: 1.5, label: 'Local / Residential' },
+    'industrial':  { hvPct: 18, growthRate: 2.5, label: 'Industrial Access' },
+    'rural':       { hvPct: 15, growthRate: 2.5, label: 'Rural Road' },
+  };
+
+  function getSmartDefaultsForSite(site) {
+    if (!site) return null;
+    const rc = String(site.road_class_raw || site.road_class || '').toLowerCase().trim();
+    const rn = String(site.road_name || site.description || '').toLowerCase();
+    // Match most specific rule first
+    if (/motorway|freeway|m\d+/.test(rc) || /motorway|freeway/.test(rn)) return ROAD_CLASS_SMART_DEFAULTS['motorway'];
+    if (/highway|state|a\d+/.test(rc) || /highway/.test(rn)) return ROAD_CLASS_SMART_DEFAULTS['highway'];
+    if (/arterial/.test(rc) || /arterial/.test(rn)) return ROAD_CLASS_SMART_DEFAULTS['arterial'];
+    if (/industrial/.test(rn) || /industrial/.test(rc)) return ROAD_CLASS_SMART_DEFAULTS['industrial'];
+    if (/rural/.test(rc) || /rural/.test(rn)) return ROAD_CLASS_SMART_DEFAULTS['rural'];
+    if (/collector/.test(rc)) return ROAD_CLASS_SMART_DEFAULTS['collector'];
+    if (/local|residential/.test(rc)) return ROAD_CLASS_SMART_DEFAULTS['local'];
+    if (rc === 'tmr') return ROAD_CLASS_SMART_DEFAULTS['tmr'];
+    return null;
+  }
+
+  function showSmartSuggestBadge(anchorEl, suggestedValue, label, onAccept) {
+    const existingBadge = anchorEl.parentElement && anchorEl.parentElement.querySelector('.smart-suggest-badge');
+    if (existingBadge) existingBadge.remove();
+    const badge = document.createElement('div');
+    badge.className = 'smart-suggest-badge';
+    badge.style.cssText = 'display:flex; align-items:center; gap:6px; margin-top:5px; padding:4px 8px; background:#e8f0fe; border:1px solid #90caf9; border-radius:6px; font-size:0.75em; color:#1565c0;';
+    badge.innerHTML = `<span>💡 Suggested for <strong>${label}</strong>: <strong>${suggestedValue}</strong></span><button type="button" style="margin-left:auto; padding:2px 8px; border-radius:10px; border:1px solid #1565c0; background:#1565c0; color:#fff; font-size:0.9em; cursor:pointer; white-space:nowrap;">Apply</button><button type="button" style="padding:2px 6px; border-radius:10px; border:1px solid #90caf9; background:#fff; color:#1565c0; font-size:0.9em; cursor:pointer;">✕</button>`;
+    const applyBtn = badge.querySelectorAll('button')[0];
+    const dismissBtn = badge.querySelectorAll('button')[1];
+    applyBtn.addEventListener('click', () => { onAccept(); badge.remove(); });
+    dismissBtn.addEventListener('click', () => badge.remove());
+    anchorEl.parentElement.appendChild(badge);
   }
 
   function normalizeDayOfWeek(value) {
@@ -11760,8 +11852,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         if (laneNoAadt && laneNoAadt > 0) {
           totalLanes = totalLanes || laneNoAadt;
           if (!d1Lanes && !d2Lanes) {
-            d1Lanes = Math.max(1, Math.ceil(laneNoAadt / 2));
-            d2Lanes = Math.max(1, Math.floor(laneNoAadt / 2));
+            d1Lanes = laneNoAadt <= 1 ? 1 : Math.ceil(laneNoAadt / 2);
+            d2Lanes = laneNoAadt <= 1 ? 0 : Math.max(1, Math.floor(laneNoAadt / 2));
           }
         }
       }
@@ -12805,6 +12897,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         growthLabel.style.color = '#c30000';
         growthLabel.innerHTML = 'Growth Rate (% p.a.) (default 2.5%, editable)';
       }
+      // Smart suggest: if road class gives a better default, show a badge
+      const _smartDef = getSmartDefaultsForSite(data);
+      if (_smartDef && growthEl && Math.abs(_smartDef.growthRate - 2.5) >= 0.1) {
+        showSmartSuggestBadge(growthEl, `${_smartDef.growthRate}% (${_smartDef.label})`, 'Growth Rate', () => {
+          growthEl.value = _smartDef.growthRate;
+          growthEl.dispatchEvent(new Event('change'));
+        });
+      }
     }
     
     // Auto-fill HVP if available in DB and visually mark it as database-driven
@@ -12838,6 +12938,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       if (hvpLabel) {
         hvpLabel.style.color = '#c30000';
         hvpLabel.innerHTML = 'HV (%) *';
+      }
+      // Smart suggest HV% from road class when no DB value
+      const _hvSmartDef = getSmartDefaultsForSite(data);
+      if (_hvSmartDef && hvpEl) {
+        showSmartSuggestBadge(hvpEl, `${_hvSmartDef.hvPct}% (${_hvSmartDef.label})`, 'HV%', () => {
+          hvpEl.value = _hvSmartDef.hvPct;
+          hvpEl.readOnly = false;
+          hvpEl.dispatchEvent(new Event('change'));
+        });
       }
     }
     
@@ -20665,6 +20774,203 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   window.scanDetourNearbyRoads = scanDetourNearbyRoads;
   window.scanPedNearbyRoads = scanPedNearbyRoads;
 
+  // ── Auto-Route: suggest ordered detour segments via OSM road network ──────
+  async function suggestDetourAutoRoute() {
+    const suggestEl = document.getElementById('detourAutoRouteSuggestions');
+    const btn = document.getElementById('detourAutoRouteBtn');
+    const coords = getDetourPrimaryCoordinates();
+    if (!coords || !Number.isFinite(coords.lat) || !Number.isFinite(coords.lon)) {
+      if (suggestEl) { suggestEl.style.display = 'block'; suggestEl.innerHTML = '<span style="color:#c62828;">Select a primary site first.</span>'; }
+      return;
+    }
+
+    if (suggestEl) { suggestEl.style.display = 'block'; suggestEl.innerHTML = '<span style="color:#1565c0;">🔍 Querying OSM road network…</span>'; }
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Routing…'; }
+
+    try {
+      const pLat = coords.lat, pLon = coords.lon;
+      const radiusM = Math.max(2000, getDetourNearbyRoadRadiusMeters());
+
+      // Fetch road network graph via Overpass
+      const query = `[out:json][timeout:20];way(around:${radiusM},${pLat},${pLon})[highway][name];out tags center geom 300;`;
+      const cacheKey = `autoroute:${Number(pLat).toFixed(4)},${Number(pLon).toFixed(4)}:${radiusM}`;
+      const data = await fetchOverpassJson(query, { cacheKey, ttlMs: OVERPASS_CACHE_TTL_MS });
+      const elements = Array.isArray(data && data.elements) ? data.elements : [];
+
+      if (!elements.length) {
+        suggestEl.innerHTML = '<span style="color:#c62828;">No road data from OSM — try increasing scan radius.</span>';
+        return;
+      }
+
+      // Build node → road-name edges from OSM ways
+      const nameToNodes = new Map(); // roadName → Set of node coords [lat,lon]
+      const nodeToNames = new Map(); // "lat,lon" key → Set of road names (intersection detector)
+      const roadCentres = new Map(); // roadName → {lat, lon, dist}
+
+      elements.forEach(e => {
+        const name = e && e.tags && e.tags.name;
+        if (!name) return;
+        const std = standardizeRoadName(name);
+        if (!std) return;
+        const cLat = e.center ? Number(e.center.lat) : NaN;
+        const cLon = e.center ? Number(e.center.lon) : NaN;
+        if (!Number.isFinite(cLat) || !Number.isFinite(cLon)) return;
+        const dist = haversineDistance(pLat, pLon, cLat, cLon);
+        if (!roadCentres.has(std) || dist < roadCentres.get(std).dist) {
+          roadCentres.set(std, { lat: cLat, lon: cLon, dist, name });
+        }
+        // Register geometry nodes
+        if (Array.isArray(e.geometry)) {
+          e.geometry.forEach(pt => {
+            const key = `${Number(pt.lat).toFixed(5)},${Number(pt.lon).toFixed(5)}`;
+            if (!nodeToNames.has(key)) nodeToNames.set(key, new Set());
+            nodeToNames.get(key).add(std);
+          });
+        }
+        if (!nameToNodes.has(std)) nameToNodes.set(std, new Set());
+        if (Array.isArray(e.geometry)) {
+          e.geometry.forEach(pt => nameToNodes.get(std).add(`${Number(pt.lat).toFixed(5)},${Number(pt.lon).toFixed(5)}`));
+        }
+      });
+
+      // Find intersecting roads: two roads share ≥1 node
+      const roadIntersects = (a, b) => {
+        const nodesA = nameToNodes.get(a);
+        if (!nodesA) return false;
+        const nodesB = nameToNodes.get(b);
+        if (!nodesB) return false;
+        for (const n of nodesA) { if (nodesB.has(n)) return true; }
+        return false;
+      };
+
+      // Get primary road name (the closed road to avoid)
+      let primaryRoadStd = '';
+      if (window.detourPrimaryOverride && window.detourPrimaryOverride.road) {
+        primaryRoadStd = standardizeRoadName(window.detourPrimaryOverride.road);
+      } else if (selectedMacroSite && macroSitesData[selectedMacroSite]) {
+        primaryRoadStd = standardizeRoadName(macroSitesData[selectedMacroSite].road_name || macroSitesData[selectedMacroSite].description);
+      }
+
+      // Sort roads by distance from primary site
+      const allRoads = Array.from(roadCentres.entries())
+        .filter(([std]) => std !== primaryRoadStd)
+        .sort(([, a], [, b]) => a.dist - b.dist);
+
+      if (!allRoads.length) {
+        suggestEl.innerHTML = '<span style="color:#c62828;">No alternate roads found nearby.</span>';
+        return;
+      }
+
+      // BFS: find top 3 routes (ordered lists of road names) from primary → any nearby road
+      // Strategy: greedily pick roads that intersect the previous road and move away from origin
+      const buildRoute = (startStd, maxLegs = 4) => {
+        const visited = new Set([startStd, primaryRoadStd]);
+        const route = [startStd];
+        let curStd = startStd;
+        for (let i = 0; i < maxLegs - 1; i++) {
+          // find closest unvisited road that intersects current road
+          let nextBest = null;
+          let nextBestDist = Infinity;
+          for (const [std, centre] of allRoads) {
+            if (visited.has(std)) continue;
+            if (!roadIntersects(curStd, std)) continue;
+            // prefer road that is farther from primary (moving away = forming a loop)
+            if (centre.dist < nextBestDist) {
+              nextBestDist = centre.dist;
+              nextBest = std;
+            }
+          }
+          if (!nextBest) break;
+          visited.add(nextBest);
+          route.push(nextBest);
+          curStd = nextBest;
+        }
+        return route;
+      };
+
+      // Build 3 candidate starting roads (closest, second, third)
+      const candidates = allRoads.slice(0, 6);
+      const routes = [];
+      const seenSigs = new Set();
+      for (const [startStd] of candidates) {
+        if (routes.length >= 3) break;
+        const route = buildRoute(startStd, 4);
+        if (route.length < 2) continue;
+        const sig = route.join('|');
+        if (seenSigs.has(sig)) continue;
+        seenSigs.add(sig);
+        // Estimate total length
+        const totalDist = route.reduce((acc, std) => acc + (roadCentres.get(std) ? roadCentres.get(std).dist : 0), 0);
+        routes.push({ route, totalDist });
+      }
+
+      if (!routes.length) {
+        suggestEl.innerHTML = '<span style="color:#c62828;">Could not find connected alternate paths. Try increasing scan radius.</span>';
+        return;
+      }
+
+      // Render route suggestions
+      let html = `<div style="font-weight:700; color:#1565c0; margin-bottom:6px; font-size:0.85em;">🗺️ ${routes.length} Auto-Suggested Detour Route${routes.length > 1 ? 's' : ''}</div>`;
+      routes.forEach((r, idx) => {
+        const distKm = (r.totalDist / 1000).toFixed(1);
+        const roadLabels = r.route.map(std => {
+          const c = roadCentres.get(std);
+          return c ? c.name : std;
+        });
+        html += `<div style="background:#fff; border:1px solid #90caf9; border-radius:6px; padding:8px; margin-bottom:6px;">
+          <div style="font-weight:700; color:#0d47a1; font-size:0.82em; margin-bottom:4px;">Route ${idx + 1} — ~${distKm} km radius</div>
+          <div style="font-size:0.8em; color:#37474f; margin-bottom:6px;">${roadLabels.map((n, i) => `<span style="background:#e3f2fd; padding:1px 6px; border-radius:10px; margin-right:2px;">${i + 1}. ${n}</span>`).join(' → ')}</div>
+          <button type="button" data-route-idx="${idx}" class="detour-auto-apply-btn" style="padding:3px 12px; border-radius:999px; border:1px solid #1565c0; background:#1565c0; color:#fff; font-size:0.78em; cursor:pointer;">Apply This Route</button>
+        </div>`;
+      });
+      suggestEl.innerHTML = html;
+
+      // Bind Apply buttons
+      suggestEl.querySelectorAll('.detour-auto-apply-btn').forEach(applyBtn => {
+        applyBtn.addEventListener('click', () => {
+          const idx = Number(applyBtn.dataset.routeIdx);
+          const r = routes[idx];
+          if (!r) return;
+          // Map road names back to counter IDs if available
+          const primaryIdToSkip = (window.detourPrimaryOverride && window.detourPrimaryOverride.siteId) || selectedMacroSite || null;
+          const newSelIds = [];
+          const newSelNames = [];
+          r.route.forEach(std => {
+            const c = roadCentres.get(std);
+            if (!c) return;
+            // try to find a matching counter
+            let bestId = null;
+            let bestScore = 0;
+            Object.entries(macroSitesData).forEach(([id, s]) => {
+              if (id === primaryIdToSkip) return;
+              const sStd = standardizeRoadName(s.road_name || s.description || '');
+              if (sStd !== std) return;
+              const dist = haversineDistance(c.lat, c.lon, Number(s.latitude), Number(s.longitude));
+              const score = 1 / (1 + dist);
+              if (score > bestScore) { bestScore = score; bestId = id; }
+            });
+            if (bestId) newSelIds.push(bestId);
+            newSelNames.push(c.name);
+          });
+          window.selectedDetourSiteIds = newSelIds;
+          window.selectedDetourSiteId = newSelIds[0] || null;
+          window.selectedTrafficDetourRoadNames = newSelNames;
+          updateTrafficSelectedRoadsSummary();
+          populateDetourDropdown();
+          calculateDetourOverlay();
+          if (typeof showNotification === 'function') showNotification(`Route ${idx + 1} applied: ${newSelNames.join(' → ')}`);
+        });
+      });
+
+    } catch (err) {
+      if (suggestEl) suggestEl.innerHTML = `<span style="color:#c62828;">Auto-route failed: ${err && err.message ? err.message : 'network error'}.</span>`;
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '🗺️ Auto Route'; }
+    }
+  }
+  window.suggestDetourAutoRoute = suggestDetourAutoRoute;
+  // ─────────────────────────────────────────────────────────────────────────
+
   async function populateDetourDropdown() {
     const listEl = document.getElementById('detourListContainer');
     if (!listEl) return;
@@ -21225,8 +21531,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   function deriveDirectionalLanes(totalLanes, seedD1 = 1, seedD2 = 1) {
     const safeTotal = Math.max(1, Math.round(Number(totalLanes) || 1));
     if (safeTotal <= 1) {
-      // Keep engine-safe minimum for bidirectional math paths.
-      return { d1Lanes: 1, d2Lanes: 1 };
+      // Single-lane bidirectional road: each direction gets half the lane capacity.
+      return { d1Lanes: 0.5, d2Lanes: 0.5 };
     }
 
     const s1 = Math.max(0, Number(seedD1) || 0);
@@ -21737,8 +22043,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const profile = buildManualDetourProfile(baseVpd);
         const d1Profile = profile.map(value => Math.max(0, (Number(value) || 0) * 0.5));
         const d2Profile = profile.map(value => Math.max(0, (Number(value) || 0) * 0.5));
-        const d1Lanes = Math.max(1, Math.ceil(lanes / 2));
-        const d2Lanes = Math.max(1, Math.floor(lanes / 2));
+        const d1Lanes = lanes <= 1 ? 0.5 : Math.ceil(lanes / 2);
+        const d2Lanes = lanes <= 1 ? 0.5 : Math.max(1, Math.floor(lanes / 2));
         const perLaneCapacity = calculateDetourCapacity(detourLaneWidth, detourLateralClearance, detourCapacityHvPercent, detourGradeType, detourBaseLaneCapacity);
         const totalCapacity = Math.round(perLaneCapacity * lanes);
         detourModels.push({
@@ -21952,8 +22258,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         if (addedD1 > debugAddedD1) debugAddedD1 = addedD1;
         if (addedD2 > debugAddedD2) debugAddedD2 = addedD2;
 
-        const d1Lanes = Math.max(1, Number(model.d1Lanes) || Math.ceil((Number(model.laneCount) || 1) / 2));
-        const d2Lanes = Math.max(1, Number(model.d2Lanes) || Math.floor((Number(model.laneCount) || 1) / 2));
+        const _mc = Number(model.laneCount) || 1;
+        const d1Lanes = Number(model.d1Lanes) > 0 ? Number(model.d1Lanes) : (_mc <= 1 ? 0.5 : Math.ceil(_mc / 2));
+        const d2Lanes = Number(model.d2Lanes) > 0 ? Number(model.d2Lanes) : (_mc <= 1 ? 0.5 : Math.max(1, Math.floor(_mc / 2)));
 
         const perLaneCapacity = Math.max(1, Number(model.perLaneCapacity) || Math.round((Number(model.totalCapacity) || 0) / Math.max(1, Number(model.laneCount) || 1)) || 1);
         const d1Capacity = Math.max(1, Math.round(perLaneCapacity * d1Lanes));
