@@ -19725,7 +19725,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return normalized;
   }
 
-  function estimateDetourRoadBaseVpd(roadName, centerLat, centerLon, manualRefPercents = null, manualRefEnabled = null) {
+  function estimateDetourRoadBaseVpd(roadName, centerLat, centerLon, manualRefPercents = null, manualRefEnabled = null, excludeSiteIds = null) {
     // Use road-specific centroid from OSM scan if available, so distances are measured from
     // the road itself rather than the project center — giving meaningful per-road weights.
     const roadCentroid = window.detourRoadCentroids && window.detourRoadCentroids[roadName];
@@ -19736,12 +19736,16 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return { baseVpd: 0, source: 'No primary location', refsCount: 0, areaType: 'N/A', areaFactorPercent: 100, refs: [] };
     }
 
+    // Exclude the primary site counter so detour road base VPD is not contaminated
+    // by the primary road's traffic volume (e.g. a 69k highway counter inflating a local street).
+    const excludeSet = excludeSiteIds instanceof Set ? excludeSiteIds : new Set(Array.isArray(excludeSiteIds) ? excludeSiteIds : (excludeSiteIds ? [excludeSiteIds] : []));
+
     const allSites = Object.entries(macroSitesData || {}).map(([id, data]) => {
       const sLat = Number(data && data.latitude);
       const sLon = Number(data && data.longitude);
       const dist = (Number.isFinite(sLat) && Number.isFinite(sLon)) ? haversineDistance(lat, lon, sLat, sLon) : Infinity;
       return { id, data, dist };
-    }).filter(item => Number.isFinite(item.dist) && item.dist <= radius && Number(item.data && item.data.vadt) > 0);
+    }).filter(item => Number.isFinite(item.dist) && item.dist <= radius && Number(item.data && item.data.vadt) > 0 && !excludeSet.has(item.id));
 
     const sameRoadSites = allSites
       .filter(item => isSameRoad(roadName, item.data && (item.data.road_name || item.data.description || '')))
@@ -20181,8 +20185,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const coords = getDetourPrimaryCoordinates();
       if (!coords || !Number.isFinite(coords.lat) || !Number.isFinite(coords.lon)) return;
 
+      const _primarySiteId = String((document.getElementById('macroSiteSearch') && document.getElementById('macroSiteSearch').value) || '').trim() || selectedMacroSite || '';
       const existing = window.detourManualRoadInputs[manualKey] || getDetourManualRoadInput(roadName) || { lanes: 2, refPercents: {}, refEnabled: {} };
-      const estimate = estimateDetourRoadBaseVpd(roadName, coords.lat, coords.lon, existing.refPercents || {}, existing.refEnabled || {});
+      const estimate = estimateDetourRoadBaseVpd(roadName, coords.lat, coords.lon, existing.refPercents || {}, existing.refEnabled || {}, _primarySiteId);
 
       const forceEstimate = !!(options && options.forceEstimate);
       const hasManualOverride = !!existing.baseVpdManual && (Math.max(0, Number(existing.baseVpd) || 0) > 0);
@@ -20342,8 +20347,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const key = getDetourManualRoadKey(cleanRoadName);
     if (!key) return false;
+    const _primarySiteId = String((document.getElementById('macroSiteSearch') && document.getElementById('macroSiteSearch').value) || '').trim() || selectedMacroSite || '';
     const existing = getDetourManualRoadInput(cleanRoadName) || { lanes: 2, refPercents: {}, refEnabled: {} };
-    const estimate = estimateDetourRoadBaseVpd(cleanRoadName, coords.lat, coords.lon, existing.refPercents || {}, existing.refEnabled || {});
+    const estimate = estimateDetourRoadBaseVpd(cleanRoadName, coords.lat, coords.lon, existing.refPercents || {}, existing.refEnabled || {}, _primarySiteId);
 
     existing.baseVpd = Math.max(0, Number(estimate.baseVpd) || 0);
     existing.baseVpdManual = false;
@@ -21539,22 +21545,26 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       if (matchedSite) {
         const defaultLanes = Math.max(1, Number((matchedSite.d1_lanes || 1) + (matchedSite.d2_lanes || 1)) || 2);
         const safeBaseVpd = Math.max(0, Number(existingManual.baseVpd));
-        const estimate = estimateDetourRoadBaseVpd(roadName, pLat, pLon, existingManual.refPercents || {}, existingManual.refEnabled || {});
+        const estimate = estimateDetourRoadBaseVpd(roadName, pLat, pLon, existingManual.refPercents || {}, existingManual.refEnabled || {}, primarySiteId);
         const estimatedBase = Math.max(0, Number(estimate.baseVpd) || 0);
         const matchedCounterBase = Math.max(0, Number(matchedSite.vadt) || 0);
         const resolvedBase = estimatedBase > 0 ? estimatedBase : matchedCounterBase;
+        // Only preserve old baseVpd if it was explicitly set by the user (manual override).
+        // Previously, any positive safeBaseVpd (even from a stale auto-estimate) was kept,
+        // preventing updated estimates from taking effect when user adjusts reference weights.
+        const keepManualMatched = !!existingManual.baseVpdManual && safeBaseVpd > 0;
         window.detourManualRoadInputs[key] = {
           ...existingManual,
           lanes: Math.max(1, Number(existingManual.lanes) || defaultLanes),
-          baseVpd: safeBaseVpd > 0 ? safeBaseVpd : resolvedBase,
-          baseVpdManual: safeBaseVpd > 0 ? !!existingManual.baseVpdManual : false,
+          baseVpd: keepManualMatched ? safeBaseVpd : resolvedBase,
+          baseVpdManual: keepManualMatched,
           estimateMeta: estimate
         };
         return;
       }
 
       const manualInput = existingManual;
-      const estimate = estimateDetourRoadBaseVpd(roadName, pLat, pLon, manualInput.refPercents || {}, manualInput.refEnabled || {});
+      const estimate = estimateDetourRoadBaseVpd(roadName, pLat, pLon, manualInput.refPercents || {}, manualInput.refEnabled || {}, primarySiteId);
       const currentBase = Math.max(0, Number(manualInput.baseVpd) || 0);
       const keepManual = !!manualInput.baseVpdManual && currentBase > 0;
       manualInput.baseVpd = keepManual ? currentBase : Math.max(0, Number(estimate.baseVpd) || 0);
