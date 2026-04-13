@@ -4769,9 +4769,9 @@
               <label style="color: #6a1b9a; font-size: 0.78em;">Detour Length (km)</label>
               <input type="number" id="detourRouteLengthKm" value="0.4" step="0.1" min="0" oninput="calculateDetourOverlay()" style="border: 1px solid #ce93d8; background: #fff; width: 100%;" />
             </div>
-            <div style="background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;">
-              <label style="color: #6a1b9a; font-size: 0.78em;">Average Speed (km/h)</label>
-              <input type="number" id="detourAvgSpeedKmh" value="55" step="1" min="1" oninput="calculateDetourOverlay()" style="border: 1px solid #ce93d8; background: #fff; width: 100%;" />
+            <div style="background: #f8f2fb; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;">
+              <label style="color: #6a1b9a; font-size: 0.78em;">Average Speed (km/h) <span style="font-size: 0.85em; color: #8e24aa;">— auto from road speeds</span></label>
+              <input type="number" id="detourAvgSpeedKmh" value="55" step="1" min="1" readonly style="border: 1px solid #ce93d8; background: #f8f2fb; width: 100%; cursor: default;" />
             </div>
             <div style="background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;">
               <label style="color: #6a1b9a; font-size: 0.78em;"># Controlled Intersections</label>
@@ -19308,6 +19308,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   window.selectedPedDetourRoadNames = window.selectedPedDetourRoadNames || [];
   window.lastDetourPrimaryContextKey = window.lastDetourPrimaryContextKey || '';
   window.detourManualRoadInputs = window.detourManualRoadInputs || {};
+  window.detourOsmRoadSpeeds = window.detourOsmRoadSpeeds || {};
   window.detourManualPanelRoads = window.detourManualPanelRoads || [];
   window.detourRouteScenarios = window.detourRouteScenarios || [];
   window.detourRouteCount = Math.max(1, Number(window.detourRouteCount) || 1);
@@ -19707,12 +19708,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const key = getDetourManualRoadKey(roadName);
     if (!key) return null;
     const existing = window.detourManualRoadInputs[key] || {};
+    const osmSpeed = (window.detourOsmRoadSpeeds && window.detourOsmRoadSpeeds[String(roadName || existing.roadName || '').trim()]) || null;
+    const defaultSpeed = osmSpeed || 60;
+    // Allow OSM speed to override only if the current value came from the hardcoded default (not user-set)
+    const shouldUseOsm = osmSpeed && (!existing.speedLimitSource || existing.speedLimitSource === 'default');
     const normalized = {
       roadName: String(roadName || existing.roadName || '').trim(),
       baseVpd: Number(existing.baseVpd) || 0,
       baseVpdManual: !!existing.baseVpdManual,
       lanes: Math.max(1, Number(existing.lanes) || 2),
-      speedLimitKmh: existing.speedLimitKmh != null ? Math.max(10, Math.min(130, Number(existing.speedLimitKmh) || 60)) : 60,
+      speedLimitKmh: shouldUseOsm ? osmSpeed : (existing.speedLimitKmh != null ? Math.max(10, Math.min(130, Number(existing.speedLimitKmh) || defaultSpeed)) : defaultSpeed),
+      speedLimitSource: shouldUseOsm ? 'osm' : (existing.speedLimitSource || (osmSpeed ? 'osm' : 'default')),
       vpdMethod: existing.vpdMethod || 'datapoints',
       tripGenVpd: (existing && typeof existing.tripGenVpd === 'object' && existing.tripGenVpd) ? existing.tripGenVpd : { EAST: 0, WEST: 0, NORTH: 0, SOUTH: 0 },
       tripGenCalcState: (existing && typeof existing.tripGenCalcState === 'object' && existing.tripGenCalcState) ? existing.tripGenCalcState : { landUse: 'custom', qty: '', rate: '', amPct: '10.0', pmPct: '10.0' },
@@ -19894,7 +19900,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const activeWeightPercent = Math.max(0, Number(estimateMeta.totalWeightPercent) || 0);
 
       const row = document.createElement('div');
-      row.style.cssText = 'display: grid; grid-template-columns: 1.15fr 0.78fr 0.82fr 0.8fr 0.62fr; gap: 8px; align-items: end; background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;';
+      row.style.cssText = 'display: grid; grid-template-columns: 1.15fr 0.78fr 0.82fr 0.8fr 0.62fr 0.62fr; gap: 8px; align-items: end; background: #fff; border: 1px solid #e1bee7; border-radius: 6px; padding: 8px;';
       row.innerHTML = `
         <div style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid #e1bee7; margin-bottom: 2px; flex-wrap: wrap;">
           <span style="font-size: 0.75em; font-weight: 700; color: #4a148c; white-space: nowrap;">⚙️ Base VPD Method:</span>
@@ -19930,6 +19936,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         <div>
           <label style="color: #6a1b9a; font-size: 0.75em;">Lanes *</label>
           <input type="number" data-detour-manual-key="${key}" data-detour-manual-field="lanes" min="1" max="10" step="1" value="${Math.max(1, Number(inputData.lanes) || 2)}" style="border: 1px solid #ce93d8; background: #fff; width: 100%;" />
+        </div>
+        <div>
+          <label style="color: ${inputData.speedLimitSource === 'default' ? '#c62828' : '#6a1b9a'}; font-size: 0.75em;">Speed Limit *</label>
+          <input type="number" data-detour-manual-key="${key}" data-detour-manual-field="speedLimitKmh" min="10" max="130" step="5" value="${Math.max(10, Number(inputData.speedLimitKmh) || 60)}" style="border: 1px solid ${inputData.speedLimitSource === 'default' ? '#e53935' : '#ce93d8'}; background: ${inputData.speedLimitSource === 'default' ? '#fff3f0' : '#fff'}; width: 100%;" />
+          <div style="font-size: 0.71em; color: ${inputData.speedLimitSource === 'osm' ? '#2e7d32' : (inputData.speedLimitSource === 'user' ? '#1565c0' : '#c62828')}; margin-top: 2px;">${inputData.speedLimitSource === 'osm' ? '🗺️ From OSM' : (inputData.speedLimitSource === 'user' ? '✏️ User entered' : '⚠️ No data — please enter')}</div>
         </div>
       `;
 
@@ -20125,7 +20136,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         let value = Number(inputEl.value);
         if (!Number.isFinite(value)) value = 0;
         if (field === 'lanes') value = Math.max(1, Math.round(value));
-        if (field === 'speedLimitKmh') value = Math.max(10, Math.min(130, Math.round(value)));
+        if (field === 'speedLimitKmh') {
+          value = Math.max(10, Math.min(130, Math.round(value)));
+          existing.speedLimitSource = 'user';
+        }
         if (field.startsWith('tripGen_')) {
           const dir = field.substring(8);
           if (!existing.tripGenVpd) existing.tripGenVpd = { EAST: 0, WEST: 0, NORTH: 0, SOUTH: 0 };
@@ -20527,6 +20541,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (!window.selectedTrafficDetourRoadNames) {
       window.selectedTrafficDetourRoadNames = [];
     }
+
+    // Store OSM speed limits globally so they can be used as defaults for detour roads
+    if (!window.detourOsmRoadSpeeds) window.detourOsmRoadSpeeds = {};
+    roads.forEach(roadItem => {
+      if (typeof roadItem === 'object' && roadItem.name && roadItem.speed) {
+        const parsed = parseInt(String(roadItem.speed), 10);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          window.detourOsmRoadSpeeds[roadItem.name] = parsed;
+        }
+      }
+    });
 
     const selected = new Set(Array.isArray(window.selectedTrafficDetourRoadNames) ? window.selectedTrafficDetourRoadNames : []);
     roads.forEach(roadItem => {
@@ -21279,6 +21304,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const roadInputData = getDetourManualRoadInput(roadName) || {};
       const estimateMeta = roadInputData.estimateMeta || {};
       const speedLimitKmh = Math.max(10, Number(roadInputData.speedLimitKmh) || 60);
+      const speedSource = roadInputData.speedLimitSource || 'default';
+      const speedSourceLabel = speedSource === 'osm' ? '🗺️ OSM' : (speedSource === 'user' ? '✏️ User' : '⚠️ Default');
       const vpdMethodUsed = (roadInputData && roadInputData.vpdMethod) || 'datapoints';
       const weightedVolumeSum = Math.max(0, Math.round(Number(estimateMeta.weightedVolumeSum) || 0));
       const activeWeightPercent = Math.max(0, Number(estimateMeta.totalWeightPercent) || 0);
@@ -21295,7 +21322,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         : '<span style="font-size:0.72em; color:#4a148c; background:#f3e5f5; border:1px solid #ce93d8; border-radius:8px; padding:1px 6px; margin-left:4px;">📡 Datapoints</span>';
       card.innerHTML = `
         <h4>🛣️ ${roadName}</h4>
-        <p><strong>Legal Speed Limit:</strong> ${speedLimitKmh} km/h</p>
+        <p><strong>Legal Speed Limit:</strong> ${speedLimitKmh} km/h <span style="font-size:0.8em; color:${speedSource === 'default' ? '#c62828' : '#8e24aa'};">(${speedSourceLabel})</span></p>
         ${vpdMethodUsed === 'tripgen' ? '' : `<p><strong>Weighted Volume Sum (% × VPD):</strong> ${weightedVolumeSum.toLocaleString()} vpd</p>`}
         ${vpdMethodUsed === 'tripgen' ? '' : `<p><strong>Active Selected Weight:</strong> ${numberRoundUp(activeWeightPercent, 0)}%</p>`}
         <p><strong>Current Road VPD Used for Capacity</strong>${methodBadge}<strong>:</strong> ${baseVpd.toLocaleString()} vpd</p>
@@ -21772,7 +21799,20 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
 
     const detourLengthKm = Math.max(0, Number(document.getElementById('detourRouteLengthKm') && document.getElementById('detourRouteLengthKm').value) || 0);
-    const detourAvgSpeedKmh = Math.max(1, Number(document.getElementById('detourAvgSpeedKmh') && document.getElementById('detourAvgSpeedKmh').value) || 55);
+
+    // Compute average speed from individual road speed limits
+    const roadSpeedValues = validDetourModels.map(m => {
+      const ri = getDetourManualRoadInput(m.roadName);
+      return ri ? Math.max(10, Number(ri.speedLimitKmh) || 60) : 60;
+    });
+    const computedAvgSpeed = roadSpeedValues.length
+      ? Math.round(roadSpeedValues.reduce((s, v) => s + v, 0) / roadSpeedValues.length)
+      : 55;
+    const detourAvgSpeedKmh = Math.max(1, computedAvgSpeed);
+    // Sync the UI input to reflect the computed average
+    const avgSpeedEl = document.getElementById('detourAvgSpeedKmh');
+    if (avgSpeedEl) avgSpeedEl.value = String(detourAvgSpeedKmh);
+
     const controlledInts = Math.max(0, Number(document.getElementById('detourControlledIntCount') && document.getElementById('detourControlledIntCount').value) || 0);
     const uncontrolledInts = Math.max(0, Number(document.getElementById('detourUncontrolledIntCount') && document.getElementById('detourUncontrolledIntCount').value) || 0);
     const controlledDelaySec = Math.max(0, Number(document.getElementById('detourControlledDelaySec') && document.getElementById('detourControlledDelaySec').value) || 60);
@@ -22109,6 +22149,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     } else {
       warningText.innerHTML = `✅ The selected detour roads have acceptable directional spare capacity across all periods. Diversion scenario: <strong>${diversionBasisText}</strong>.${worstCapacitySnapshot ? ` Controlling direction: <strong>${worstCapacitySnapshot.direction}</strong>. Operational risk: <strong>${worstCapacitySnapshot.risk}</strong>.` : ''}`;
       warningText.style.color = '#2e7d32';
+    }
+
+    // Warn about roads with default (unknown) speed limits
+    const roadsWithDefaultSpeed = validDetourModels
+      .map(m => { const ri = getDetourManualRoadInput(m.roadName); return (ri && ri.speedLimitSource === 'default') ? m.roadName : null; })
+      .filter(Boolean);
+    if (roadsWithDefaultSpeed.length) {
+      warningText.innerHTML += `<br/>⚠️ <strong>Speed limit not confirmed</strong> for: <strong>${roadsWithDefaultSpeed.join(', ')}</strong>. Using default 60 km/h — please enter the correct speed limit in the road panel above.`;
     }
 
     // --- POST-DIVERSION TABLE: Remaining traffic on the existing work zone road ---
