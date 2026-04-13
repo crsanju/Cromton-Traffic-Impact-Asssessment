@@ -19815,10 +19815,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return sum + percent;
     }, 0);
 
-    // Normalize by total active weight so the result is a proper weighted average
-    // even when user-entered weights don't sum to exactly 100%.
-    const weightedAvgVADT = totalWeightPercent > 0 ? Math.round(adjustedSum * 100 / totalWeightPercent) : 0;
-    const finalAvgVADT = Math.max(0, Math.round(weightedAvgVADT));
+    // Use user-entered percentages directly: Base VPD = sum((%/100) × reference VPD).
+    // Each weight expresses "my road carries this fraction of the reference counter's volume".
+    // Normalizing by totalWeightPercent would cancel out the user's intent (e.g. 10% on a 28k
+    // counter should give 2,825 vpd, not scale back up to 28,252).
+    const weightedAvgVADT = Math.round(adjustedSum);
+    const finalAvgVADT = Math.max(0, weightedAvgVADT);
 
     return {
       baseVpd: finalAvgVADT,
