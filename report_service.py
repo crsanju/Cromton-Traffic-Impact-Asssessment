@@ -12,6 +12,20 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
+# Load .env file if present (for GEMINI_API_KEY etc.)
+_env_path = Path(__file__).with_name(".env")
+if _env_path.exists():
+    for _line in _env_path.read_text(encoding="utf-8").splitlines():
+        _line = _line.strip()
+        if not _line or _line.startswith("#"):
+            continue
+        if "=" in _line:
+            _key, _, _val = _line.partition("=")
+            _key = _key.strip()
+            _val = _val.strip().strip("\"'")
+            if _key and _key not in os.environ:
+                os.environ[_key] = _val
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -279,15 +293,19 @@ def _summarize_table_for_prompt(table_data: dict[str, Any]) -> dict[str, Any]:
   return {
     "table_id": _safe_text(table_data.get("table_id"), ""),
     "title": analysis["title"],
-    "columns": analysis["columns"][:12],
+    "columns": analysis["columns"][:16],
     "row_count": analysis["row_count"],
     "column_count": analysis["column_count"],
     "numeric_count": analysis["numeric_count"],
     "numeric_min": analysis["numeric_min"],
     "numeric_max": analysis["numeric_max"],
     "labels": analysis["labels"],
-    "sample_rows": analysis["sample_rows"],
+    "sample_rows": analysis["sample_rows"][:12],
     "top_numeric_cells": top_cells,
+    "bottom_numeric_cells": [
+      {"value": v, "row_label": r, "column_label": c}
+      for v, r, c in analysis["bottom_numeric"]
+    ],
   }
 
 
@@ -420,20 +438,58 @@ def _build_fallback_table_analysis(table_data: dict[str, Any], payload: dict[str
       ),
     }
 
-  summary_parts = [
-    f"{title} presents {analysis['row_count']} row(s) across {analysis['column_count']} column(s)."
-  ]
-  if analysis["labels"]:
-    summary_parts.append(f"The leading labels cover {', '.join(analysis['labels'][:4])}.")
-  if analysis["numeric_count"]:
+  summary_parts = []
+  title_lower = title_key
+
+  # Build a more readable, natural-language fallback summary
+  if "peak hour" in title_lower and "hourly" in title_lower:
+    # Hourly peak hour analysis tables
+    if analysis["top_numeric"]:
+      top_value, row_label, column_label = analysis["top_numeric"][0]
+      summary_parts.append(
+        f"{title} presents {analysis['row_count']} row(s) across {analysis['column_count']} column(s)."
+      )
+      if analysis["labels"]:
+        summary_parts.append(f"The leading labels cover {', '.join(analysis['labels'][:4])}.")
+      if analysis["numeric_count"]:
+        summary_parts.append(
+          f"Reported numeric values range from {_format_number(analysis['numeric_min'], 2)} to {_format_number(analysis['numeric_max'], 2)}."
+        )
+      summary_parts.append(
+        f"The strongest reported value is {_format_number(top_value, 2)} for {row_label} in {column_label}."
+      )
+    else:
+      summary_parts.append(f"{title} presents {analysis['row_count']} row(s) across {analysis['column_count']} column(s).")
+  elif "grouped" in title_lower and "direction" in title_lower:
     summary_parts.append(
-      f"Reported numeric values range from {_format_number(analysis['numeric_min'], 2)} to {_format_number(analysis['numeric_max'], 2)}."
+      f"{title} presents {analysis['row_count']} row(s) across {analysis['column_count']} column(s)."
     )
-  if analysis["top_numeric"]:
-    top_value, row_label, column_label = analysis["top_numeric"][0]
+    if analysis["labels"]:
+      summary_parts.append(f"The leading labels cover {', '.join(analysis['labels'][:4])}.")
+    if analysis["numeric_count"]:
+      summary_parts.append(
+        f"Reported numeric values range from {_format_number(analysis['numeric_min'], 2)} to {_format_number(analysis['numeric_max'], 2)}."
+      )
+    if analysis["top_numeric"]:
+      top_value, row_label, column_label = analysis["top_numeric"][0]
+      summary_parts.append(
+        f"The strongest reported value is {_format_number(top_value, 2)} for {row_label} in {column_label}."
+      )
+  else:
     summary_parts.append(
-      f"The strongest reported value is {_format_number(top_value, 2)} for {row_label} in {column_label}."
+      f"{title} presents {analysis['row_count']} row(s) across {analysis['column_count']} column(s)."
     )
+    if analysis["labels"]:
+      summary_parts.append(f"The leading labels cover {', '.join(analysis['labels'][:4])}.")
+    if analysis["numeric_count"]:
+      summary_parts.append(
+        f"Reported numeric values range from {_format_number(analysis['numeric_min'], 2)} to {_format_number(analysis['numeric_max'], 2)}."
+      )
+    if analysis["top_numeric"]:
+      top_value, row_label, column_label = analysis["top_numeric"][0]
+      summary_parts.append(
+        f"The strongest reported value is {_format_number(top_value, 2)} for {row_label} in {column_label}."
+      )
 
   chart_caption = (
     f"This chart highlights the key pattern for {title.lower()} so the controlling periods can be identified before reviewing the detailed table below."
@@ -590,16 +646,26 @@ def _request_gemini_report_notes(payload: dict[str, Any]) -> dict[str, Any] | No
   report_tables = _build_report_tables(payload)
 
   prompt = {
-    "task": "Write a detailed traffic engineering report narrative, including per-table summaries and a final professional conclusion.",
+    "task": "Write a professional, readable traffic engineering report with per-table summaries. Summaries must feel like they were written by a senior traffic engineer for a council submission — not auto-generated.",
     "instructions": [
       "Return strict JSON only.",
-      "Use Australian traffic engineering wording.",
+      "Use Australian traffic engineering wording and conventions.",
       "State where the assessment applies and what the modeled outputs mean operationally.",
       "Do not invent values beyond the supplied context.",
       "Provide 3 or 4 executive summary paragraphs and 4 to 6 explanation notes.",
-      "For every supplied table title, return a human summary paragraph, a scenario paragraph describing when the condition typically occurs, and a short chart caption.",
+      "For every supplied table title, return a 'summary' field that is a natural-language interpretation of what the table data shows — NOT a description of the table structure like row/column counts.",
+      "Table summaries must explain the engineering significance: what the numbers mean for traffic operations, which values are controlling, and what the practitioner should focus on.",
+      "For directional summaries, explain the demand split and what it means for queue management.",
+      "For queue tables, describe when and where the worst queuing occurs, how long queues extend, and what that means for upstream intersections or access points.",
+      "For VCR/LOS tables, explain which periods exceed capacity and what that signals for work-zone management.",
+      "For peak hour tables, describe the dominant traffic pattern and when the critical operating windows occur.",
+      "For detour tables, describe the impact of diversion on receiving roads and whether there is spare capacity.",
+      "For pedestrian detour tables, explain the added travel time burden on pedestrians.",
+      "Each table summary should be 2-4 sentences of professional engineering narrative.",
+      "Each scenario field should explain when and why the condition in the table typically becomes critical.",
       "Use the exact supplied table titles in the response so they can be mapped deterministically.",
-      "Provide 3 professional commentary paragraphs and 3 to 5 conclusion points."
+      "Provide 3 professional commentary paragraphs and 3 to 5 conclusion points.",
+      "Write as though this will be read by a council traffic engineer or road authority reviewer."
     ],
     "response_schema": {
       "executive_paragraphs": ["string"],
@@ -629,15 +695,32 @@ def _request_gemini_report_notes(payload: dict[str, Any]) -> dict[str, Any] | No
     }
   ).encode("utf-8")
   request = urllib.request.Request(
-    f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}",
+    f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
     data=request_body,
     headers={"Content-Type": "application/json"},
     method="POST",
   )
 
+  import time as _time
+
+  body = None
+  for attempt in range(3):
+    try:
+      with urllib.request.urlopen(request, timeout=30) as response:
+        body = response.read().decode("utf-8")
+      break
+    except urllib.error.HTTPError as http_err:
+      if http_err.code == 429 and attempt < 2:
+        _time.sleep(2 * (attempt + 1))
+        continue
+      return None
+    except (urllib.error.URLError, TimeoutError):
+      return None
+
+  if not body:
+    return None
+
   try:
-    with urllib.request.urlopen(request, timeout=18) as response:
-      body = response.read().decode("utf-8")
     parsed = json.loads(body)
     text = (
       parsed.get("candidates", [{}])[0]
@@ -712,16 +795,18 @@ def _build_executive_content(payload: dict[str, Any]) -> dict[str, Any]:
     title_key = _normalize_title_key(table.get("title"))
     fallback_item = fallback_map.get(title_key, _build_fallback_table_analysis(table, payload))
     generated_item = generated_map.get(title_key, {})
-    force_fallback = any(
+    # For hourly queue and hourly vcr tables, keep fallback chart_caption only
+    # (preserves formula-specific peak references) but use Gemini for summary/scenario
+    force_fallback_caption = any(
       key in title_key
-      for key in ["analysis parameters", "hourly queue", "hourly vcr"]
+      for key in ["hourly queue", "hourly vcr"]
     )
     merged_table_analyses.append(
       {
         "title": fallback_item["title"],
-        "summary": fallback_item["summary"] if force_fallback else (generated_item.get("summary") or fallback_item["summary"]),
-        "scenario": fallback_item["scenario"] if force_fallback else (generated_item.get("scenario") or fallback_item["scenario"]),
-        "chart_caption": fallback_item["chart_caption"] if force_fallback else (generated_item.get("chart_caption") or fallback_item["chart_caption"]),
+        "summary": generated_item.get("summary") or fallback_item["summary"],
+        "scenario": generated_item.get("scenario") or fallback_item["scenario"],
+        "chart_caption": fallback_item["chart_caption"] if force_fallback_caption else (generated_item.get("chart_caption") or fallback_item["chart_caption"]),
       }
     )
   return {
@@ -1133,13 +1218,23 @@ def _render_data_table(
     table_classes = "wide-table" if col_count >= 10 else ""
     chart_html = _render_embedded_charts(chart_items, title, (analysis or {}).get("chart_caption", ""))
 
+    detail_lead = "Detailed table below sets out the supporting values used for the engineering interpretation."
+    if "queue" in _normalize_title_key(title):
+      detail_lead = "Detailed table below provides the supporting values behind the narrative and chart summary."
+    elif "vcr" in _normalize_title_key(title) or "los" in _normalize_title_key(title):
+      detail_lead = "Detailed table below provides the supporting values behind the narrative and chart summary."
+    elif "detour" in _normalize_title_key(title) or "pedestrian" in _normalize_title_key(title):
+      detail_lead = "Detailed table below provides the supporting values behind the narrative and chart summary."
+    elif "peak hour" in _normalize_title_key(title):
+      detail_lead = "Detailed table below provides the supporting values behind the narrative and chart summary."
+
     return (
         f"<div class=\"report-section report-block avoid-break\">"
         f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Block</button></div>"
         f"<h4 class=\"editable-text\" contenteditable=\"true\">{title}</h4>"
         f"<div class=\"editable table-note table-note-top\" contenteditable=\"true\"><p>{_escape(informative_default)}</p></div>"
         f"{chart_html}"
-        "<div class=\"table-detail-lead editable-text\" contenteditable=\"true\">Detailed table below provides the supporting values behind the narrative and chart summary.</div>"
+        f"<div class=\"table-detail-lead editable-text\" contenteditable=\"true\">{detail_lead}</div>"
       f"<table class=\"{table_classes}\">{head_html}{body_html}</table>"
         f"<div class=\"editable table-note table-note-bottom\" contenteditable=\"true\"><p>{_escape(summary_default)}</p></div>"
         f"</div>"
