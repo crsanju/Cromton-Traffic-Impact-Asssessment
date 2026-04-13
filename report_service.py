@@ -1223,85 +1223,56 @@ def _render_computed_results_section(
 
 
 def _render_short_detour_route_block(route_label: str, route_tables: list[dict], analysis_map: dict) -> str:
-  """Render a compact 3-subsection detour block for the short report."""
+  """Render a 3-subsection detour block, mapping actual payload tables into the right slots."""
   label_esc = _escape(route_label)
-  route_num = _escape(re.sub(r".*route\s*(\d+).*", r"Route \1", route_label, flags=re.IGNORECASE) or route_label)
 
-  # Render any payload tables collected for this route
-  table_html_parts: list[str] = []
+  # Categorize payload tables into the 3 subsection slots.
+  capacity_tables: list[dict] = []
+  delay_tables: list[dict] = []
+  pedestrian_tables: list[dict] = []
+  other_tables: list[dict] = []
+
   for table in route_tables:
-    analysis = analysis_map.get(_normalize_title_key(table.get("title")))
-    table_html_parts.append(_render_data_table(table, analysis))
-  tables_html = "".join(table_html_parts)
+    title_lc = _safe_text(table.get("title"), "").lower()
+    if "pedestrian" in title_lc:
+      pedestrian_tables.append(table)
+    elif "estimated delay" in title_lc or ("delay" in title_lc and "pedestrian" not in title_lc):
+      delay_tables.append(table)
+    elif any(k in title_lc for k in ("capacity", "directional", "road status", "diversion", "vpd")):
+      capacity_tables.append(table)
+    else:
+      other_tables.append(table)
+
+  def _render_group(tables: list[dict], placeholder: str) -> str:
+    if tables:
+      return "".join(
+        _render_data_table(t, analysis_map.get(_normalize_title_key(t.get("title"))))
+        for t in tables
+      )
+    return f"<p class=\"editable-text\" contenteditable=\"true\">{_escape(placeholder)}</p>"
+
+  other_html = "".join(
+    _render_data_table(t, analysis_map.get(_normalize_title_key(t.get("title"))))
+    for t in other_tables
+  )
 
   return (
     f"<div class=\"report-section report-block detour-route-block\">"
     f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">✕ Remove</button></div>"
     f"<h3 class=\"editable-text\" contenteditable=\"true\">{label_esc}</h3>"
-
-    f"{tables_html}"
-
-    # 1. Detour Road Capacity Summary
+    f"{other_html}"
     "<div class=\"detour-sub-block avoid-break\">"
     "<h4 class=\"editable-text\" contenteditable=\"true\">1. Detour Road Capacity Summary</h4>"
-    "<table><thead><tr>"
-    "<th contenteditable=\"true\">Parameter</th>"
-    "<th contenteditable=\"true\">Value</th>"
-    "<th contenteditable=\"true\">Notes</th>"
-    "</tr></thead><tbody>"
-    "<tr><td contenteditable=\"true\">Road Name / Classification</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Posted Speed (km/h)</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Lane Count</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Total Two-Way Capacity (vpd)</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Diverted VPD (Peak Direction)</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Remaining Surplus Capacity (vpd)</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">VCR After Diversion</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">LOS After Diversion</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
-    "</tbody></table>"
-    "<p class=\"editable-text\" contenteditable=\"true\">Edit to confirm detour road capacity relative to diverted demand. Ensure VCR remains below 0.85 for acceptable operations.</p>"
-    "</div>"
-
-    # 2. Estimated Delay
+    + _render_group(capacity_tables, "No capacity data available. Edit to add detour road capacity details.")
+    + "</div>"
     "<div class=\"detour-sub-block avoid-break\">"
     "<h4 class=\"editable-text\" contenteditable=\"true\">2. Estimated Delay</h4>"
-    "<table><thead><tr>"
-    "<th contenteditable=\"true\">Parameter</th>"
-    "<th contenteditable=\"true\">Value</th>"
-    "</tr></thead><tbody>"
-    "<tr><td contenteditable=\"true\">Detour Route Length (km)</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Original Route Length (km)</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Extra Distance (km)</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Average Travel Speed on Detour (km/h)</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Travel Time (s)</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Intersection Delay (s)</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Total Time (s)</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Estimated Additional Delay (min)</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Delay Classification</td><td contenteditable=\"true\">—</td></tr>"
-    "</tbody></table>"
-    "<p class=\"editable-text\" contenteditable=\"true\">Edit to record the additional travel time imposed on motorists using this detour route. "
-    "Estimated Delay = ceil((Travel Time + Intersection Delay) / 60).</p>"
-    "</div>"
-
-    # 3. Pedestrian Delay
+    + _render_group(delay_tables, "No delay estimate available. Edit to add delay calculation details.")
+    + "</div>"
     "<div class=\"detour-sub-block avoid-break\">"
     "<h4 class=\"editable-text\" contenteditable=\"true\">3. Pedestrian Delay</h4>"
-    "<div class=\"editable\" contenteditable=\"true\">"
-    "<p>Assess whether the detour route maintains safe pedestrian connectivity. Consider: "
-    "footpath / shared path availability, suitable crossing facilities, WCAG/DDA compliance, "
-    "and additional walking distance. Edit this section to record pedestrian impact findings.</p>"
-    "</div>"
-    "<table><thead><tr>"
-    "<th contenteditable=\"true\">Parameter</th>"
-    "<th contenteditable=\"true\">Value</th>"
-    "</tr></thead><tbody>"
-    "<tr><td contenteditable=\"true\">Pedestrian Detour Distance (m)</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Additional Walking Time (min)</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Pedestrian Crossing Adequacy</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Pedestrian Delay Classification</td><td contenteditable=\"true\">—</td></tr>"
-    "<tr><td contenteditable=\"true\">Mitigation Recommended</td><td contenteditable=\"true\">—</td></tr>"
-    "</tbody></table>"
-    "</div>"
-
+    + _render_group(pedestrian_tables, "No pedestrian delay data available. Edit to add pedestrian impact details.")
+    + "</div>"
     "</div>"
   )
 
@@ -1309,7 +1280,10 @@ def _render_short_detour_route_block(route_label: str, route_tables: list[dict],
 def _build_short_detour_section(tables: list[dict], route_count: int, analysis_map: dict) -> str:
   """Build the complete Section 5 Detour Analysis HTML for the short report."""
   # Separate detour tables from non-detour tables.
-  detour_tables = [t for t in tables if "detour" in _safe_text(t.get("title"), "").lower()]
+  detour_tables = [
+    t for t in tables
+    if any(k in _safe_text(t.get("title"), "").lower() for k in ("detour", "diversion", "pedestrian detour"))
+  ]
   if not detour_tables and route_count < 1:
     return ""
 
@@ -1658,9 +1632,6 @@ def _render_data_table(
     elif "peak hour" in _normalize_title_key(title):
       detail_lead = "Detailed table below provides the supporting values behind the narrative and chart summary."
 
-    is_detour = "detour" in _normalize_title_key(title) or "pedestrian" in _normalize_title_key(title)
-    detour_extra = _render_detour_subsections() if is_detour else ""
-
     return (
         f"<div class=\"report-section report-block avoid-break\">"
         f"<div class=\"section-controls no-print\">"
@@ -1677,7 +1648,6 @@ def _render_data_table(
       f"<table class=\"{table_classes}\">{head_html}{body_html}</table>"
         f"<div class=\"editable table-note table-note-bottom\" contenteditable=\"true\"><p>{_escape(summary_default)}</p></div>"
         f"</div>"
-        f"{detour_extra}"
     )
 
 
@@ -1830,14 +1800,16 @@ def editor_page(draft_id: str) -> str:
     )
     selected_site_section_html = _render_selected_site_details_section(selected_site_details)
 
-    # Separate hourly peak-hour tables so they can be placed directly after
-    # the results section (below its embedded chart) per report format.
+    # Separate hourly peak-hour tables and (for short report) detour tables.
+    # Detour tables in short report go exclusively into Section 5 to avoid duplication.
     hourly_peak_tables: list[Any] = []
     other_tables: list[Any] = []
     for table in prioritized_tables:
       title_lc = _safe_text(table.get("title", "")).lower()
       if "hourly" in title_lc and "peak hour" in title_lc:
         hourly_peak_tables.append(table)
+      elif is_short and any(k in title_lc for k in ("detour", "diversion", "pedestrian detour")):
+        pass  # Detour tables go into Section 5 for short report — skip from main table_sections
       else:
         other_tables.append(table)
 
@@ -2236,14 +2208,37 @@ def editor_page(draft_id: str) -> str:
       }});
     }}
 
-    function addTableRow(btn) {{
+    // Track the last focused cell so row/col operations act at the selection point.
+    let _lastFocusedCell = null;
+    document.addEventListener('focusin', function(e) {{
+      const cell = e.target && e.target.closest('td, th');
+      if (cell && cell.closest('table')) _lastFocusedCell = cell;
+    }}, true);
+
+    function _getTargetTable(btn) {{
       const block = btn && btn.closest('.report-block');
-      if (!block) return;
-      const table = block.querySelector('table');
+      if (!block) return {{ table: null, block: null }};
+      // Prefer the table that contains the focused cell, if it's inside this block.
+      if (_lastFocusedCell && block.contains(_lastFocusedCell)) {{
+        const t = _lastFocusedCell.closest('table');
+        if (t) return {{ table: t, block }};
+      }}
+      return {{ table: block.querySelector('table'), block }};
+    }}
+
+    function addTableRow(btn) {{
+      const {{ table }} = _getTargetTable(btn);
       if (!table) return;
+
+      // Insert after the row containing the focused cell, else append to tbody.
+      const targetRow = _lastFocusedCell && table.contains(_lastFocusedCell)
+        ? _lastFocusedCell.closest('tr')
+        : null;
+
       const tbody = table.querySelector('tbody') || table;
-      const rows = tbody.querySelectorAll('tr');
-      const cellCount = rows.length > 0 ? rows[rows.length - 1].querySelectorAll('td, th').length : 2;
+      const refRow = targetRow || tbody.querySelector('tr:last-child');
+      const cellCount = refRow ? refRow.querySelectorAll('td, th').length : 2;
+
       const newRow = document.createElement('tr');
       for (let i = 0; i < cellCount; i++) {{
         const td = document.createElement('td');
@@ -2252,44 +2247,85 @@ def editor_page(draft_id: str) -> str:
         td.textContent = 'Edit';
         newRow.appendChild(td);
       }}
-      tbody.appendChild(newRow);
+
+      if (targetRow && targetRow.parentNode) {{
+        targetRow.parentNode.insertBefore(newRow, targetRow.nextSibling);
+      }} else {{
+        tbody.appendChild(newRow);
+      }}
+      // Focus first cell of new row.
+      const firstCell = newRow.querySelector('td');
+      if (firstCell) {{ firstCell.focus(); _lastFocusedCell = firstCell; }}
     }}
 
     function removeTableLastRow(btn) {{
-      const block = btn && btn.closest('.report-block');
-      if (!block) return;
-      const table = block.querySelector('table');
+      const {{ table }} = _getTargetTable(btn);
       if (!table) return;
+
+      // Remove the row containing the focused cell if it's a tbody row; else last tbody row.
       const tbody = table.querySelector('tbody') || table;
-      const rows = tbody.querySelectorAll('tr');
-      if (rows.length > 1) rows[rows.length - 1].remove();
+      const tbodyRows = tbody.querySelectorAll('tr');
+      if (tbodyRows.length <= 1) return; // keep at least one row
+
+      const targetRow = _lastFocusedCell && tbody.contains(_lastFocusedCell)
+        ? _lastFocusedCell.closest('tr')
+        : null;
+
+      const rowToRemove = (targetRow && tbody.contains(targetRow))
+        ? targetRow
+        : tbodyRows[tbodyRows.length - 1];
+
+      if (rowToRemove) rowToRemove.remove();
+      _lastFocusedCell = null;
     }}
 
     function addTableColumn(btn) {{
-      const block = btn && btn.closest('.report-block');
-      if (!block) return;
-      const table = block.querySelector('table');
+      const {{ table }} = _getTargetTable(btn);
       if (!table) return;
-      const rows = table.querySelectorAll('tr');
-      rows.forEach((row, idx) => {{
-        const cell = (idx === 0 && table.querySelector('thead')) ? document.createElement('th') : document.createElement('td');
+
+      // Determine insertion index from focused cell; default to end.
+      let insertAfterIndex = -1; // -1 means append
+      if (_lastFocusedCell && table.contains(_lastFocusedCell)) {{
+        const cells = Array.from(_lastFocusedCell.closest('tr').querySelectorAll('td, th'));
+        insertAfterIndex = cells.indexOf(_lastFocusedCell);
+      }}
+
+      const allRows = table.querySelectorAll('tr');
+      allRows.forEach((row, rowIdx) => {{
+        const cells = row.querySelectorAll('td, th');
+        const isHeaderRow = row.closest('thead') != null;
+        const cell = isHeaderRow ? document.createElement('th') : document.createElement('td');
         cell.className = 'editable-text editable-cell';
         cell.contentEditable = 'true';
-        cell.textContent = idx === 0 ? 'New Column' : 'Edit';
-        row.appendChild(cell);
+        cell.textContent = isHeaderRow ? 'New Column' : 'Edit';
+
+        if (insertAfterIndex >= 0 && insertAfterIndex < cells.length) {{
+          cells[insertAfterIndex].insertAdjacentElement('afterend', cell);
+        }} else {{
+          row.appendChild(cell);
+        }}
       }});
     }}
 
     function removeTableLastColumn(btn) {{
-      const block = btn && btn.closest('.report-block');
-      if (!block) return;
-      const table = block.querySelector('table');
+      const {{ table }} = _getTargetTable(btn);
       if (!table) return;
-      const rows = table.querySelectorAll('tr');
-      rows.forEach(row => {{
+
+      // Find column index from focused cell; default to last column.
+      let removeIndex = -1; // -1 means last
+      if (_lastFocusedCell && table.contains(_lastFocusedCell)) {{
+        const cells = Array.from(_lastFocusedCell.closest('tr').querySelectorAll('td, th'));
+        removeIndex = cells.indexOf(_lastFocusedCell);
+      }}
+
+      const allRows = table.querySelectorAll('tr');
+      allRows.forEach(row => {{
         const cells = row.querySelectorAll('td, th');
-        if (cells.length > 1) cells[cells.length - 1].remove();
+        if (cells.length <= 1) return; // keep at least one column
+        const idx = (removeIndex >= 0 && removeIndex < cells.length) ? removeIndex : cells.length - 1;
+        cells[idx].remove();
       }});
+      _lastFocusedCell = null;
     }}
 
     function removeReportBlock(btn) {{
