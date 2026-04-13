@@ -7453,7 +7453,25 @@
     }
   }
 
+  let lastPythonServiceCheckReason = '';
+
+  function isLoopbackReportServiceUrl() {
+    try {
+      const parsed = new URL(REPORT_SERVICE_BASE_URL);
+      const host = String(parsed.hostname || '').toLowerCase();
+      return host === '127.0.0.1' || host === 'localhost' || host === '::1';
+    } catch (_) {
+      const raw = String(REPORT_SERVICE_BASE_URL || '').toLowerCase();
+      return raw.includes('127.0.0.1') || raw.includes('localhost');
+    }
+  }
+
+  function getLoopbackPnaBlockedReason() {
+    return 'Browser blocked access to local Python service (loopback/private-network policy). Update to the latest report_service.py, restart Python service, then try again.';
+  }
+
   async function isPythonReportServiceAvailable(timeoutMs = 1800) {
+    lastPythonServiceCheckReason = '';
     try {
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
       const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
@@ -7463,10 +7481,24 @@
         signal: controller ? controller.signal : undefined
       });
       if (timer) clearTimeout(timer);
-      if (!response.ok) return false;
+      if (!response.ok) {
+        lastPythonServiceCheckReason = `Python report service returned HTTP ${response.status} for /health.`;
+        return false;
+      }
       const health = await response.json();
-      return String(health && health.status || '').toLowerCase() === 'ok';
-    } catch (_) {
+      const healthy = String(health && health.status || '').toLowerCase() === 'ok';
+      if (!healthy) {
+        lastPythonServiceCheckReason = 'Python report service did not return status=ok.';
+      }
+      return healthy;
+    } catch (err) {
+      const msg = String((err && err.message) || '').toLowerCase();
+      const likelyPnaBlock = window.location.protocol === 'https:'
+        && isLoopbackReportServiceUrl()
+        && (msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('load failed'));
+      lastPythonServiceCheckReason = likelyPnaBlock
+        ? getLoopbackPnaBlockedReason()
+        : `Python report service is not reachable at ${REPORT_SERVICE_BASE_URL}.`;
       return false;
     }
   }
@@ -7501,7 +7533,7 @@
 
     const serviceAvailable = await isPythonReportServiceAvailable();
     if (!serviceAvailable) {
-      showPythonReportSetupInstructions('Python report service is offline.');
+      showPythonReportSetupInstructions(lastPythonServiceCheckReason || 'Python report service is offline.');
       return;
     }
 

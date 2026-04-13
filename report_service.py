@@ -26,7 +26,7 @@ if _env_path.exists():
             if _key and _key not in os.environ:
                 os.environ[_key] = _val
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
@@ -41,6 +41,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_private_network_access_headers(request: Request, call_next):
+  response = await call_next(request)
+  # Required for browser Private Network Access preflight when calling localhost
+  # from a secure origin (for example, GitHub Pages over HTTPS).
+  response.headers["Access-Control-Allow-Private-Network"] = "true"
+  response.headers["Vary"] = "Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Access-Control-Request-Private-Network"
+  return response
 
 
 class DraftRequest(BaseModel):
