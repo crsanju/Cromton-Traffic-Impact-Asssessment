@@ -1030,7 +1030,11 @@ def _render_key_value_table(
 
   return (
     f"<div class=\"report-section report-block avoid-break\">"
-    f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Block</button></div>"
+    f"<div class=\"section-controls no-print\">"
+    f"<button type=\"button\" class=\"mini-btn\" onclick=\"addTableRow(this)\">➕ Row</button> "
+    f"<button type=\"button\" class=\"mini-btn\" onclick=\"removeTableLastRow(this)\">➖ Row</button> "
+    f"<button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">✕ Remove</button>"
+    f"</div>"
     f"<h3 class=\"editable-text\" contenteditable=\"true\">{_escape(title)}</h3>"
     f"<div class=\"editable table-note table-note-top\" contenteditable=\"true\"><p>{summary_text}</p></div>"
     f"{chart_html}"
@@ -1094,7 +1098,11 @@ def _render_selected_site_details_section(site_details: dict[str, Any]) -> str:
 
   return (
     "<div class=\"report-section report-block avoid-break\">"
-    "<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Block</button></div>"
+    "<div class=\"section-controls no-print\">"
+    "<button type=\"button\" class=\"mini-btn\" onclick=\"addTableRow(this)\">➕ Row</button> "
+    "<button type=\"button\" class=\"mini-btn\" onclick=\"removeTableLastRow(this)\">➖ Row</button> "
+    "<button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">✕ Remove</button>"
+    "</div>"
     "<h3 class=\"editable-text\" contenteditable=\"true\">Selected Site Details</h3>"
     f"<div class=\"editable table-note table-note-top\" contenteditable=\"true\"><p>{_escape(summary_text)}</p></div>"
     "<div class=\"table-detail-lead editable-text\" contenteditable=\"true\">Detailed table below confirms the selected counter, map reference, and applied vehicle-mix inputs used in the report.</div>"
@@ -1108,6 +1116,291 @@ def _render_notes(notes: Any) -> str:
   if not isinstance(notes, list) or not notes:
     return "<li class=\"editable-text\" contenteditable=\"true\">No supplementary notes provided.</li>"
   return "".join(f"<li class=\"editable-text\" contenteditable=\"true\">{_escape(item)}</li>" for item in notes)
+
+
+def _infer_result_context(key: str, value: str) -> str:
+  """Infer when/context description for a computed result metric."""
+  key_lc = key.replace("_", " ").lower()
+  if "am" in key_lc and ("peak" in key_lc or "hour" in key_lc):
+    return "AM Peak Period (typically 7–9 am)"
+  if "pm" in key_lc and ("peak" in key_lc or "hour" in key_lc):
+    return "PM Peak Period (typically 4–6 pm)"
+  if ("ev" in key_lc or "evening" in key_lc) and ("peak" in key_lc or "hour" in key_lc):
+    return "Evening Peak Period (typically 6–8 pm)"
+  if "off peak" in key_lc or "off-peak" in key_lc or " op " in f" {key_lc} ":
+    return "Off-Peak / Inter-Peak Period"
+  if "vcr" in key_lc or "v/c" in key_lc or "volume capacity" in key_lc:
+    try:
+      raw = re.sub(r"[^\d.]", "", str(value or "").split()[0])
+      v = float(raw) if raw else None
+      if v is not None:
+        if v >= 0.9:
+          return "Near or at capacity — mitigation likely required"
+        if v >= 0.75:
+          return "Approaching capacity — monitor closely"
+        return "Within acceptable capacity threshold"
+    except Exception:
+      pass
+    return "Volume-to-Capacity Ratio — compare against LOS thresholds"
+  if "los" in key_lc or "level of service" in key_lc:
+    return "Level of Service — A=free-flow, F=breakdown"
+  if "queue" in key_lc:
+    return "Maximum queue length during study period"
+  if "delay" in key_lc:
+    return "Average per-vehicle delay at the intersection"
+  if "growth" in key_lc:
+    return "Annual traffic growth rate applied to base volumes"
+  if "peak" in key_lc and "hour" in key_lc:
+    return "Controlling peak-hour period for this analysis"
+  if "total" in key_lc and ("vpd" in key_lc or "vadt" in key_lc or "volume" in key_lc):
+    return "Total daily two-way traffic volume"
+  if "d1" in key_lc or "direction 1" in key_lc:
+    return "Direction 1 (primary / approach direction)"
+  if "d2" in key_lc or "direction 2" in key_lc:
+    return "Direction 2 (secondary / opposing direction)"
+  if "hv" in key_lc or "heavy vehicle" in key_lc:
+    return "Heavy vehicle percentage adopted for analysis"
+  return "—"
+
+
+def _render_computed_results_section(
+  title: str,
+  results: dict[str, Any],
+  analysis: dict[str, str] | None = None,
+  chart_items: list[dict[str, str]] | None = None,
+) -> str:
+  """Render the Summary of Computed Results as a 3-column table (Metric | Value | Context/When)."""
+  if not isinstance(results, dict) or not results:
+    return ""
+
+  rows: list[str] = []
+  for key, val in results.items():
+    label = _escape(str(key).replace("_", " ").title())
+    value = _escape(val)
+    context = _escape(_infer_result_context(key, _safe_text(val, "")))
+    rows.append(
+      f"<tr>"
+      f"<th class=\"editable-text editable-cell\" contenteditable=\"true\">{label}</th>"
+      f"<td class=\"editable-text editable-cell\" contenteditable=\"true\">{value}</td>"
+      f"<td class=\"editable-text editable-cell context-col\" contenteditable=\"true\">{context}</td>"
+      f"</tr>"
+    )
+
+  summary_text = _escape(
+    (analysis or {}).get("summary",
+      "This table summarises the key computed traffic metrics. The third column provides context on when each metric is expected to be controlling.")
+  )
+  scenario_text = _escape(
+    (analysis or {}).get("scenario",
+      "Review these computed results together with the detailed tables and VCR/queue charts to confirm the controlling period and identify any required mitigation.")
+  )
+  chart_caption = (analysis or {}).get("chart_caption", "")
+  chart_html = _render_embedded_charts(chart_items, title, chart_caption)
+
+  header_row = (
+    "<thead><tr>"
+    "<th class=\"editable-text editable-cell\" contenteditable=\"true\">Metric</th>"
+    "<th class=\"editable-text editable-cell\" contenteditable=\"true\">Value</th>"
+    "<th class=\"editable-text editable-cell\" contenteditable=\"true\">Context / When</th>"
+    "</tr></thead>"
+  )
+
+  return (
+    f"<div class=\"report-section report-block avoid-break\">"
+    f"<div class=\"section-controls no-print\">"
+    f"<button type=\"button\" class=\"mini-btn\" onclick=\"addTableRow(this)\">➕ Row</button> "
+    f"<button type=\"button\" class=\"mini-btn\" onclick=\"removeTableLastRow(this)\">➖ Row</button> "
+    f"<button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">✕ Remove</button>"
+    f"</div>"
+    f"<h3 class=\"editable-text\" contenteditable=\"true\">{_escape(title)}</h3>"
+    f"<div class=\"editable table-note table-note-top\" contenteditable=\"true\"><p>{summary_text}</p></div>"
+    f"{chart_html}"
+    "<div class=\"table-detail-lead editable-text\" contenteditable=\"true\">Detailed table below sets out the computed metrics with context on when each controlling condition occurs.</div>"
+    f"<table class=\"kv-table results-3col\">{header_row}<tbody>{''.join(rows)}</tbody></table>"
+    f"<div class=\"editable table-note table-note-bottom\" contenteditable=\"true\"><p>{scenario_text}</p></div>"
+    f"</div>"
+  )
+
+
+def _render_detour_subsections(route_label: str = "") -> str:
+  """Render expanded detour analysis subsections for a route."""
+  label = _escape(route_label) if route_label else "Detour Route"
+  return (
+    f"<div class=\"report-section report-block detour-subsections avoid-break\">"
+    f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">✕ Remove</button></div>"
+    f"<h4 class=\"editable-text\" contenteditable=\"true\">{label} — Detailed Analysis</h4>"
+
+    # 1. VPD Calculated
+    "<div class=\"detour-sub-block avoid-break\">"
+    "<h5 class=\"editable-text\" contenteditable=\"true\">i. VPD Calculated</h5>"
+    "<table><thead><tr>"
+    "<th contenteditable=\"true\">Direction</th>"
+    "<th contenteditable=\"true\">Base VADT (vpd)</th>"
+    "<th contenteditable=\"true\">Growth Factor</th>"
+    "<th contenteditable=\"true\">Design Year VADT (vpd)</th>"
+    "<th contenteditable=\"true\">Diverted Traffic (vpd)</th>"
+    "<th contenteditable=\"true\">Total VPD on Detour</th>"
+    "</tr></thead><tbody>"
+    "<tr><td contenteditable=\"true\">D1</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">D2</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
+    "</tbody></table>"
+    "<p class=\"editable-text\" contenteditable=\"true\">Edit to insert calculated VPD values for the detour route under full diversion conditions.</p>"
+    "</div>"
+
+    # 2. Detour Road Directional Capacity Summary
+    "<div class=\"detour-sub-block avoid-break\">"
+    "<h5 class=\"editable-text\" contenteditable=\"true\">ii. Detour Road Directional Capacity Summary</h5>"
+    "<table><thead><tr>"
+    "<th contenteditable=\"true\">Direction</th>"
+    "<th contenteditable=\"true\">Lane Count</th>"
+    "<th contenteditable=\"true\">Per-Lane Capacity (veh/h)</th>"
+    "<th contenteditable=\"true\">Total Capacity (veh/h)</th>"
+    "<th contenteditable=\"true\">Peak Hour Volume (veh/h)</th>"
+    "<th contenteditable=\"true\">VCR</th>"
+    "<th contenteditable=\"true\">LOS</th>"
+    "</tr></thead><tbody>"
+    "<tr><td contenteditable=\"true\">D1</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">D2</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
+    "</tbody></table>"
+    "<p class=\"editable-text\" contenteditable=\"true\">Edit to confirm directional capacity and VCR under diversion conditions for the detour road.</p>"
+    "</div>"
+
+    # 3. Detour Road Capacity Summary
+    "<div class=\"detour-sub-block avoid-break\">"
+    "<h5 class=\"editable-text\" contenteditable=\"true\">iii. Detour Road Capacity Summary</h5>"
+    "<table><thead><tr>"
+    "<th contenteditable=\"true\">Parameter</th>"
+    "<th contenteditable=\"true\">Value</th>"
+    "<th contenteditable=\"true\">Notes</th>"
+    "</tr></thead><tbody>"
+    "<tr><td contenteditable=\"true\">Road Classification</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">Posted Speed (km/h)</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">Total Two-Way Capacity (vpd)</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">Remaining Surplus Capacity (vpd)</td><td contenteditable=\"true\">—</td><td contenteditable=\"true\">—</td></tr>"
+    "</tbody></table>"
+    "<p class=\"editable-text\" contenteditable=\"true\">Edit to confirm overall road capacity relative to diverted demand.</p>"
+    "</div>"
+
+    # 4. Existing Road Status After Diversion
+    "<div class=\"detour-sub-block avoid-break\">"
+    "<h5 class=\"editable-text\" contenteditable=\"true\">iv. Existing Road Status After Diversion</h5>"
+    "<div class=\"editable\" contenteditable=\"true\">"
+    "<p>Following full diversion of traffic to this route, confirm that the detour road remains within acceptable operating conditions. "
+    "Key considerations include: pavement condition, geometric constraints (narrow lanes, sharp curves, limited sight-distance), "
+    "intersection control adequacy, and pedestrian / cyclist conflicts. Edit this section to record findings.</p>"
+    "</div>"
+    "</div>"
+
+    # 5. Estimated Delay
+    "<div class=\"detour-sub-block avoid-break\">"
+    "<h5 class=\"editable-text\" contenteditable=\"true\">v. Estimated Delay — Detour Route</h5>"
+    "<table><thead><tr>"
+    "<th contenteditable=\"true\">Parameter</th>"
+    "<th contenteditable=\"true\">Value</th>"
+    "</tr></thead><tbody>"
+    "<tr><td contenteditable=\"true\">Detour Route Length (km)</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">Original Route Length (km)</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">Extra Distance (km)</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">Average Travel Speed on Detour (km/h)</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">Estimated Additional Travel Time (min)</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">Delay Classification</td><td contenteditable=\"true\">—</td></tr>"
+    "</tbody></table>"
+    "<p class=\"editable-text\" contenteditable=\"true\">Edit to calculate and record the additional delay imposed on motorists by the detour route.</p>"
+    "</div>"
+
+    # 6. Pedestrian Detour Impact
+    "<div class=\"detour-sub-block avoid-break\">"
+    "<h5 class=\"editable-text\" contenteditable=\"true\">vi. Pedestrian Detour Impact — Delay Calculation</h5>"
+    "<div class=\"editable\" contenteditable=\"true\">"
+    "<p>Assess whether the detour route provides safe and accessible pedestrian connectivity. Key items to address: "
+    "availability of footpath / shared path; suitable crossing facilities at intersections; WCAG / DDA compliance; "
+    "additional walking distance for pedestrians and approximate delay. Edit this section to record pedestrian impact findings.</p>"
+    "</div>"
+    "<table><thead><tr>"
+    "<th contenteditable=\"true\">Parameter</th>"
+    "<th contenteditable=\"true\">Value</th>"
+    "</tr></thead><tbody>"
+    "<tr><td contenteditable=\"true\">Pedestrian Detour Distance (m)</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">Additional Walking Time (min)</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">Pedestrian Delay Classification</td><td contenteditable=\"true\">—</td></tr>"
+    "<tr><td contenteditable=\"true\">Mitigation Recommended</td><td contenteditable=\"true\">—</td></tr>"
+    "</tbody></table>"
+    "</div>"
+
+    "</div>"
+  )
+
+
+def _render_engineering_observations(notes: Any) -> str:
+  """Render engineering observations as structured, categorised subsections."""
+  raw_notes: list[str] = []
+  if isinstance(notes, list):
+    raw_notes = [str(n).strip() for n in notes if str(n).strip()]
+
+  traffic_ops: list[str] = []
+  intersection: list[str] = []
+  detour_notes: list[str] = []
+  general: list[str] = []
+
+  for note in raw_notes:
+    note_lc = note.lower()
+    if any(k in note_lc for k in ["queue", "vcr", "volume", "v/c", "capacity", "los", "level of service"]):
+      traffic_ops.append(note)
+    elif any(k in note_lc for k in ["intersection", "signal", "turning", "movement", "approach"]):
+      intersection.append(note)
+    elif any(k in note_lc for k in ["detour", "diversion", "alternate route", "closure"]):
+      detour_notes.append(note)
+    else:
+      general.append(note)
+
+  def _note_list(items: list[str], placeholder: str) -> str:
+    if not items:
+      return (
+        f"<li class=\"editable-text\" contenteditable=\"true\">{_escape(placeholder)}</li>"
+      )
+    return "".join(
+      f"<li class=\"editable-text\" contenteditable=\"true\">{_escape(n)}</li>"
+      for n in items
+    )
+
+  return (
+    "<div class=\"report-section report-block avoid-break\">"
+    "<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">✕ Remove</button></div>"
+
+    "<div class=\"obs-subsection\">"
+    "<h3 class=\"editable-text\" contenteditable=\"true\">5.1 Traffic Operations</h3>"
+    "<div class=\"editable obs-lead\" contenteditable=\"true\">"
+    "<p>The following observations relate to traffic volume, speed, VCR, and queue performance on the subject road network during the study period.</p>"
+    "</div>"
+    f"<ul>{_note_list(traffic_ops, 'No specific traffic operations observations noted. Edit to add findings on VCR, queue length, and LOS.')}</ul>"
+    "</div>"
+
+    "<div class=\"obs-subsection\">"
+    "<h3 class=\"editable-text\" contenteditable=\"true\">5.2 Intersection Performance</h3>"
+    "<div class=\"editable obs-lead\" contenteditable=\"true\">"
+    "<p>Intersection performance observations cover turning movement adequacy, signal phasing, and approach-lane capacity during peak periods.</p>"
+    "</div>"
+    f"<ul>{_note_list(intersection, 'No specific intersection observations noted. Edit to add findings on signal operation, turning movements, and geometric constraints.')}</ul>"
+    "</div>"
+
+    "<div class=\"obs-subsection\">"
+    "<h3 class=\"editable-text\" contenteditable=\"true\">5.3 Detour Route Observations</h3>"
+    "<div class=\"editable obs-lead\" contenteditable=\"true\">"
+    "<p>Observations relating to the proposed detour route, including adequacy of alternative roads, capacity headroom, and pedestrian / cyclist impacts.</p>"
+    "</div>"
+    f"<ul>{_note_list(detour_notes, 'No detour-specific observations noted. Edit to add findings on detour route capacity, geometric suitability, and delay impacts.')}</ul>"
+    "</div>"
+
+    "<div class=\"obs-subsection\">"
+    "<h3 class=\"editable-text\" contenteditable=\"true\">5.4 General Engineering Notes</h3>"
+    "<div class=\"editable obs-lead\" contenteditable=\"true\">"
+    "<p>Additional engineering observations that do not fall within the above categories, including data quality notes, assumptions, and recommendations.</p>"
+    "</div>"
+    f"<ul>{_note_list(general, 'No additional observations. Edit to add general engineering notes, data assumptions, or recommended follow-up actions.')}</ul>"
+    "</div>"
+
+    "</div>"
+  )
 
 
 def _render_data_table(
@@ -1238,9 +1531,18 @@ def _render_data_table(
     elif "peak hour" in _normalize_title_key(title):
       detail_lead = "Detailed table below provides the supporting values behind the narrative and chart summary."
 
+    is_detour = "detour" in _normalize_title_key(title) or "pedestrian" in _normalize_title_key(title)
+    detour_extra = _render_detour_subsections() if is_detour else ""
+
     return (
         f"<div class=\"report-section report-block avoid-break\">"
-        f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Block</button></div>"
+        f"<div class=\"section-controls no-print\">"
+        f"<button type=\"button\" class=\"mini-btn\" onclick=\"addTableRow(this)\">➕ Row</button> "
+        f"<button type=\"button\" class=\"mini-btn\" onclick=\"removeTableLastRow(this)\">➖ Row</button> "
+        f"<button type=\"button\" class=\"mini-btn\" onclick=\"addTableColumn(this)\">➕ Col</button> "
+        f"<button type=\"button\" class=\"mini-btn\" onclick=\"removeTableLastColumn(this)\">➖ Col</button> "
+        f"<button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">✕ Remove</button>"
+        f"</div>"
         f"<h4 class=\"editable-text\" contenteditable=\"true\">{title}</h4>"
         f"<div class=\"editable table-note table-note-top\" contenteditable=\"true\"><p>{_escape(informative_default)}</p></div>"
         f"{chart_html}"
@@ -1248,6 +1550,7 @@ def _render_data_table(
       f"<table class=\"{table_classes}\">{head_html}{body_html}</table>"
         f"<div class=\"editable table-note table-note-bottom\" contenteditable=\"true\"><p>{_escape(summary_default)}</p></div>"
         f"</div>"
+        f"{detour_extra}"
     )
 
 
@@ -1255,22 +1558,20 @@ def _render_additional_chart_blocks(
   chart_items: list[dict[str, str]],
   embedded_chart_keys: set[str],
 ) -> str:
-  remaining = [
-    item for item in chart_items
-    if _normalize_title_key(item.get("canvas_id") or item.get("title")) not in embedded_chart_keys
-  ]
-  if not remaining:
+  # Section 6 shows ALL charts for easy reference, regardless of whether they
+  # are also embedded inline with their associated tables in Section 4.
+  if not chart_items:
     return ""
 
   blocks: list[str] = []
-  for idx, item in enumerate(remaining):
+  for idx, item in enumerate(chart_items):
     blocks.append(
       "<figure class=\"report-section report-block chart-block avoid-break\">"
-      "<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">Remove Chart</button></div>"
+      "<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">✕ Remove</button></div>"
       f"<h4 class=\"chart-title editable-text\" contenteditable=\"true\">{_escape(item['title'], f'Chart {idx + 1}')}</h4>"
       f"<img class=\"chart-img\" src=\"{item['image']}\" alt=\"{_escape(item['title'], f'Chart {idx + 1}')}\" />"
       "<figcaption class=\"editable chart-caption editable-text\" contenteditable=\"true\">"
-      "Additional visual reference retained separately from the main table narrative."
+      "Visual reference for this chart. Edit this caption to describe key findings, trends, and engineering interpretation."
       "</figcaption>"
       "</figure>"
     )
@@ -1351,6 +1652,7 @@ def editor_page(draft_id: str) -> str:
     selected_site_details = ctx.get("selected_site_details", {}) if isinstance(ctx.get("selected_site_details"), dict) else {}
 
     notes_html = _render_notes(notes)
+    engineering_obs_html = _render_engineering_observations(notes)
     tables = payload.get("tables", []) if isinstance(payload.get("tables"), list) else []
     table_analysis_map = {
       _normalize_title_key(item.get("title")): item
@@ -1393,15 +1695,40 @@ def editor_page(draft_id: str) -> str:
       table_analysis_map.get(_normalize_title_key('Analysis Parameters')),
       input_charts,
     )
-    results_section_html = _render_key_value_table(
+    results_section_html = _render_computed_results_section(
       'Summary of Computed Results',
       results,
       table_analysis_map.get(_normalize_title_key('Summary of Computed Results')),
       results_charts,
     )
     selected_site_section_html = _render_selected_site_details_section(selected_site_details)
-    table_blocks: list[str] = []
+
+    # Separate hourly peak-hour tables so they can be placed directly after
+    # the results section (below its embedded chart) per report format.
+    hourly_peak_tables: list[Any] = []
+    other_tables: list[Any] = []
     for table in prioritized_tables:
+      title_lc = _safe_text(table.get("title", "")).lower()
+      if "hourly" in title_lc and "peak hour" in title_lc:
+        hourly_peak_tables.append(table)
+      else:
+        other_tables.append(table)
+
+    hourly_peak_blocks: list[str] = []
+    for table in hourly_peak_tables:
+      matched_charts = _select_charts_for_table(table, chart_items)
+      embedded_chart_keys.update(_normalize_title_key(item.get("canvas_id") or item.get("title")) for item in matched_charts)
+      hourly_peak_blocks.append(
+        _render_data_table(
+          table,
+          table_analysis_map.get(_normalize_title_key(table.get('title'))),
+          matched_charts,
+        )
+      )
+    hourly_peak_section_html = "".join(hourly_peak_blocks)
+
+    table_blocks: list[str] = []
+    for table in other_tables:
       matched_charts = _select_charts_for_table(table, chart_items)
       embedded_chart_keys.update(_normalize_title_key(item.get("canvas_id") or item.get("title")) for item in matched_charts)
       table_blocks.append(
@@ -1533,7 +1860,24 @@ def editor_page(draft_id: str) -> str:
       .toc-container {{ border: none; padding: 0; }}
       .toc-link {{ border-bottom: none; }}
       .embedded-chart {{ border: 1px solid #bfd3d8; background: #fff; }}
+      .detour-sub-block {{ border: 1px solid var(--border); background: #fff; }}
     }}
+
+    /* Three-column results table */
+    .results-3col .context-col {{ color: var(--muted); font-size: 0.88rem; font-style: italic; min-width: 140px; }}
+
+    /* Detour subsection blocks */
+    .detour-subsections {{ margin-top: 8px; }}
+    .detour-sub-block {{ margin: 16px 0; padding: 12px 16px; border-left: 4px solid var(--accent); background: #f3f8f9; border-radius: 4px; }}
+    .detour-sub-block h5 {{ margin: 0 0 8px; color: var(--brand); font-size: 1rem; }}
+
+    /* Engineering observations */
+    .obs-subsection {{ margin-bottom: 16px; }}
+    .obs-lead {{ min-height: 48px; margin-bottom: 8px; }}
+
+    /* Table add/remove controls */
+    .section-controls .mini-btn {{ margin-right: 4px; }}
+    .section-controls .mini-btn:last-child {{ margin-right: 0; }}
   </style>
 </head>
 <body>
@@ -1576,21 +1920,22 @@ def editor_page(draft_id: str) -> str:
     <h2 class=\"avoid-break\" contenteditable=\"true\">2. Executive Explanation Notes</h2>
     <ul>{executive_notes_html}</ul>
 
-    <h2 contenteditable=\"true\">3. Design & Traffic Inputs</h2>
+    <h2 contenteditable=\"true\">3. Design &amp; Traffic Inputs</h2>
     {inputs_section_html}
     {selected_site_section_html}
 
     <div class=\"page-break\"></div>
 
-    <h2 contenteditable=\"true\">4. Traffic Analysis & Results</h2>
+    <h2 contenteditable=\"true\">4. Traffic Analysis &amp; Results</h2>
     {results_section_html}
+    {hourly_peak_section_html}
 
     {table_sections}
 
     <div class=\"page-break\"></div>
 
-    <h2 contenteditable=\"true\">5. Engineering Observations & Notes</h2>
-    <ul>{notes_html}</ul>
+    <h2 contenteditable=\"true\">5. Engineering Observations &amp; Notes</h2>
+    {engineering_obs_html}
 
     <h2 contenteditable=\"true\">6. Charts</h2>
     <div id=\"chartSectionContent\">{chart_sections}</div>
@@ -1743,6 +2088,62 @@ def editor_page(draft_id: str) -> str:
         if (target && target.matches && target.matches('h2, h3, h4.chart-title')) {{
           scheduleRefresh();
         }}
+      }});
+    }}
+
+    function addTableRow(btn) {{
+      const block = btn && btn.closest('.report-block');
+      if (!block) return;
+      const table = block.querySelector('table');
+      if (!table) return;
+      const tbody = table.querySelector('tbody') || table;
+      const rows = tbody.querySelectorAll('tr');
+      const cellCount = rows.length > 0 ? rows[rows.length - 1].querySelectorAll('td, th').length : 2;
+      const newRow = document.createElement('tr');
+      for (let i = 0; i < cellCount; i++) {{
+        const td = document.createElement('td');
+        td.className = 'editable-text editable-cell';
+        td.contentEditable = 'true';
+        td.textContent = 'Edit';
+        newRow.appendChild(td);
+      }}
+      tbody.appendChild(newRow);
+    }}
+
+    function removeTableLastRow(btn) {{
+      const block = btn && btn.closest('.report-block');
+      if (!block) return;
+      const table = block.querySelector('table');
+      if (!table) return;
+      const tbody = table.querySelector('tbody') || table;
+      const rows = tbody.querySelectorAll('tr');
+      if (rows.length > 1) rows[rows.length - 1].remove();
+    }}
+
+    function addTableColumn(btn) {{
+      const block = btn && btn.closest('.report-block');
+      if (!block) return;
+      const table = block.querySelector('table');
+      if (!table) return;
+      const rows = table.querySelectorAll('tr');
+      rows.forEach((row, idx) => {{
+        const cell = (idx === 0 && table.querySelector('thead')) ? document.createElement('th') : document.createElement('td');
+        cell.className = 'editable-text editable-cell';
+        cell.contentEditable = 'true';
+        cell.textContent = idx === 0 ? 'New Column' : 'Edit';
+        row.appendChild(cell);
+      }});
+    }}
+
+    function removeTableLastColumn(btn) {{
+      const block = btn && btn.closest('.report-block');
+      if (!block) return;
+      const table = block.querySelector('table');
+      if (!table) return;
+      const rows = table.querySelectorAll('tr');
+      rows.forEach(row => {{
+        const cells = row.querySelectorAll('td, th');
+        if (cells.length > 1) cells[cells.length - 1].remove();
       }});
     }}
 
