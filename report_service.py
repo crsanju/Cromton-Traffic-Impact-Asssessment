@@ -1256,17 +1256,103 @@ def _render_short_detour_route_block(route_label: str, route_tables: list[dict],
     else:
       other_tables.append(table)
 
-  def _render_group(tables: list[dict], placeholder: str) -> str:
+  def _render_group(tables: list[dict], fallback_html: str) -> str:
     if tables:
       return "".join(
         _render_data_table(t, analysis_map.get(_normalize_title_key(t.get("title"))))
         for t in tables
       )
-    return f"<p class=\"editable-text\" contenteditable=\"true\">{_escape(placeholder)}</p>"
+    return fallback_html
 
   other_html = "".join(
     _render_data_table(t, analysis_map.get(_normalize_title_key(t.get("title"))))
     for t in other_tables
+  )
+
+  # --- HARDCODED EDITABLE TABLE FALLBACKS FOR MISSING FRONTEND DATA ---
+  fallback_vpd = (
+    "<table><thead><tr>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Direction</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Base VADT (vpd)</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Growth Factor</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Design Year VADT (vpd)</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Diverted Traffic (vpd)</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Total VPD on Detour</th>"
+    "</tr></thead><tbody>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">D1</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">D2</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "</tbody></table>"
+    "<p class=\"editable-text\" contenteditable=\"true\">Edit to insert calculated VPD values for the detour route under full diversion conditions.</p>"
+  )
+
+  fallback_dir_capacity = (
+    "<table><thead><tr>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Direction</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Lane Count</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Per-Lane Capacity (veh/h)</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Total Capacity (veh/h)</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Peak Hour Volume (veh/h)</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">VCR</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">LOS</th>"
+    "</tr></thead><tbody>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">D1</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">D2</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "</tbody></table>"
+    "<p class=\"editable-text\" contenteditable=\"true\">Edit to confirm directional capacity and VCR under diversion conditions for the detour road.</p>"
+  )
+
+  fallback_road_capacity = (
+    "<table><thead><tr>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Parameter</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Value</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Notes</th>"
+    "</tr></thead><tbody>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Road Classification</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Posted Speed (km/h)</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Total Two-Way Capacity (vpd)</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Remaining Surplus Capacity (vpd)</td><td class=\"editable-text\" contenteditable=\"true\">—</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "</tbody></table>"
+    "<p class=\"editable-text\" contenteditable=\"true\">Edit to confirm overall road capacity relative to diverted demand.</p>"
+  )
+
+  fallback_road_status = (
+    "<div class=\"editable\" contenteditable=\"true\">"
+    "<p>Following full diversion of traffic to this route, confirm that the detour road remains within acceptable operating conditions. "
+    "Key considerations include: pavement condition, geometric constraints (narrow lanes, sharp curves, limited sight-distance), "
+    "intersection control adequacy, and pedestrian / cyclist conflicts. Edit this section to record findings.</p>"
+    "</div>"
+  )
+
+  fallback_delay = (
+    "<table><thead><tr>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Parameter</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Value</th>"
+    "</tr></thead><tbody>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Detour Route Length (km)</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Original Route Length (km)</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Extra Distance (km)</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Average Travel Speed on Detour (km/h)</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Estimated Additional Travel Time (min)</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Delay Classification</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "</tbody></table>"
+    "<p class=\"editable-text\" contenteditable=\"true\">Edit to calculate and record the additional delay imposed on motorists by the detour route.</p>"
+  )
+
+  fallback_pedestrian = (
+    "<div class=\"editable\" contenteditable=\"true\">"
+    "<p>Assess whether the detour route provides safe and accessible pedestrian connectivity. Key items to address: "
+    "availability of footpath / shared path; suitable crossing facilities at intersections; WCAG / DDA compliance; "
+    "additional walking distance for pedestrians and approximate delay. Edit this section to record pedestrian impact findings.</p>"
+    "</div>"
+    "<table><thead><tr>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Parameter</th>"
+    "<th class=\"editable-text\" contenteditable=\"true\">Value</th>"
+    "</tr></thead><tbody>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Pedestrian Detour Distance (m)</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Additional Walking Time (min)</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Pedestrian Delay Classification</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "<tr><td class=\"editable-text\" contenteditable=\"true\">Mitigation Recommended</td><td class=\"editable-text\" contenteditable=\"true\">—</td></tr>"
+    "</tbody></table>"
   )
 
   return (
@@ -1277,39 +1363,38 @@ def _render_short_detour_route_block(route_label: str, route_tables: list[dict],
 
     "<div class=\"detour-sub-block avoid-break\">"
     "<h4 class=\"editable-text\" contenteditable=\"true\">1. VPD Calculated table</h4>"
-    + _render_group(vpd_tables, "No VPD data available. Edit to add calculated vehicles-per-day under full diversion.")
+    + _render_group(vpd_tables, fallback_vpd)
     + "</div>"
 
     "<div class=\"detour-sub-block avoid-break\">"
     "<h4 class=\"editable-text\" contenteditable=\"true\">2. Detour Road Directional Capacity Summary</h4>"
-    + _render_group(dir_capacity_tables, "No directional capacity data available. Edit to add directional capacity summary.")
+    + _render_group(dir_capacity_tables, fallback_dir_capacity)
     + "</div>"
 
     "<div class=\"detour-sub-block avoid-break\">"
     "<h4 class=\"editable-text\" contenteditable=\"true\">3. Detour Road Capacity Summary</h4>"
-    + _render_group(road_capacity_tables, "No road capacity summary available. Edit to add overall road capacity details.")
+    + _render_group(road_capacity_tables, fallback_road_capacity)
     + "</div>"
 
     "<div class=\"detour-sub-block avoid-break\">"
     "<h4 class=\"editable-text\" contenteditable=\"true\">4. Existing Road Status After Diversion</h4>"
-    + _render_group(road_status_tables, "No road status data available. Edit to add existing road status after diversion.")
+    + _render_group(road_status_tables, fallback_road_status)
     + "</div>"
 
     "<div class=\"detour-sub-block avoid-break\">"
     "<h4 class=\"editable-text\" contenteditable=\"true\">5. Estimated Delay - Detour route</h4>"
-    + _render_group(delay_tables, "No delay estimate available. Edit to add estimated delay for the detour route.")
+    + _render_group(delay_tables, fallback_delay)
     + "</div>"
 
     "<div class=\"detour-sub-block avoid-break\">"
     "<h4 class=\"editable-text\" contenteditable=\"true\">6. Pedestrian Detour Impact &#8211; Delay calculation</h4>"
-    + _render_group(pedestrian_tables, "No pedestrian impact data available. Edit to add pedestrian detour delay calculation.")
+    + _render_group(pedestrian_tables, fallback_pedestrian)
     + "</div>"
 
     "</div>"
   )
 
 
-def _build_short_detour_section(tables: list[dict], route_count: int, analysis_map: dict) -> str:
   """Build the complete Section 5 Detour Analysis HTML for the short report."""
   # Separate detour tables from non-detour tables.
   detour_tables = [
@@ -1836,16 +1921,16 @@ def editor_page(draft_id: str) -> str:
     )
     selected_site_section_html = _render_selected_site_details_section(selected_site_details)
 
-    # Separate hourly peak-hour tables and (for short report) detour tables.
-    # Detour tables in short report go exclusively into Section 5 to avoid duplication.
+    # Separate hourly peak-hour tables and detour tables.
+    # Detour tables go exclusively into Section 5 to avoid duplication and maintain order.
     hourly_peak_tables: list[Any] = []
     other_tables: list[Any] = []
     for table in prioritized_tables:
       title_lc = _safe_text(table.get("title", "")).lower()
       if "hourly" in title_lc and "peak hour" in title_lc:
         hourly_peak_tables.append(table)
-      elif is_short and any(k in title_lc for k in ("detour", "diversion", "pedestrian detour")):
-        pass  # Detour tables go into Section 5 for short report — skip from main table_sections
+      elif any(k in title_lc for k in ("detour", "diversion", "pedestrian detour", "road status", "after diversion", "estimated delay", "vpd calculated")):
+        pass  # Skip from main table_sections, they are handled by the Detour Analysis block
       else:
         other_tables.append(table)
 
@@ -1877,20 +1962,19 @@ def editor_page(draft_id: str) -> str:
     chart_sections = _render_additional_chart_blocks(chart_items, embedded_chart_keys)
     payload_json = escape(json.dumps(payload))
 
-    # Short report: build Section 5 Detour Analysis if there are detour tables or routes.
+    # Build Section 5 Detour Analysis for ALL reports.
     raw_js = payload.get("raw_js_results", {}) if isinstance(payload.get("raw_js_results"), dict) else {}
     detour_route_count = int(raw_js.get("detour_route_count") or 0)
-    short_detour_section_html = ""
-    if is_short:
-      short_detour_section_html = _build_short_detour_section(
-        tables, detour_route_count, table_analysis_map
-      )
 
-    # Adjust section numbers if short report has detour section.
-    sec5_label = "5. Detour Analysis" if is_short and short_detour_section_html else ""
-    sec_eng_num   = "6" if (is_short and short_detour_section_html) else "5"
-    sec_chart_num = "7" if (is_short and short_detour_section_html) else "6"
-    sec_comm_num  = "8" if (is_short and short_detour_section_html) else "7"
+    # Generate the structured Detour HTML unconditionally
+    short_detour_section_html = _build_short_detour_section(
+        tables, detour_route_count, table_analysis_map
+    )
+
+    # Adjust section numbers dynamically based on whether detour data exists
+    sec_eng_num   = "6" if short_detour_section_html else "5"
+    sec_chart_num = "7" if short_detour_section_html else "6"
+    sec_comm_num  = "8" if short_detour_section_html else "7"
 
     return f"""<!DOCTYPE html>
 <html lang=\"en\">
