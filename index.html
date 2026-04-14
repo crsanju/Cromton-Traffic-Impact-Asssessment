@@ -8113,7 +8113,7 @@
     const d1VADT = document.getElementById('d1Aadt')?.value || 'N/A';
     const d2VADT = document.getElementById('d2Aadt')?.value || 'N/A';
     const baseYear = document.getElementById('baseYear')?.value || new Date().getFullYear();
-    const targetYear = document.getElementById('targetYear')?.value || new Date().getFullYear();
+    const targetYear = document.getElementById('macroOpeningYear')?.value || new Date().getFullYear();
     
     // Get growth data if available
     const growthRate = document.getElementById('annualGrowthRate')?.value || 'N/A';
@@ -9446,7 +9446,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     // 4. Deterministic Growth Modeling (CAGR)
     calculateProjectedVolume: function(baseVolume, baseYear, designYear, growthRate) {
-      const t = designYear - baseYear;
+      const t = Math.max(0, designYear - baseYear);
       const projected = baseVolume * Math.pow(1 + (growthRate / 100), t);
       return Math.ceil(projected);
     },
@@ -14032,7 +14032,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const yearRangeEl = document.getElementById('printYearRange');
     const baseYearVal = Number(document.getElementById('baseYear')?.value);
-    const openingYearVal = Number(document.getElementById('openingYear')?.value);
+    const openingYearVal = Number(document.getElementById('macroOpeningYear')?.value);
     const yearRangeText = Number.isFinite(baseYearVal) && Number.isFinite(openingYearVal)
       ? `${Math.round(baseYearVal)} -> ${Math.round(openingYearVal)}`
       : '-';
@@ -19479,15 +19479,18 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
 
     // Find the absolute Peak Hour Volume for D1 and D2 to stress-test the signals
+    const sourceUpperSG = String(site && site.source ? site.source : '').trim().toUpperCase();
+    const isIpswichSG = sourceUpperSG === 'IPSWICH';
+    const peakHourFraction = isIpswichSG ? (IPSWICH_CONSTANTS.PEAK_HOUR_PERCENT / 100) : 0.09;
     let v1 = 0; let v2 = 0;
     if (site && site.directions_weekday) {
       const gaz = site.directions_weekday['GAZETTAL'] || [];
       const ag = site.directions_weekday['AGAINST GAZETTAL'] || [];
-      v1 = gaz.length ? Math.max(...gaz.map(v => Number(v)||0)) : num('D1_VADT') * 0.09;
-      v2 = ag.length ? Math.max(...ag.map(v => Number(v)||0)) : num('D2_VADT') * 0.09;
+      v1 = gaz.length ? Math.max(...gaz.map(v => Number(v)||0)) : num('D1_VADT') * peakHourFraction;
+      v2 = ag.length ? Math.max(...ag.map(v => Number(v)||0)) : num('D2_VADT') * peakHourFraction;
     } else {
-      v1 = num('D1_VADT') * 0.09; // Fallback to 9% of daily volume if no profile
-      v2 = num('D2_VADT') * 0.09;
+      v1 = num('D1_VADT') * peakHourFraction; // Fallback to peak hour fraction of daily volume if no profile
+      v2 = num('D2_VADT') * peakHourFraction;
     }
     
     // Prevent divide by zero
@@ -24089,12 +24092,21 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     // This follows from the geometric tail of the conditional queue distribution,
     // which is much heavier than a Poisson/normal approximation under high utilisation.
     // Invert at the 95th percentile:  Pw·ρ^k ≤ 0.05  →  k ≥ ln(0.05/Pw) / ln(ρ)
+    // When Pw > 0.05 both logs are negative — their quotient is positive and correct.
+    // Guard: if the Erlang-C numerics overflow (pw = NaN) or the quotient is
+    // non-positive/non-finite (e.g. rho underflows near 0), fall back to at least 1
+    // vehicle rather than silently returning 0 or NaN.
     let p95Queue;
-    if (pw <= 0.05 || rho <= 0) {
+    if (pw <= 0.05 || rho <= 0 || !Number.isFinite(pw)) {
       // Erlang-C ≤ 0.05: fewer than 5% of arrivals ever wait — p95 queue is zero.
       p95Queue = 0;
     } else {
-      p95Queue = Math.ceil(Math.log(0.05 / pw) / Math.log(rho));
+      const rawP95 = Math.log(0.05 / pw) / Math.log(rho);
+      // Ensure result is a positive finite integer; clamp to ≥ 1 when queueing is
+      // non-trivial (pw > 0.05 means more than 5% of arrivals wait).
+      p95Queue = (Number.isFinite(rawP95) && rawP95 > 0)
+        ? Math.ceil(rawP95)
+        : 1;
     }
     
     // Level of Service based on utilization
@@ -27155,7 +27167,7 @@ const LoganTrafficEngine = (function() {
         
         // Pre-fill year fields only when they are empty — never overwrite user-entered values.
         const baseYearField = document.getElementById('baseYear');
-        const openingYearField = document.getElementById('openingYear');
+        const openingYearField = document.getElementById('macroOpeningYear');
         if (baseYearField && !String(baseYearField.value).trim()) baseYearField.value = String(generatedVADTPhase.baseYear);
         if (openingYearField && !String(openingYearField.value).trim()) openingYearField.value = String(generatedVADTPhase.targetYear);
       }

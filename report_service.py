@@ -1882,11 +1882,6 @@ def editor_page(draft_id: str) -> str:
       )
     table_sections = "".join(table_blocks)
     chart_sections = _render_additional_chart_blocks(chart_items_to_render, embedded_chart_keys)
-    chart_section_block = (
-      f'<h2 contenteditable="true">{sec_chart_num}. Charts</h2>\n    <div id="chartSectionContent">{chart_sections}</div>'
-      if not is_short else ''
-    )
-    payload_json = escape(json.dumps(payload))
 
     # Build Section 5 Detour Analysis for ALL reports using the isolated tables.
     raw_js = payload.get("raw_js_results", {}) if isinstance(payload.get("raw_js_results"), dict) else {}
@@ -1897,7 +1892,8 @@ def editor_page(draft_id: str) -> str:
         detour_tables, detour_route_count, table_analysis_map, chart_items_to_render
     )
 
-    # Adjust section numbers dynamically based on whether detour data exists
+    # Adjust section numbers dynamically based on whether detour data exists.
+    # MUST be computed before chart_section_block which references sec_chart_num.
     sec_eng_num   = "6" if short_detour_section_html else "5"
     if is_short:
       sec_chart_num = ""  # No charts section in short report
@@ -1905,6 +1901,12 @@ def editor_page(draft_id: str) -> str:
     else:
       sec_chart_num = "7" if short_detour_section_html else "6"
       sec_comm_num  = "8" if short_detour_section_html else "7"
+
+    chart_section_block = (
+      f'<h2 contenteditable="true">{sec_chart_num}. Charts</h2>\n    <div id="chartSectionContent">{chart_sections}</div>'
+      if not is_short else ''
+    )
+    payload_json = escape(json.dumps(payload))
 
     return f"""<!DOCTYPE html>
 <html lang=\"en\">
