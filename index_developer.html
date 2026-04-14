@@ -9185,20 +9185,75 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   }
 
   /* DEV-BYPASS-BLOCK */
-  // Developer build only: bypass login gate entirely.
-  // Pre-set auth session key and synchronously remove the app-locked blur so
-  // the UI is immediately usable regardless of async data-loading failures.
-  sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+  // Developer build only: PIN-gated bypass. Requires PIN 808080 once per session.
   (function() {
-    document.body.classList.remove('app-locked');
-    var _g = document.getElementById('loginGate');
-    if (_g) _g.style.display = 'none';
+    var DEV_PIN = '808080';
+    var DEV_PIN_SESSION_KEY = 'crompton_dev_pin_auth';
+
+    function continueSetup() {
+      setupLoginGate();
+      setupLogoutButton();
+      setupContactDeveloperButton();
+      setupUserManualModal();
+      setupPythonSetupModal();
+    }
+
+    function applyDevBypass() {
+      sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+      document.body.classList.remove('app-locked');
+      var _g = document.getElementById('loginGate');
+      if (_g) _g.style.display = 'none';
+      continueSetup();
+    }
+
+    // Already authenticated this session — bypass immediately.
+    if (sessionStorage.getItem(DEV_PIN_SESSION_KEY) === 'true') {
+      applyDevBypass();
+      return;
+    }
+
+    // Build and show the PIN gate overlay.
+    var overlay = document.createElement('div');
+    overlay.id = 'devPinGate';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(7,20,22,0.85);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
+    overlay.innerHTML =
+      '<div style="background:#fff;border-radius:12px;border:1px solid #dbe2ea;box-shadow:0 16px 40px rgba(0,0,0,0.3);padding:36px 32px;max-width:340px;width:100%;text-align:center;">'
+      + '<div style="font-size:2.5rem;margin-bottom:8px;">🔒</div>'
+      + '<h2 style="margin:0 0 6px;color:#0f2f32;font-size:1.25rem;">Developer Access</h2>'
+      + '<p style="margin:0 0 20px;color:#5a7a7d;font-size:0.9rem;">Enter PIN to access developer mode</p>'
+      + '<input id="devPinGateInput" type="password" inputmode="numeric" maxlength="10" placeholder="Enter PIN" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px 14px;font-size:1.3rem;letter-spacing:0.4em;border:2px solid #dbe2ea;border-radius:8px;text-align:center;outline:none;margin-bottom:10px;">'
+      + '<div id="devPinGateError" style="color:#b91c1c;font-size:0.85rem;min-height:1.2em;margin-bottom:14px;"></div>'
+      + '<button id="devPinGateSubmit" type="button" style="background:#0f6b7a;color:#fff;border:none;border-radius:8px;padding:11px 32px;font-size:1rem;cursor:pointer;font-weight:600;width:100%;">Unlock</button>'
+      + '</div>';
+    document.body.appendChild(overlay);
+
+    setTimeout(function() {
+      var inp = document.getElementById('devPinGateInput');
+      if (inp) inp.focus();
+    }, 80);
+
+    function attemptUnlock() {
+      var inp = document.getElementById('devPinGateInput');
+      var errEl = document.getElementById('devPinGateError');
+      if (!inp) return;
+      if (inp.value === DEV_PIN) {
+        sessionStorage.setItem(DEV_PIN_SESSION_KEY, 'true');
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        applyDevBypass();
+      } else {
+        if (errEl) errEl.textContent = 'Incorrect PIN. Try again.';
+        inp.value = '';
+        inp.focus();
+      }
+    }
+
+    document.getElementById('devPinGateSubmit').addEventListener('click', attemptUnlock);
+    document.getElementById('devPinGateInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); attemptUnlock(); }
+    });
   })();
-  setupLoginGate();
-  setupLogoutButton();
-  setupContactDeveloperButton();
-  setupUserManualModal();
-  setupPythonSetupModal();
 
   function resolveRepoRelativePath(fileName) {
     const cleanName = String(fileName || '').replace(/^\.\//, '');

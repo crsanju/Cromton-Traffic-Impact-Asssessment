@@ -3663,6 +3663,22 @@
       </div>
     </div>
 
+    <!-- Developer View PIN Modal -->
+    <div id="devPinModal" role="dialog" aria-modal="true" aria-labelledby="devPinModalTitle" style="display:none; position:fixed; inset:0; background:rgba(7,20,22,0.75); z-index:200000; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px);">
+      <div style="background:#fff; border-radius:12px; border:1px solid #dbe2ea; box-shadow:0 16px 40px rgba(0,0,0,0.3); padding:36px 32px; max-width:340px; width:100%; text-align:center;">
+        <div style="font-size:2.2rem; margin-bottom:8px;">🔒</div>
+        <h2 id="devPinModalTitle" style="margin:0 0 6px; color:#0f2f32; font-size:1.2rem;">Developer Access</h2>
+        <p style="margin:0 0 20px; color:#5a7a7d; font-size:0.9rem;">Enter PIN to open Developer View</p>
+        <input id="devPinModalInput" type="password" inputmode="numeric" maxlength="10" placeholder="Enter PIN" autocomplete="off"
+          style="width:100%; box-sizing:border-box; padding:10px 14px; font-size:1.3rem; letter-spacing:0.4em; border:2px solid #dbe2ea; border-radius:8px; text-align:center; outline:none; margin-bottom:10px;">
+        <div id="devPinModalError" style="color:#b91c1c; font-size:0.85rem; min-height:1.2em; margin-bottom:14px;"></div>
+        <div style="display:flex; gap:10px;">
+          <button id="devPinModalSubmit" type="button" style="flex:1; background:#0f6b7a; color:#fff; border:none; border-radius:8px; padding:11px 0; font-size:1rem; cursor:pointer; font-weight:600;">Unlock</button>
+          <button id="devPinModalCancel" type="button" style="flex:1; background:#e5e7eb; color:#374151; border:none; border-radius:8px; padding:11px 0; font-size:1rem; cursor:pointer;">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <div id="userManualModal" role="dialog" aria-modal="true" aria-label="Traffic Impact Assessment User Manual" class="hide-print" style="display:none; position:fixed; inset:0; background:rgba(15, 23, 42, 0.68); z-index:100000; padding:18px; overflow:auto;">
       <div style="max-width:980px; margin:0 auto; background:#fff; border-radius:12px; border:1px solid #dbe2ea; box-shadow:0 16px 40px rgba(0,0,0,0.24); padding:18px;">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
@@ -9336,7 +9352,47 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const formulaLink = document.getElementById('formulaViewLink');
     if (formulaLink) formulaLink.href = resolveRepoRelativePath('index_formulas.html');
     const developerLink = document.getElementById('developerViewLink');
-    if (developerLink) developerLink.href = resolveRepoRelativePath('index_developer.html');
+    if (developerLink) {
+      developerLink.href = resolveRepoRelativePath('index_developer.html');
+      developerLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        openDevPinModal(developerLink.href);
+      });
+    }
+  }
+
+  function openDevPinModal(targetUrl) {
+    const modal = document.getElementById('devPinModal');
+    const input = document.getElementById('devPinModalInput');
+    const errorEl = document.getElementById('devPinModalError');
+    const submitBtn = document.getElementById('devPinModalSubmit');
+    const cancelBtn = document.getElementById('devPinModalCancel');
+    if (!modal || !input) return;
+
+    input.value = '';
+    errorEl.textContent = '';
+    modal.style.display = 'flex';
+    setTimeout(function() { input.focus(); }, 60);
+
+    function close() {
+      modal.style.display = 'none';
+    }
+
+    function attemptUnlock() {
+      if (input.value === '808080') {
+        close();
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        errorEl.textContent = 'Incorrect PIN. Try again.';
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    submitBtn.onclick = attemptUnlock;
+    cancelBtn.onclick = close;
+    input.onkeydown = function(e) { if (e.key === 'Enter') { e.preventDefault(); attemptUnlock(); } };
+    modal.onclick = function(e) { if (e.target === modal) close(); };
   }
 
   bindRepoSafeLinks();
