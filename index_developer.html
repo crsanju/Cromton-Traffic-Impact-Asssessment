@@ -502,87 +502,53 @@
       align-items: center;
       margin-bottom: 8px;
       gap: 10px;
-      padding: 12px 18px;
-      background: linear-gradient(135deg, rgba(31, 94, 99, 0.08) 0%, rgba(15, 47, 50, 0.05) 100%);
-      border: 1px solid rgba(31, 94, 99, 0.15);
+      padding: 0 18px;
+      height: 50px;
+      background: #ffffff;
+      border: 1px solid #e1ded8;
       border-radius: 12px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-      animation: slideDown 0.5s ease-out;
-    }
-    
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      box-shadow: none;
     }
 
     .home-button {
-      background: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 100%);
-      color: white;
-      padding: 11px 20px;
+      background: transparent;
+      color: var(--brand);
+      padding: 8px 14px;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       cursor: pointer;
-      font-weight: 700;
-      font-size: 15px;
-      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      font-weight: 600;
+      font-size: 14px;
+      transition: background 0.15s ease;
       display: inline-flex;
       align-items: center;
       gap: 8px;
       width: auto;
       text-decoration: none;
-      box-shadow: 0 4px 12px rgba(15, 47, 50, 0.2), 0 2px 4px rgba(15, 47, 50, 0.1);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .home-button::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-      transition: left 0.5s ease;
-    }
-    
-    .home-button:hover::after {
-      left: 100%;
     }
 
     .home-button:hover {
-      filter: brightness(1.08);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(15, 47, 50, 0.25), 0 3px 6px rgba(15, 47, 50, 0.15);
+      background: rgba(31, 94, 99, 0.08);
     }
     .home-button::before { content: '🏠'; font-size: 1.1em; }
 
     .logout-button {
       width: auto;
       margin-top: 0;
-      background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 10px;
+      background: transparent;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+      padding: 8px 16px;
+      border-radius: 8px;
       cursor: pointer;
-      font-weight: 700;
+      font-weight: 600;
       font-size: 14px;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+      transition: border-color 0.15s ease, color 0.15s ease;
     }
 
     .logout-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4);
-      filter: brightness(1.05);
+      border-color: #dc3545;
+      color: #dc3545;
     }
 
     .contact-dev-wrap {
@@ -594,22 +560,20 @@
     .contact-dev-button {
       width: auto;
       margin-top: 0;
-      background: linear-gradient(135deg, #1f5e63 0%, #0f2f32 100%);
-      color: white;
-      border: none;
-      padding: 10px 14px;
-      border-radius: 10px;
+      background: transparent;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      border-radius: 8px;
       cursor: pointer;
-      font-weight: 700;
+      font-weight: 600;
       font-size: 13px;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: 0 4px 10px rgba(15, 47, 50, 0.25);
+      transition: border-color 0.15s ease, color 0.15s ease;
     }
 
     .contact-dev-button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 14px rgba(15, 47, 50, 0.3);
-      filter: brightness(1.05);
+      border-color: var(--brand);
+      color: var(--brand);
     }
 
     .contact-dev-panel {
@@ -758,9 +722,13 @@
     h2 {
       margin: 0 0 12px;
       color: var(--brand-2);
-      font-size: 1.05rem;
-      border-bottom: 2px solid var(--brand);
-      padding-bottom: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-bottom: 1px solid #e1ded8;
+      padding-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .section-help {
@@ -940,12 +908,12 @@
     }
 
     /* Updated Austroads/HCM Aligned LOS Colors */
-    .queue-calculator-card .los-a { background-color: #28a745; } /* <= 0.60 */
-    .queue-calculator-card .los-b { background-color: #8bc34a; } /* <= 0.70 */
-    .queue-calculator-card .los-c { background-color: #ffc107; color: #333; } /* <= 0.80 */
-    .queue-calculator-card .los-d { background-color: #fd7e14; } /* <= 0.90 */
-    .queue-calculator-card .los-e { background-color: #dc3545; } /* <= 1.00 */
-    .queue-calculator-card .los-f { background-color: #8b0000; } /* > 1.00 */
+    .queue-calculator-card .los-a { background-color: #dcfce7; color: #14532d; } /* <= 0.60 */
+    .queue-calculator-card .los-b { background-color: #d1fae5; color: #134e4a; } /* <= 0.70 */
+    .queue-calculator-card .los-c { background-color: #fef9c3; color: #713f12; } /* <= 0.80 */
+    .queue-calculator-card .los-d { background-color: #ffedd5; color: #7c2d12; } /* <= 0.90 */
+    .queue-calculator-card .los-e { background-color: #fee2e2; color: #7f1d1d; } /* <= 1.00 */
+    .queue-calculator-card .los-f { background-color: #fce7f3; color: #831843; } /* > 1.00 */
 
     .ux-intro {
       margin-top: 14px;
@@ -1069,12 +1037,12 @@
 
     label {
       display: block;
-      font-size: 0.74rem;
-      font-weight: 700;
-      margin-bottom: 6px;
-      color: #5b6b7f;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-size: 0.76rem;
+      font-weight: 500;
+      margin-bottom: 5px;
+      color: #64748b;
+      text-transform: none;
+      letter-spacing: 0;
     }
 
     .grid > div,
@@ -1166,10 +1134,15 @@
       top: 50%;
       transform: translateY(-50%);
       color: #94a3b8;
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      font-size: 0.67rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-transform: none;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: "JetBrains Mono", monospace;
       pointer-events: none;
       line-height: 1.2;
     }
@@ -1290,9 +1263,9 @@
     .input-color-mode input:not([readonly]):not([type="range"]):not([type="checkbox"]):not([type="file"]),
     .input-color-mode select:not([readonly]):not([disabled]),
     .input-color-mode textarea:not([readonly]) {
-      border: 1px solid #e57373 !important;
-      background: #fff5f5 !important;
-      color: #b71c1c !important;
+      border: 1px solid #cbd5e1 !important;
+      background: #ffffff !important;
+      color: var(--ink) !important;
     }
 
     .input-color-mode input:not([readonly]):not([type="range"]):not([type="checkbox"]):not([type="file"]):focus,
@@ -1309,7 +1282,7 @@
     .input-color-mode textarea[readonly],
     .input-color-mode textarea:disabled {
       border: 1px solid #81c784 !important;
-      background: #f1f8f6 !important;
+      background: #f7fdf9 !important;
       color: #1b5e20 !important;
     }
 
@@ -1403,23 +1376,23 @@
     .kpi-grid { display: grid; grid-template-columns: repeat(6, minmax(140px, 1fr)); gap: 10px; margin-top: 8px; }
 
     .kpi {
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 10px;
-      background: linear-gradient(180deg, #ffffff 0%, #f7faf9 100%);
-      box-shadow: 0 4px 10px rgba(15, 47, 50, 0.05);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #f4f7f8;
+      box-shadow: none;
     }
 
     .kpi-label {
-      font-size: 0.75rem;
-      color: var(--muted);
-      font-weight: 700;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
+      font-size: 0.72rem;
+      color: #64748b;
+      font-weight: 500;
+      margin-bottom: 3px;
+      text-transform: none;
+      letter-spacing: 0;
     }
 
-    .kpi-value { font-size: 1.05rem; font-weight: 700; color: var(--brand-2); }
+    .kpi-value { font-size: 1.1rem; font-weight: 600; color: var(--brand-2); font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
 
     .formula-inline {
       display: none;
@@ -1779,6 +1752,27 @@
       #hourlyQueueTable tbody td::before, #hourlyVcrTable tbody td::before { content: attr(data-label); font-weight: 700; color: #1f5e63; text-align: left; flex: 1; }
     }
 
+    /* Upgrade 6: Mobile — single-column layout + sticky run button */
+    @media (max-width: 760px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+
+      #calcBtn {
+        position: sticky;
+        bottom: 16px;
+        z-index: 500;
+        box-shadow: 0 8px 24px rgba(31, 94, 99, 0.35);
+        border-radius: 999px !important;
+        margin: 8px 0 0 0;
+      }
+
+      .navbar > div {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+    }
+
     .print-header { display: none; }
     .print-meta-grid { display: none; }
     .print-btn { background: #4caf50; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em; margin-left: 10px; transition: background 0.2s; }
@@ -1992,15 +1986,14 @@
       border: 1px solid rgba(15, 23, 42, 0.18);
       letter-spacing: 0.02em;
     }
-    .vcr-los-a { background-color: #b9fbc0; color: #0b3b2e; } /* LOS A: VCR ≤ 0.60 */
-    .vcr-los-b { background-color: #a7f3d0; color: #134e4a; } /* LOS B: VCR ≤ 0.70 */
-    .vcr-los-c { background-color: #fde68a; color: #713f12; } /* LOS C: VCR ≤ 0.80 */
-    .vcr-los-d { background-color: #fdba74; color: #7c2d12; } /* LOS D: VCR ≤ 0.90 */
-    .vcr-los-e { background-color: #fb923c; color: #7c2d12; } /* LOS E: VCR ≤ 1.00 */
-    .vcr-los-f { background-color: #ef4444; color: #ffffff; } /* LOS F: VCR > 1.00 */
+    .vcr-los-a { background-color: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; } /* LOS A: VCR ≤ 0.60 */
+    .vcr-los-b { background-color: #d1fae5; color: #134e4a; border: 1px solid #a7f3d0; } /* LOS B: VCR ≤ 0.70 */
+    .vcr-los-c { background-color: #fef9c3; color: #713f12; border: 1px solid #fde68a; } /* LOS C: VCR ≤ 0.80 */
+    .vcr-los-d { background-color: #ffedd5; color: #7c2d12; border: 1px solid #fed7aa; } /* LOS D: VCR ≤ 0.90 */
+    .vcr-los-e { background-color: #fee2e2; color: #7f1d1d; border: 1px solid #fecaca; } /* LOS E: VCR ≤ 1.00 */
+    .vcr-los-f { background-color: #fce7f3; color: #831843; border: 1px solid #fbcfe8; } /* LOS F: VCR > 1.00 */
 
     .section-icon {
-      margin-right: 8px;
       color: #1f5e63;
       font-size: 0.95em;
       vertical-align: baseline;
@@ -4382,7 +4375,7 @@
     </div>
 
     <div class="card">
-      <h2><i class="fa-solid fa-car-side section-icon" aria-hidden="true"></i>Queue Length Estimation</h2>
+      <h2><span style="background:#e8f4f5;border-radius:6px;padding:4px 6px;font-size:0.85em;line-height:1;"><i class="fa-solid fa-car-side section-icon" aria-hidden="true"></i></span>Queue Length Estimation</h2>
       <p class="section-help">Toggle between table and chart views. Queue values are shown by duration window and period for both directions.</p>
       <div id="queueRiskBadge" style="display:none; margin: 6px 0 10px 0; padding: 8px 10px; border-radius: 6px; background: #fff3e0; border: 1px solid #ffcc80; color: #e65100; font-weight: 700; font-size: 0.9em;"></div>
       <div class="table-actions" style="justify-content: flex-end; margin: 0 0 8px 0;">
@@ -4464,7 +4457,7 @@
     </div>
 
     <div class="card">
-      <h2><i class="fa-solid fa-chart-line section-icon" aria-hidden="true"></i>VCR / LOS Analysis</h2>
+      <h2><span style="background:#e8f4f5;border-radius:6px;padding:4px 6px;font-size:0.85em;line-height:1;"><i class="fa-solid fa-chart-line section-icon" aria-hidden="true"></i></span>VCR / LOS Analysis</h2>
       <p class="section-help">Tracks directional and network stress across periods using LOS color bands. Use this as primary capacity risk screening.</p>
       <p id="laneClosureAssumptionNote" class="section-help" style="margin-top:-4px; color:#0d47a1; font-weight:700;">Work VCR assumes: Single Lane Closure (default)</p>
       <div id="vcrRiskBadge" style="display:none; margin: 6px 0 10px 0; padding: 8px 10px; border-radius: 6px; background: #ffebee; border: 1px solid #ef9a9a; color: #b71c1c; font-weight: 700; font-size: 0.9em;"></div>
@@ -5281,7 +5274,7 @@
 
     <div class="card" id="stopGoCard" style="border: 2px solid #fb8c00;">
       <h2 class="optional-card-title">
-        <i class="fa-solid fa-traffic-light section-icon" aria-hidden="true"></i>Stop/Go Shuttle Simulator
+        <span style="background:#e8f4f5;border-radius:6px;padding:4px 6px;font-size:0.85em;line-height:1;"><i class="fa-solid fa-traffic-light section-icon" aria-hidden="true"></i></span>Stop/Go Shuttle Simulator
         <button type="button" class="print-toggle-btn" data-target-card="stopGoCard" aria-pressed="true">Include in Print: Yes</button>
       </h2>
       <p class="optional-card-note">
@@ -5360,7 +5353,7 @@
 
     <div class="card" id="pedestrianCard" style="border: 2px solid #00897b; background: #e0f2f1;">
       <h2 class="optional-card-title">
-        <i class="fa-solid fa-person-walking section-icon" aria-hidden="true"></i>Pedestrian Detour Impact
+        <span style="background:#e8f4f5;border-radius:6px;padding:4px 6px;font-size:0.85em;line-height:1;"><i class="fa-solid fa-person-walking section-icon" aria-hidden="true"></i></span>Pedestrian Detour Impact
         <button type="button" class="print-toggle-btn" data-target-card="pedestrianCard" aria-pressed="true">Include in Print: Yes</button>
       </h2>
       <div style="background: #ffffff; border: 1px solid #80cbc4; border-radius: 6px; padding: 10px; margin: 10px 0 12px 0;">
@@ -15421,7 +15414,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     else if (value > 0.70) colorClass = 'vcr-los-c';
     else if (value > 0.60) colorClass = 'vcr-los-b';
 
-    return `<span class="vcr-badge ${colorClass}">${value.toFixed(2)} (${losLabel(value)})</span>`;
+    const thresholds = { 'vcr-los-a': '≤0.60', 'vcr-los-b': '≤0.70', 'vcr-los-c': '≤0.80', 'vcr-los-d': '≤0.90', 'vcr-los-e': '≤1.00', 'vcr-los-f': '>1.00' };
+    return `<span class="vcr-badge ${colorClass}">${value.toFixed(2)} ${losLabel(value)} <span style="opacity:0.65;font-size:0.88em;">${thresholds[colorClass]}</span></span>`;
   }
 
   function setVcrCell(td, value){
