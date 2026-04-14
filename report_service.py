@@ -1322,6 +1322,13 @@ def _build_short_detour_section(detour_tables: list[dict], route_count: int, ana
   """Build the complete Section 5 Detour Analysis HTML."""
   if chart_items is None:
     chart_items = []
+
+  import logging
+  _log = logging.getLogger("report_service.detour")
+  _log.warning("[DETOUR DEBUG] _build_short_detour_section called: detour_tables=%d, route_count=%d", len(detour_tables), route_count)
+  for _dt in detour_tables:
+    _log.warning("[DETOUR DEBUG]   table title=%r, cols=%r, row_count=%d", _dt.get("title"), _dt.get("columns",[])[:3], len(_dt.get("rows",[])))
+
   if not detour_tables and route_count < 1:
     return ""
 
@@ -1837,6 +1844,12 @@ def editor_page(draft_id: str) -> str:
 
     # Separate hourly peak-hour tables and detour tables.
     # Detour tables MUST be isolated here so they don't randomly mix into the main report.
+    import logging as _filt_log
+    _filt = _filt_log.getLogger("report_service.detour")
+    _filt.warning("[DETOUR FILTER] Total prioritized_tables=%d", len(prioritized_tables))
+    for _t in prioritized_tables:
+      _filt.warning("[DETOUR FILTER]   title=%r", _t.get("title",""))
+
     hourly_peak_tables: list[Any] = []
     detour_tables: list[Any] = []
     other_tables: list[Any] = []
@@ -1849,6 +1862,8 @@ def editor_page(draft_id: str) -> str:
         detour_tables.append(table)  # Caught them!
       else:
         other_tables.append(table)
+
+    _filt.warning("[DETOUR FILTER] Result: detour=%d, hourly_peak=%d, other=%d", len(detour_tables), len(hourly_peak_tables), len(other_tables))
 
     hourly_peak_blocks: list[str] = []
     for table in hourly_peak_tables:
