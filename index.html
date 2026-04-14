@@ -7232,8 +7232,83 @@
     const title = String(table && table.title || '').trim().toLowerCase();
     return tableId === 'detourSegmentDetailedTable'
       || tableId === 'postDiversionTable'
+      || tableId === 'syntheticVpdCalculated'
+      || tableId === 'syntheticRoadCapacity'
+      || tableId === 'syntheticEstimatedDelay'
       || title.includes('detour')
       || title.includes('diversion');
+  }
+
+  /**
+   * Build synthetic report tables for VPD Calculated, Road Capacity Summary, and Estimated Delay
+   * from the last calculateDetourOverlay() snapshot stored in window._lastDetourCalcSnapshot.
+   */
+  function buildSyntheticDetourTables() {
+    var snap = window._lastDetourCalcSnapshot;
+    if (!snap || !Array.isArray(snap.roads) || !snap.roads.length) return [];
+
+    var tables = [];
+    var gf = snap.growthFactor || 1;
+    var gfStr = gf !== 1 ? gf.toFixed(3) : '1.000';
+
+    // 1. VPD Calculated table — one row per detour road
+    var vpdRows = snap.roads.map(function(road) {
+      var designYearVpd = Math.round(road.baseVpd * gf);
+      var totalVpd = designYearVpd + snap.divertedVpdTotal;
+      return [
+        road.name,
+        String(road.baseVpd),
+        gfStr,
+        String(designYearVpd),
+        String(snap.divertedVpdTotal),
+        String(totalVpd)
+      ];
+    });
+    tables.push({
+      table_id: 'syntheticVpdCalculated',
+      title: 'Detour VPD Calculated',
+      columns: ['Detour Road', 'Base VADT (vpd)', 'Growth Factor', 'Design Year VADT (vpd)', 'Diverted Traffic (vpd)', 'Total VPD on Detour'],
+      rows: vpdRows
+    });
+
+    // 2. Detour Road Capacity Summary — per-road parameters
+    var capRows = [];
+    snap.roads.forEach(function(road) {
+      var surplusVph = road.totalCapacity - convertDailyVpdTo80thHourly(road.baseVpd + snap.divertedVpdTotal);
+      capRows.push(
+        [road.name + ' - Posted Speed (km/h)', String(road.speedLimitKmh), ''],
+        [road.name + ' - Lanes', String(road.laneCount), ''],
+        [road.name + ' - Total Two-Way Capacity (vph)', String(road.totalCapacity), road.laneCount + ' lanes \u00D7 ' + road.perLaneCapacity + ' vph/lane'],
+        [road.name + ' - Remaining Surplus Capacity (vph)', String(surplusVph), surplusVph < 0 ? 'Over capacity' : 'Within limits'],
+        [road.name + ' - Worst Period VCR', road.maxNewVcr.toFixed(2), road.worstPeriod + ' (' + road.worstDirection + ')']
+      );
+    });
+    tables.push({
+      table_id: 'syntheticRoadCapacity',
+      title: 'Detour Road Capacity Summary',
+      columns: ['Parameter', 'Value', 'Notes'],
+      rows: capRows
+    });
+
+    // 3. Estimated Delay — Detour route
+    var d = snap.delay || {};
+    var delayMin = d.estimatedDelayMin || 0;
+    var delayClass = delayMin <= 1 ? 'Minor (< 1 min)' : (delayMin <= 5 ? 'Moderate (1-5 min)' : 'Significant (> 5 min)');
+    tables.push({
+      table_id: 'syntheticEstimatedDelay',
+      title: 'Estimated Delay - Detour route',
+      columns: ['Parameter', 'Value'],
+      rows: [
+        ['Detour Route Length (km)', String(d.detourLengthKm || 0)],
+        ['Average Travel Speed on Detour (km/h)', String(d.avgSpeedKmh || 0)],
+        ['Travel Time (seconds)', String(Math.round(d.travelTimeSec || 0))],
+        ['Total Time incl. Intersections (seconds)', String(Math.round(d.totalTimeSec || 0))],
+        ['Estimated Additional Travel Time (min)', String(delayMin)],
+        ['Delay Classification', delayClass]
+      ]
+    });
+
+    return tables;
   }
 
   function buildReportTablesForDetourRoutes(visibleTables) {
@@ -7242,7 +7317,12 @@
     saveActiveDetourRouteScenario();
 
     const scenarios = Array.isArray(window.detourRouteScenarios) ? window.detourRouteScenarios : [];
-    if (scenarios.length <= 1) return tables;
+
+    // Single route (or no scenarios): add synthetic tables alongside the visible ones
+    if (scenarios.length <= 1) {
+      const syntheticTables = buildSyntheticDetourTables();
+      return [...tables, ...syntheticTables];
+    }
 
     const nonDetourTables = tables.filter((table) => !isDetourReportTable(table));
     const originalIndex = Math.max(0, Number(window.activeDetourRouteIndex) || 0);
@@ -7253,7 +7333,9 @@
       applyDetourRouteState(scenario || {}, { skipScan: true });
       calculateDetourOverlay();
       const scenarioTables = collectVisibleTables().filter((table) => isDetourReportTable(table));
-      scenarioTables.forEach((table) => {
+      const syntheticTables = buildSyntheticDetourTables();
+      const allDetourTables = [...scenarioTables, ...syntheticTables];
+      allDetourTables.forEach((table) => {
         routeTables.push({
           ...table,
           title: `${table.title} - Detour Route ${index + 1}`
@@ -7525,10 +7607,28 @@
     const hadShortMode = body.classList.contains('report-mode-short');
     if (!hadShortMode) body.classList.add('report-mode-short');
 
+    // Temporarily force-show detour and pedestrian cards so collectVisibleTables() can see them.
+    // The CSS rule body.report-mode-short #detourCard { display:none !important } would otherwise hide them.
+    const _forceShowIds = ['detourCard', 'pedestrianCard'];
+    const _savedCssText = {};
+    _forceShowIds.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && window.getComputedStyle(el).display === 'none') {
+        _savedCssText[id] = el.style.cssText;
+        el.style.setProperty('display', 'block', 'important');
+      }
+    });
+
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
     const payload = await buildEditableReportPayload();
     payload.report_variant = 'short';
+
+    // Restore original inline styles
+    Object.keys(_savedCssText).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.cssText = _savedCssText[id];
+    });
 
     if (!hadShortMode) body.classList.remove('report-mode-short');
     return payload;
@@ -22664,6 +22764,50 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
 
     syncPedestrianDetourFromTraffic({ skipRecalc: true });
+
+    // Store calculation snapshot for report synthetic table generation
+    const _growthCtx = (typeof getCurrentGrowthProjectionContext === 'function') ? getCurrentGrowthProjectionContext() : null;
+    const _growthPct = (_growthCtx && Number.isFinite(Number(_growthCtx.growthRatePct))) ? Number(_growthCtx.growthRatePct) : (Number(getNumberFromElement('macroGrowthRate')) || 0);
+    const _baseYr = Number(getElementValueOrText('baseYear')) || new Date().getFullYear();
+    const _openYr = Number(getElementValueOrText('macroOpeningYear')) || _baseYr;
+    const _yearSpan = Math.max(0, _openYr - _baseYr);
+    const _gf = _yearSpan > 0 && _growthPct > 0 ? Math.pow(1 + _growthPct / 100, _yearSpan) : 1;
+    window._lastDetourCalcSnapshot = {
+      roads: validDetourModels.map(function(model) {
+        var ri = getDetourManualRoadInput(model.roadName) || {};
+        var rk = getDetourManualRoadKey(model.roadName) || model.roadName;
+        var rs = roadCapacityStatusByKey[rk] || {};
+        return {
+          name: model.roadName || 'Detour road',
+          baseVpd: Math.round(model.baseVpd || 0),
+          totalCapacity: Math.round(model.totalCapacity || 0),
+          laneCount: model.laneCount || 1,
+          perLaneCapacity: Math.round(model.perLaneCapacity || 0),
+          speedLimitKmh: Math.max(10, Number(ri.speedLimitKmh) || 60),
+          maxNewVcr: Number(rs.maxNewVcr) || 0,
+          worstDirection: rs.worstDirection || '-',
+          worstPeriod: rs.worstPeriod || '-',
+          worstDirectionalCapacity: Math.round(rs.worstDirectionalCapacity || 0)
+        };
+      }),
+      divertedVpdTotal: divertedVpdTotal,
+      inputVadt: inputVadt,
+      inputD1Vadt: inputD1Vadt,
+      inputD2Vadt: inputD2Vadt,
+      diversionRatePct: diversionRatePct,
+      closureType: closureType,
+      closedDirection: closedDirection,
+      growthFactor: Number(_gf.toFixed(4)),
+      growthPct: _growthPct,
+      displayRoadName: displayRoadName,
+      delay: {
+        detourLengthKm: detourLengthKm,
+        avgSpeedKmh: detourAvgSpeedKmh,
+        estimatedDelayMin: estimatedDelayMin,
+        travelTimeSec: Math.round(travelTimeSec * 100) / 100,
+        totalTimeSec: Math.round(totalTimeSec * 100) / 100
+      }
+    };
 
     applyGlobalFormulaAnnotations();
   }
