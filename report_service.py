@@ -1732,7 +1732,8 @@ def editor_page(draft_id: str) -> str:
 
     variant_raw = _safe_text(payload.get("report_variant"), "").lower()
     title_hint = _safe_text(draft.get("title", "")).lower()
-    if variant_raw == "short" or "short report" in title_hint:
+    is_short = variant_raw == "short" or "short report" in title_hint
+    if is_short:
       report_mode_label = "Python Short Report"
     elif variant_raw == "detailed" or "detailed report" in title_hint:
       report_mode_label = "Detailed Python Report"
@@ -1844,7 +1845,6 @@ def editor_page(draft_id: str) -> str:
     # Short report: build Section 5 Detour Analysis if there are detour tables or routes.
     raw_js = payload.get("raw_js_results", {}) if isinstance(payload.get("raw_js_results"), dict) else {}
     detour_route_count = int(raw_js.get("detour_route_count") or 0)
-    is_short = variant_raw == "short"
     short_detour_section_html = ""
     if is_short:
       short_detour_section_html = _build_short_detour_section(
