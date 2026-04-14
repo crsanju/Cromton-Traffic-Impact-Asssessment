@@ -1223,11 +1223,18 @@ def _render_computed_results_section(
 
 
 def _render_short_detour_route_block(route_label: str, route_tables: list[dict], analysis_map: dict) -> str:
-  """Render a 3-subsection detour block, mapping actual payload tables into the right slots."""
+  """Render a 6-subsection detour block per route, in the required order:
+  1. VPD Calculated  2. Detour Road Directional Capacity Summary
+  3. Detour Road Capacity Summary  4. Existing Road Status After Diversion
+  5. Estimated Delay – Detour route  6. Pedestrian Detour Impact – Delay calculation
+  """
   label_esc = _escape(route_label)
 
-  # Categorize payload tables into the 3 subsection slots.
-  capacity_tables: list[dict] = []
+  # Classify each table into one of the 6 ordered slots.
+  vpd_tables: list[dict] = []
+  dir_capacity_tables: list[dict] = []
+  road_capacity_tables: list[dict] = []
+  road_status_tables: list[dict] = []
   delay_tables: list[dict] = []
   pedestrian_tables: list[dict] = []
   other_tables: list[dict] = []
@@ -1238,8 +1245,14 @@ def _render_short_detour_route_block(route_label: str, route_tables: list[dict],
       pedestrian_tables.append(table)
     elif "estimated delay" in title_lc or ("delay" in title_lc and "pedestrian" not in title_lc):
       delay_tables.append(table)
-    elif any(k in title_lc for k in ("capacity", "directional", "road status", "diversion", "vpd")):
-      capacity_tables.append(table)
+    elif "road status" in title_lc or "existing road" in title_lc or "after diversion" in title_lc:
+      road_status_tables.append(table)
+    elif "directional capacity" in title_lc or ("directional" in title_lc and "capacity" in title_lc):
+      dir_capacity_tables.append(table)
+    elif "capacity" in title_lc and "directional" not in title_lc:
+      road_capacity_tables.append(table)
+    elif "vpd" in title_lc or "vehicles per day" in title_lc:
+      vpd_tables.append(table)
     else:
       other_tables.append(table)
 
@@ -1261,18 +1274,37 @@ def _render_short_detour_route_block(route_label: str, route_tables: list[dict],
     f"<div class=\"section-controls no-print\"><button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">✕ Remove</button></div>"
     f"<h3 class=\"editable-text\" contenteditable=\"true\">{label_esc}</h3>"
     f"{other_html}"
+
     "<div class=\"detour-sub-block avoid-break\">"
-    "<h4 class=\"editable-text\" contenteditable=\"true\">1. Detour Road Capacity Summary</h4>"
-    + _render_group(capacity_tables, "No capacity data available. Edit to add detour road capacity details.")
+    "<h4 class=\"editable-text\" contenteditable=\"true\">1. VPD Calculated table</h4>"
+    + _render_group(vpd_tables, "No VPD data available. Edit to add calculated vehicles-per-day under full diversion.")
     + "</div>"
+
     "<div class=\"detour-sub-block avoid-break\">"
-    "<h4 class=\"editable-text\" contenteditable=\"true\">2. Estimated Delay</h4>"
-    + _render_group(delay_tables, "No delay estimate available. Edit to add delay calculation details.")
+    "<h4 class=\"editable-text\" contenteditable=\"true\">2. Detour Road Directional Capacity Summary</h4>"
+    + _render_group(dir_capacity_tables, "No directional capacity data available. Edit to add directional capacity summary.")
     + "</div>"
+
     "<div class=\"detour-sub-block avoid-break\">"
-    "<h4 class=\"editable-text\" contenteditable=\"true\">3. Pedestrian Delay</h4>"
-    + _render_group(pedestrian_tables, "No pedestrian delay data available. Edit to add pedestrian impact details.")
+    "<h4 class=\"editable-text\" contenteditable=\"true\">3. Detour Road Capacity Summary</h4>"
+    + _render_group(road_capacity_tables, "No road capacity summary available. Edit to add overall road capacity details.")
     + "</div>"
+
+    "<div class=\"detour-sub-block avoid-break\">"
+    "<h4 class=\"editable-text\" contenteditable=\"true\">4. Existing Road Status After Diversion</h4>"
+    + _render_group(road_status_tables, "No road status data available. Edit to add existing road status after diversion.")
+    + "</div>"
+
+    "<div class=\"detour-sub-block avoid-break\">"
+    "<h4 class=\"editable-text\" contenteditable=\"true\">5. Estimated Delay - Detour route</h4>"
+    + _render_group(delay_tables, "No delay estimate available. Edit to add estimated delay for the detour route.")
+    + "</div>"
+
+    "<div class=\"detour-sub-block avoid-break\">"
+    "<h4 class=\"editable-text\" contenteditable=\"true\">6. Pedestrian Detour Impact &#8211; Delay calculation</h4>"
+    + _render_group(pedestrian_tables, "No pedestrian impact data available. Edit to add pedestrian detour delay calculation.")
+    + "</div>"
+
     "</div>"
   )
 
@@ -1282,7 +1314,10 @@ def _build_short_detour_section(tables: list[dict], route_count: int, analysis_m
   # Separate detour tables from non-detour tables.
   detour_tables = [
     t for t in tables
-    if any(k in _safe_text(t.get("title"), "").lower() for k in ("detour", "diversion", "pedestrian detour"))
+    if any(k in _safe_text(t.get("title"), "").lower() for k in (
+      "detour", "diversion", "pedestrian detour", "road status", "after diversion",
+      "estimated delay", "vpd calculated",
+    ))
   ]
   if not detour_tables and route_count < 1:
     return ""
