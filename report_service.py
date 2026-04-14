@@ -991,7 +991,10 @@ def _render_embedded_chart(chart_item: dict[str, str] | None, title: str, captio
   chart_caption = _escape(caption or "This chart summarises the controlling pattern before the detailed table below.")
   image_title = _escape(chart_item.get("title"), title)
   return (
-    "<figure class=\"embedded-chart avoid-break\">"
+    "<figure class=\"embedded-chart avoid-break report-block\">"
+    "<div class=\"section-controls no-print\">"
+    "<button type=\"button\" class=\"mini-btn\" onclick=\"removeReportBlock(this)\">&#10005; Remove Chart</button>"
+    "</div>"
     f"<h5 class=\"chart-title editable-text\" contenteditable=\"true\">{chart_title}</h5>"
     f"<img class=\"chart-img\" src=\"{chart_item.get('image', '')}\" alt=\"{image_title}\" />"
     f"<figcaption class=\"editable chart-caption editable-text\" contenteditable=\"true\">{chart_caption}</figcaption>"
@@ -1793,6 +1796,8 @@ def editor_page(draft_id: str) -> str:
       if isinstance(item, dict) and _normalize_title_key(item.get("title"))
     }
     chart_items = _collect_chart_items(payload)
+    chart_items_to_render = [] if is_short else chart_items  # short report: no charts
+    hydrate_js_call = '' if is_short else 'hydrateChartsFromPayload();'
     embedded_chart_keys: set[str] = set()
 
     def _table_priority(table_obj: Any) -> int:
@@ -1818,8 +1823,8 @@ def editor_page(draft_id: str) -> str:
       "columns": ["Metric", "Value"],
       "rows": [[str(key).replace("_", " ").title(), _safe_text(value)] for key, value in results.items()],
     }
-    input_charts = _select_charts_for_table(analysis_parameters_table, chart_items)
-    results_charts = _select_charts_for_table(computed_results_table, chart_items)
+    input_charts = _select_charts_for_table(analysis_parameters_table, chart_items_to_render)
+    results_charts = _select_charts_for_table(computed_results_table, chart_items_to_render)
     embedded_chart_keys.update(_normalize_title_key(item.get("canvas_id") or item.get("title")) for item in input_charts)
     embedded_chart_keys.update(_normalize_title_key(item.get("canvas_id") or item.get("title")) for item in results_charts)
     inputs_section_html = _render_key_value_table(
@@ -1853,7 +1858,7 @@ def editor_page(draft_id: str) -> str:
 
     hourly_peak_blocks: list[str] = []
     for table in hourly_peak_tables:
-      matched_charts = _select_charts_for_table(table, chart_items)
+      matched_charts = _select_charts_for_table(table, chart_items_to_render)
       embedded_chart_keys.update(_normalize_title_key(item.get("canvas_id") or item.get("title")) for item in matched_charts)
       hourly_peak_blocks.append(
         _render_data_table(
@@ -1866,7 +1871,7 @@ def editor_page(draft_id: str) -> str:
 
     table_blocks: list[str] = []
     for table in other_tables:
-      matched_charts = _select_charts_for_table(table, chart_items)
+      matched_charts = _select_charts_for_table(table, chart_items_to_render)
       embedded_chart_keys.update(_normalize_title_key(item.get("canvas_id") or item.get("title")) for item in matched_charts)
       table_blocks.append(
         _render_data_table(
@@ -1876,22 +1881,30 @@ def editor_page(draft_id: str) -> str:
         )
       )
     table_sections = "".join(table_blocks)
-    chart_sections = _render_additional_chart_blocks(chart_items, embedded_chart_keys)
+    chart_sections = _render_additional_chart_blocks(chart_items_to_render, embedded_chart_keys)
+    chart_section_block = (
+      f'<h2 contenteditable="true">{sec_chart_num}. Charts</h2>\n    <div id="chartSectionContent">{chart_sections}</div>'
+      if not is_short else ''
+    )
     payload_json = escape(json.dumps(payload))
 
     # Build Section 5 Detour Analysis for ALL reports using the isolated tables.
     raw_js = payload.get("raw_js_results", {}) if isinstance(payload.get("raw_js_results"), dict) else {}
     detour_route_count = int(raw_js.get("detour_route_count") or 0)
 
-    # Notice we now pass detour_tables and chart_items explicitly
+    # Notice we now pass detour_tables and chart_items_to_render explicitly
     short_detour_section_html = _build_short_detour_section(
-        detour_tables, detour_route_count, table_analysis_map, chart_items
+        detour_tables, detour_route_count, table_analysis_map, chart_items_to_render
     )
 
     # Adjust section numbers dynamically based on whether detour data exists
     sec_eng_num   = "6" if short_detour_section_html else "5"
-    sec_chart_num = "7" if short_detour_section_html else "6"
-    sec_comm_num  = "8" if short_detour_section_html else "7"
+    if is_short:
+      sec_chart_num = ""  # No charts section in short report
+      sec_comm_num  = "7" if short_detour_section_html else "6"
+    else:
+      sec_chart_num = "7" if short_detour_section_html else "6"
+      sec_comm_num  = "8" if short_detour_section_html else "7"
 
     return f"""<!DOCTYPE html>
 <html lang=\"en\">
@@ -2090,8 +2103,7 @@ def editor_page(draft_id: str) -> str:
     <h2 contenteditable=\"true\">{sec_eng_num}. Engineering Observations &amp; Notes</h2>
     {engineering_obs_html}
 
-    <h2 contenteditable=\"true\">{sec_chart_num}. Charts</h2>
-    <div id=\"chartSectionContent\">{chart_sections}</div>
+    {chart_section_block}
 
     <h2 contenteditable=\"true\">{sec_comm_num}. Professional Commentary &amp; Conclusion</h2>
     {commentary_html}
@@ -2311,7 +2323,10 @@ def editor_page(draft_id: str) -> str:
         ? targetRow
         : tbodyRows[tbodyRows.length - 1];
 
-      if (rowToRemove) rowToRemove.remove();
+      if (rowToRemove) {{
+        _pushUndo({{ type: 'row', element: rowToRemove, parent: rowToRemove.parentNode, nextSibling: rowToRemove.nextSibling }});
+        rowToRemove.remove();
+      }}
       _lastFocusedCell = null;
     }}
 
@@ -2355,24 +2370,65 @@ def editor_page(draft_id: str) -> str:
       }}
 
       const allRows = table.querySelectorAll('tr');
+      const removedCells = [];
       allRows.forEach(row => {{
         const cells = row.querySelectorAll('td, th');
         if (cells.length <= 1) return; // keep at least one column
         const idx = (removeIndex >= 0 && removeIndex < cells.length) ? removeIndex : cells.length - 1;
-        cells[idx].remove();
+        const cell = cells[idx];
+        removedCells.push({{ element: cell, parent: row, nextSibling: cell.nextSibling || null }});
       }});
+      if (removedCells.length > 0) {{
+        _pushUndo({{ type: 'column', cells: removedCells }});
+        removedCells.forEach(function(item) {{ item.element.remove(); }});
+      }}
       _lastFocusedCell = null;
+    }}
+
+    const _undoStack = [];
+    const _MAX_UNDO = 50;
+
+    function _pushUndo(entry) {{
+      _undoStack.push(entry);
+      if (_undoStack.length > _MAX_UNDO) _undoStack.shift();
     }}
 
     function removeReportBlock(btn) {{
       const block = btn && btn.closest('.report-block');
       if (!block) return;
+      _pushUndo({{ type: 'block', element: block, parent: block.parentNode, nextSibling: block.nextSibling }});
       block.remove();
       refreshToc();
     }}
 
+    document.addEventListener('keydown', function(e) {{
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {{
+        const active = document.activeElement;
+        if (active && active.isContentEditable) return;
+        if (!_undoStack.length) return;
+        e.preventDefault();
+        const last = _undoStack.pop();
+        if (last.type === 'block' || last.type === 'row') {{
+          if (last.parent && last.parent.isConnected) {{
+            last.parent.insertBefore(last.element, last.nextSibling || null);
+          }} else if (last.parent) {{
+            last.parent.appendChild(last.element);
+          }}
+          refreshToc();
+        }} else if (last.type === 'column') {{
+          last.cells.forEach(function(item) {{
+            if (item.parent && item.parent.isConnected) {{
+              item.parent.insertBefore(item.element, item.nextSibling || null);
+            }} else if (item.parent) {{
+              item.parent.appendChild(item.element);
+            }}
+          }});
+        }}
+      }}
+    }});
+
     document.addEventListener("DOMContentLoaded", function() {{
-      hydrateChartsFromPayload();
+      {hydrate_js_call}
       enableStrongEditability();
       refreshToc();
       bindTocAutoRefresh();

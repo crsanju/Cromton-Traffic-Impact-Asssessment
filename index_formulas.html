@@ -9668,7 +9668,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   const IPSWICH_CONSTANTS = {
     CAPACITY_FLOOR: 500,
-    PED_SPEED_MS: 1.5,
+    PED_SPEED_MS: 1.2,
     DELAY_SIG_CROSSING_S: 55,
     DELAY_UNSIG_CROSSING_S: 15,
     QUEUE_MA_SCALAR: 1.2,
@@ -24886,7 +24886,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       growthRate: Number(dbNode && dbNode.Growth_Rate) || 2.5,
       yearsElapsed,
       cvPercentage: Number(dbNode && (dbNode.HV_Percent || dbNode.hvPercent)) || 5.0,
-      directionalLanes: Number(dbNode && (dbNode.Lanes || dbNode.lanes)) || 1,
+      directionalLanes: Math.max(1, Math.ceil((Number(dbNode && (dbNode.Lanes || dbNode.lanes)) || 2) / 2)),
       crossingWidth: 0
     };
   }
@@ -26895,8 +26895,8 @@ const LoganTrafficEngine = (function() {
 
   const ROAD_CAPACITIES = {
     "Two Lane Urban": { dailyLimit: 10000, designCapacity: 1500 },
-    "Collector Street": { dailyLimit: 5000, designCapacity: null },
-    "Local Street": { dailyLimit: 1500, designCapacity: null }
+    "Collector Street": { dailyLimit: 5000, designCapacity: 750 },
+    "Local Street": { dailyLimit: 1500, designCapacity: 225 }
   };
 
   const TEMPORAL_DAY_FACTORS = {
@@ -27001,12 +27001,11 @@ const LoganTrafficEngine = (function() {
 
   function extractPeakAndClassify(projectedAADT, commercialPercentage) {
     const rawPeakThroughput = (Number(projectedAADT) || 0) * ENGINEERING_CONSTANTS.PEAK_K_FACTOR;
-    const scaledBaselinePeak = rawPeakThroughput * ENGINEERING_CONSTANTS.BASE_PASSENGER_SPLIT;
 
     const commercialDecimal = (Number(commercialPercentage) || 0) / 100;
-    const peakCommercialVolume = precisionRoundUp(scaledBaselinePeak * commercialDecimal);
+    const peakCommercialVolume = precisionRoundUp(rawPeakThroughput * commercialDecimal);
 
-    const peakPassengerVolume = precisionRoundUp(scaledBaselinePeak) - peakCommercialVolume;
+    const peakPassengerVolume = precisionRoundUp(rawPeakThroughput) - peakCommercialVolume;
     const totalPeakVolume = peakPassengerVolume + peakCommercialVolume;
 
     return {
@@ -27039,8 +27038,8 @@ const LoganTrafficEngine = (function() {
     let grading = "F";
     if (vcr <= 0.6) grading = "A";
     else if (vcr <= 0.7) grading = "B";
-    else if (vcr <= 0.9) grading = "C";
-    else if (vcr <= 0.95) grading = "D";
+    else if (vcr <= 0.8) grading = "C";
+    else if (vcr <= 0.9) grading = "D";
     else if (vcr <= 1.0) grading = "E";
 
     return {
@@ -27101,9 +27100,14 @@ const LoganTrafficEngine = (function() {
       // 1. Generate the Total Vehicle Average Daily Traffic (VADT)
       const totalGeneratedVADT = independentVariable * tripRate;
 
-      // 2. Distribute the VADT based on the scenario directional splits
-      const d1VADT = totalGeneratedVADT * d1Split;
-      const d23VADT = totalGeneratedVADT * d23Split;
+      // 2. Normalise splits so they always sum to 1.0, preventing >100% distribution.
+      const splitSum = (Number(d1Split) || 0) + (Number(d23Split) || 0);
+      const normDivisor = splitSum > 0 ? splitSum : 1;
+      const d1Norm = (Number(d1Split) || 0) / normDivisor;
+      const d23Norm = (Number(d23Split) || 0) / normDivisor;
+
+      const d1VADT = totalGeneratedVADT * d1Norm;
+      const d23VADT = totalGeneratedVADT * d23Norm;
 
       const currentYear = new Date().getFullYear();
 
@@ -27115,7 +27119,7 @@ const LoganTrafficEngine = (function() {
         targetYear: currentYear,
         metadata: {
           calculationUsed: `(${independentVariable} units) * (${tripRate} rate)`,
-          splitRatio: `D1: ${(d1Split * 100).toFixed(1)}% | D23: ${(d23Split * 100).toFixed(1)}%`,
+          splitRatio: `D1: ${(d1Norm * 100).toFixed(1)}% | D23: ${(d23Norm * 100).toFixed(1)}%`,
           yearsUsed: `Base Year: ${currentYear} | Target Year: ${currentYear}`
         }
       };
@@ -27149,11 +27153,11 @@ const LoganTrafficEngine = (function() {
           d23Split: Number(devD23Split || 0.5)
         });
         
-        // Set both base year and target year to current year for manual traffic generation
+        // Pre-fill year fields only when they are empty — never overwrite user-entered values.
         const baseYearField = document.getElementById('baseYear');
         const openingYearField = document.getElementById('openingYear');
-        if (baseYearField) baseYearField.value = String(generatedVADTPhase.baseYear);
-        if (openingYearField) openingYearField.value = String(generatedVADTPhase.targetYear);
+        if (baseYearField && !String(baseYearField.value).trim()) baseYearField.value = String(generatedVADTPhase.baseYear);
+        if (openingYearField && !String(openingYearField.value).trim()) openingYearField.value = String(generatedVADTPhase.targetYear);
       }
 
       return {
