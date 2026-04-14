@@ -4223,6 +4223,18 @@
             <p style="font-size: 0.8em; color: #666; margin: 0 0 4px 0;">(auto-filled if in DB; editable when needed)</p>
             <input id="D2_Lanes" type="number" value="1" min="1" style="border: 1px solid #e57373; background-color: #fff5f5; color: #b71c1c;" />
           </div>
+          <div style="background: #ffebee; border: 1px solid #ef9a9a; border-radius: 6px; padding: 10px;">
+            <label style="color: #c30000; font-weight: bold;">Road Classification (Cap.) *</label>
+            <p style="font-size: 0.8em; color: #666; margin: 0 0 4px 0;">Physical per-lane capacity for V/C ratio denominator</p>
+            <select id="roadCapacityClass" style="border: 1px solid #e57373; background-color: #fff5f5; color: #b71c1c;">
+              <option value="freeway">Freeway / Motorway (1,800 vph/lane)</option>
+              <option value="multi_lane">Multi-lane Arterial (1,600 vph/lane)</option>
+              <option value="arterial" selected>Urban Arterial 60–80 km/h (1,500 vph/lane)</option>
+              <option value="sub_arterial">Sub-arterial / Collector (1,200 vph/lane)</option>
+              <option value="local">Local Street ≤50 km/h (900 vph/lane)</option>
+              <option value="rural_highway">Rural Highway (1,000 vph/lane)</option>
+            </select>
+          </div>
           <div id="laneClosureModeWrap" style="display:none; background: #ffebee; border: 1px solid #ef9a9a; border-radius: 6px; padding: 10px;">
             <label style="color: #c30000; font-weight: bold;">Lane Closure Mode *</label>
             <select id="laneClosureCount" style="border: 1px solid #e57373; background-color: #fff5f5; color: #b71c1c;">
@@ -9392,12 +9404,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     // 1. Fix Chronological Sorting & Excel Date Error
     // Maps the "10-12" string back to 11:00-12:00 and orders the array sequentially
     sortChronologically: function(data) {
-      const chronologicalOrder = [
-        "0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "6-7", "7-8", "8-9", "9-10", 
-        "10-11", "10-12", "12-13", "13-14", "14-15", "15-16", "16-17", "17-18", 
-        "18-19", "19-20", "20-21", "21-22", "22-23", "23-24"
-      ];
-      return data.sort((a, b) => chronologicalOrder.indexOf(a.hour) - chronologicalOrder.indexOf(b.hour));
+      // Parse the start-hour from an "H-H" label, handling the Excel date-corruption
+      // quirk where "11-12" is auto-converted to "10-12" (Oct → 10, Dec → 12 drop).
+      // Both "11-12" (clean data) and "10-12" (Excel-mangled data) must sort as hour 11.
+      const parseStartHour = function(hour) {
+        const s = String(hour || '');
+        const parts = s.split('-');
+        if (parts.length < 2) return -1;
+        const lo = parseInt(parts[0], 10);
+        const hi = parseInt(parts[1], 10);
+        if (isNaN(lo) || isNaN(hi)) return -1;
+        // Excel turns "11-12" into "10-12" (October to December date literal).
+        // Detect this: lo=10, hi=12, gap=2 instead of the normal gap=1.
+        if (lo === 10 && hi === 12) return 11;
+        return lo;
+      };
+      return data.sort((a, b) => parseStartHour(a.hour) - parseStartHour(b.hour));
     },
 
     // 2. Base Volumetric Processing & Smoothing
@@ -9410,8 +9432,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     // 3. Heavy Vehicle (HV) Proportioning
     calculateAdjustedLightVehicles: function(totalVolume, hvPercentage) {
-      const hvVolume = totalVolume * (hvPercentage / 100);
-      return Math.ceil(totalVolume - hvVolume);
+      // Round HV first, then derive LV as the strict remainder so LV + HV = totalVolume exactly.
+      const hvVolume = Math.round(totalVolume * (hvPercentage / 100));
+      return Math.max(0, totalVolume - hvVolume);
     },
 
     // 4. Deterministic Growth Modeling (CAGR)
@@ -9421,12 +9444,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return Math.ceil(projected);
     },
 
-    // 5. Theoretical Capacity & Absolute Floor
-    calculateCapacity: function(dailyTotal, lanes) {
-      // 0.12 is the standard K-Factor peak multiplier 
-      const kFactorVolume = Math.ceil((0.12 * dailyTotal) / lanes);
-      // Enforces absolute capacity floor of 500 vph/lane for remote outback corridors
-      return kFactorVolume <= 500? 500 : kFactorVolume; 
+    // 5. Physical Per-Lane Capacity (vph/lane) by Road Classification
+    // Based on Austroads Guide to Road Design Part 3 & TMR Road Planning and Design Manual.
+    // These are FIXED infrastructure values — independent of traffic demand.
+    PHYSICAL_LANE_CAPACITY_VPH: {
+      'freeway':       1800,  // Motorway / freeway (uninterrupted flow, e.g. M1, Gateway)
+      'multi_lane':    1600,  // Multi-lane divided arterial (≥2 lanes each way)
+      'arterial':      1500,  // Urban arterial 60–80 km/h (e.g. main state road)
+      'sub_arterial':  1200,  // Sub-arterial / collector 50–60 km/h
+      'local':          900,  // Local street / residential ≤50 km/h
+      'rural_highway': 1000,  // Rural two-lane undivided highway
+    },
+    calculateCapacity: function(roadClassKey) {
+      // Returns physical per-lane capacity in vph based on road classification.
+      // Road class is selected by the user in the "Road Classification (Capacity)" dropdown.
+      const key = String(roadClassKey || 'arterial').toLowerCase().replace(/[\s\-]/g, '_');
+      return this.PHYSICAL_LANE_CAPACITY_VPH[key] || this.PHYSICAL_LANE_CAPACITY_VPH['arterial'];
     },
 
     // 6. Volume-to-Capacity Ratio (VCR)
@@ -9435,10 +9468,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     },
 
     // 7. Spatial Shockwaves (Queue Length Estimation)
-    calculateQueueLength: function(hourlyVolumePerLane, waitTimeMinutes) {
+    calculateQueueLength: function(hourlyVolumePerLane, waitTimeMinutes, physicalCapacityPerLane) {
+      // physicalCapacityPerLane (vph/lane): effective discharge capacity during the restriction.
+      // Pass 0 (or omit) for a complete Stop/Go blockage (no discharge at all).
+      // For partial restrictions / signalised approaches, pass the available throughput
+      // capacity so only the excess demand above capacity accumulates as queue.
+      // Net overflow model: Q = max(0, v - c) * t * vehicle_spacing
+      const c = Math.max(0, Number(physicalCapacityPerLane) || 0);
+      const netHourlyPerLane = Math.max(0, hourlyVolumePerLane - c);
       // 7.6 is the constant derived for average vehicle length + jam density gap + heavy vehicle mix
-      const vehicleLengthConstant = 7.6; 
-      return (hourlyVolumePerLane * (waitTimeMinutes / 60)) * vehicleLengthConstant;
+      const vehicleLengthConstant = 7.6;
+      return (netHourlyPerLane * (waitTimeMinutes / 60)) * vehicleLengthConstant;
     }
   };
 
@@ -12248,12 +12288,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const pmIdx = Number.isFinite(pmHour) && pmHour >= 0 && pmHour < 24 ? pmHour : 17;
 
         if (amPeak > 0) {
-          site.directions_weekday['GAZETTAL'][amIdx] = Math.max(site.directions_weekday['GAZETTAL'][amIdx], Math.round(amPeak * 0.5));
-          site.directions_weekday['AGAINST GAZETTAL'][amIdx] = Math.max(site.directions_weekday['AGAINST GAZETTAL'][amIdx], Math.round(amPeak * 0.5));
+          // AM peak is predominantly inbound: ~60 % D1 (GAZETTAL), ~40 % D2.
+          site.directions_weekday['GAZETTAL'][amIdx] = Math.max(site.directions_weekday['GAZETTAL'][amIdx], Math.round(amPeak * 0.6));
+          site.directions_weekday['AGAINST GAZETTAL'][amIdx] = Math.max(site.directions_weekday['AGAINST GAZETTAL'][amIdx], Math.round(amPeak * 0.4));
         }
         if (pmPeak > 0) {
-          site.directions_weekday['GAZETTAL'][pmIdx] = Math.max(site.directions_weekday['GAZETTAL'][pmIdx], Math.round(pmPeak * 0.5));
-          site.directions_weekday['AGAINST GAZETTAL'][pmIdx] = Math.max(site.directions_weekday['AGAINST GAZETTAL'][pmIdx], Math.round(pmPeak * 0.5));
+          // PM peak is predominantly outbound: ~40 % D1, ~60 % D2 (AGAINST GAZETTAL).
+          site.directions_weekday['GAZETTAL'][pmIdx] = Math.max(site.directions_weekday['GAZETTAL'][pmIdx], Math.round(pmPeak * 0.4));
+          site.directions_weekday['AGAINST GAZETTAL'][pmIdx] = Math.max(site.directions_weekday['AGAINST GAZETTAL'][pmIdx], Math.round(pmPeak * 0.6));
         }
       }
 
@@ -12273,22 +12315,48 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         ? site.directions_weekday['AGAINST GAZETTAL'].map(v => Math.max(0, Number(v) || 0))
         : new Array(24).fill(0);
 
-      const gazSum = gazData.reduce((a, b) => a + b, 0);
-      const agSum = agData.reduce((a, b) => a + b, 0);
-      const hasGaz = gazSum > 0;
-      const hasAg = agSum > 0;
-      if (hasGaz && hasAg) return;
+      // Require at least 6 measured non-zero hours to treat an array as genuine
+      // directional hourly data (same threshold used in getDirectionalHourlySource).
+      const MIN_MEASURED_HOURS = 6;
+      const hasSufficientHours = (arr) => arr.filter(v => v > 0).length >= MIN_MEASURED_HOURS;
+      const hasSuffGaz = hasSufficientHours(gazData);
+      const hasSuffAg = hasSufficientHours(agData);
+
+      // Both directions already have adequate measured hourly profiles — nothing to do.
+      if (hasSuffGaz && hasSuffAg) return;
 
       const d1Daily = Math.max(0, Number(site.d1_vadt) || 0);
       const d2Daily = Math.max(0, Number(site.d2_vadt) || 0);
       const totalDaily = Math.max(0, Number(site.vadt) || (d1Daily + d2Daily));
       if (totalDaily <= 0) return;
 
-      const baseShape = hasGaz ? gazData : (hasAg ? agData : buildSyntheticHourlyFromDaily(totalDaily, 1));
+      const dirDailyTotal = d1Daily + d2Daily;
+
+      if (!hasSuffGaz && !hasSuffAg) {
+        // Neither direction has sufficient measured hourly data (e.g. Brisbane, Logan,
+        // Ipswich, Toowoomba).  Apply direction-specific AM/PM-biased synthetic profiles
+        // so that D1 (GAZETTAL / inbound) peaks in the morning and D2 (AGAINST GAZETTAL
+        // / outbound) peaks in the evening, rather than both getting an identical shape.
+        const d1Eff = dirDailyTotal > 0 ? d1Daily : totalDaily * 0.5;
+        const d2Eff = dirDailyTotal > 0 ? d2Daily : totalDaily * 0.5;
+        const synthD1 = buildSyntheticHourlyFromDaily(d1Eff, 1);   // AM-biased
+        const synthD2 = buildSyntheticHourlyFromDaily(d2Eff, 2);   // PM-biased
+        site.directions_weekday['GAZETTAL'] = synthD1;
+        site.directions_weekday['AGAINST GAZETTAL'] = synthD2;
+        site.directions['GAZETTAL'] = synthD1.slice();
+        site.directions['AGAINST GAZETTAL'] = synthD2.slice();
+        if (!site.direction_split_mode || String(site.direction_split_mode).toLowerCase() === 'unknown' || String(site.direction_split_mode).toLowerCase() === 'fallback_50_50') {
+          site.direction_split_mode = 'synthetic_directional';
+        }
+        return;
+      }
+
+      // Exactly one direction has sufficient measured data.  Redistribute the
+      // total daily volume proportionally using that direction's shape as the template.
+      const baseShape = hasSuffGaz ? gazData : agData;
       const baseShapeTotal = baseShape.reduce((a, b) => a + (Number(b) || 0), 0);
       if (baseShapeTotal <= 0) return;
 
-      const dirDailyTotal = d1Daily + d2Daily;
       const d1Share = dirDailyTotal > 0 ? (d1Daily / dirDailyTotal) : 0.5;
 
       const redistributedD1 = new Array(24).fill(0);
@@ -13127,7 +13195,30 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         d2LanesLabel.innerHTML = 'D2 Lanes *';
       }
     }
-    
+
+    // Auto-infer road capacity classification from road name / source
+    const rcClassEl = document.getElementById('roadCapacityClass');
+    if (rcClassEl) {
+      const inferredClass = inferRoadCapacityClass(data.road_name || '', data.source || '');
+      const rcWrapper = rcClassEl.closest('div');
+      const rcLabel = rcWrapper ? rcWrapper.querySelector('label') : null;
+      if (inferredClass) {
+        rcClassEl.value = inferredClass;
+        rcClassEl.style.border = '1px solid #81c784';
+        rcClassEl.style.backgroundColor = '#f1f8f6';
+        rcClassEl.style.color = '#1b5e20';
+        if (rcWrapper) { rcWrapper.style.background = '#e8f5e9'; rcWrapper.style.border = '1px solid #81c784'; }
+        if (rcLabel) rcLabel.innerHTML = 'Road Classification (inferred)';
+      } else {
+        rcClassEl.value = 'arterial';
+        rcClassEl.style.border = '1px solid #e57373';
+        rcClassEl.style.backgroundColor = '#fff5f5';
+        rcClassEl.style.color = '#b71c1c';
+        if (rcWrapper) { rcWrapper.style.background = '#ffebee'; rcWrapper.style.border = '1px solid #ef9a9a'; }
+        if (rcLabel) rcLabel.innerHTML = 'Road Classification (Cap.) *';
+      }
+    }
+
     syncVisibility();
     focusMacroSiteOnMap(siteId);
     updateAssumptionsPanel(data);
@@ -14762,7 +14853,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   const ids = [
     'RTR','DTCA','DHVPA','DRTPA','VADT','D1_VADT','D2_VADT','HVP','RTP','D1_HVP','D2_HVP','D1_RTP','D2_RTP','D1_Lanes','D2_Lanes',
-    'roadOperationMode','oneWayActiveDirection','laneClosureCount','macroOpeningYear','macroGrowthRate','macroTerrainType'
+    'roadOperationMode','oneWayActiveDirection','laneClosureCount','macroOpeningYear','macroGrowthRate','macroTerrainType','roadCapacityClass'
   ];
   function txt(id){
     const el = document.getElementById(id);
@@ -15050,39 +15141,25 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return totalVadt;
   }
 
-  function calculateDV(direction, directionalDaily, site, totalProjectedAadt) {
-    const source = String(site ? site.source : '').toUpperCase();
-    const dirKey = direction === 1 ? 'GAZETTAL' : 'AGAINST GAZETTAL';
-    const isTmrStyle = isTmrStyleSource(site, dirKey);
+  // Infers road capacity classification from road name and/or data source.
+  // Returns a key matching TMRCalculator.PHYSICAL_LANE_CAPACITY_VPH, or null if no match.
+  function inferRoadCapacityClass(roadName, source) {
+    const n = String(roadName || '').toLowerCase();
+    if (/motorway|freeway|\bm\d+\b|gateway mwy|logan mwy|ipswich mwy|bruce fwy/.test(n)) return 'freeway';
+    if (/\bhighway\b|\bhwy\b|state route|national route|pacific hwy|bruce hwy|gateway/.test(n)) return 'rural_highway';
+    if (/multi.?lane|divided|arterial|state road/.test(n)) return 'arterial';
+    if (/sub.?arterial|collector|boulevard|blvd|avenue|ave\b/.test(n)) return 'sub_arterial';
+    if (/\bstreet\b|\bst\b|\bclose\b|\bcourt\b|\bplace\b|\bcrescent\b|\bdrive\b/.test(n)) return 'local';
+    return null;
+  }
 
-    const dirLanes = Math.max(1, num(`D${direction}_Lanes`));
-    const totalLanes = Math.max(1, num('D1_Lanes') + num('D2_Lanes'));
-    
-    if (isTmrStyle) {
-      // Anchor capacity to the site's measured directional VADT (fixed reference), so VCR
-      // denominator stays fixed while the demand numerator changes with user-entered volume.
-      let measuredDirDaily = directionalDaily; // fallback to projected volume
-      if (site) {
-        const siteDir = Number(direction === 1 ? site.d1_vadt : site.d2_vadt) || 0;
-        if (siteDir > 0) {
-          measuredDirDaily = siteDir;
-        } else if (site.directions_weekday && Array.isArray(site.directions_weekday[dirKey])) {
-          const hourlySum = site.directions_weekday[dirKey].reduce((s, v) => s + Math.max(0, Number(v) || 0), 0);
-          if (hourlySum > 0) measuredDirDaily = hourlySum;
-        }
-      }
-      return TMRCalculator.calculateCapacity(measuredDirDaily, dirLanes);
-    } else if (source === 'IPSWICH') {
-      const measuredVadt = Math.max(0, Number(site && site.vadt) || 0) || Math.max(0, Number(totalProjectedAadt) || 0);
-      const dynamicCapacity = Math.ceil((0.15 * measuredVadt) / 2);
-      return Math.max(IPSWICH_CONSTANTS.CAPACITY_FLOOR, dynamicCapacity);
-    } else if (source === 'GOLD COAST') {
-      const refCap = getDesignCapacityReferenceDailyVolume(totalProjectedAadt, site);
-      return Math.max(500, Math.ceil((0.15 * refCap) / 2));
-    } else {
-      const refCap = getDesignCapacityReferenceDailyVolume(totalProjectedAadt, site);
-      return Math.max(500, numberRoundUp((0.15 * refCap) / totalLanes, 0));
-    }
+  function calculateDV(direction, directionalDaily, site, totalProjectedAadt) {
+    // Returns physical per-lane capacity (vph/lane) for the V/C ratio denominator.
+    // Capacity is defined by road infrastructure classification — NOT by traffic demand.
+    // The road class is selected by the user in the "Road Classification (Capacity)" dropdown.
+    const roadCapClassEl = document.getElementById('roadCapacityClass');
+    const roadCapClass = roadCapClassEl ? (roadCapClassEl.value || 'arterial') : 'arterial';
+    return TMRCalculator.calculateCapacity(roadCapClass);
   }
 
   // --- SOURCE-AWARE PEAK/OFF-PEAK CALCULATION ENGINE ---
@@ -15167,7 +15244,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const scaledTotal = rawVol * scale;
         const hv = numberRoundUp(scaledTotal * hvPct, 0);
         const rt = numberRoundUp(scaledTotal * rtPct, 0);
-        const lv = numberRoundUp(scaledTotal - (scaledTotal * hvPct) - (scaledTotal * rtPct), 0);
+        // Derive lv as the strict remainder after allocating rounded hv and rt
+        // so that lv + hv + rt === scaledTotal (mass conservation).
+        const lv = Math.max(0, scaledTotal - hv - rt);
         return { lv, hv, rt, total: lv + hv + rt };
       };
 
@@ -16095,14 +16174,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     };
   }
 
-  function queueForDurationMinutes(total5, hvPct, rtPct, isRtr, durationMinutes) {
+  function queueForDurationMinutes(total5, hvPct, rtPct, isRtr, durationMinutes, physicalCapacityPerLane) {
+    // physicalCapacityPerLane (vph/lane): effective discharge capacity during the restriction.
+    // Omit or pass 0 for a complete Stop/Go blockage (same behaviour as queueFromFiveMinute).
+    // For partial restrictions (lane closures, signalised approaches), pass the reduced
+    // capacity so only the net overflow above capacity contributes to queue growth.
+    // Net overflow model: netArrivals = max(0, arrival_rate − capacity_rate)
+    const cap5 = Math.max(0, Number(physicalCapacityPerLane) || 0) / 12; // vph → 5-min equivalent
+    const netTotal5 = Math.max(0, total5 - cap5); // vehicles per 5-min that cannot discharge
+
     const minutes = Math.max(1, Math.min(60, numberRoundUp(durationMinutes, 0) || 2));
-    const hv = total5 * hvPct;
-    const rt = total5 * rtPct;
-    const lv = Math.max(0, total5 - hv - rt);
+    const hv = netTotal5 * hvPct;
+    const rt = netTotal5 * rtPct;
+    const lv = Math.max(0, netTotal5 - hv - rt);
     const factor = isRtr ? 1.5 : 1;
 
-    // Aligned spacing
+    // Aligned spacing (LV: 8 m, HV: 24 m, RT: 69 m)
     const minRatio = minutes / 5;
     const q = ((lv * (8 * minRatio)) + (hv * (24 * minRatio)) + (rt * (69 * minRatio))) * factor;
     return numberRoundUp(q, 0);
@@ -18294,10 +18381,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const d1Vol = Number(d1Hour.total) || 0;
         const d2Vol = Number(d2Hour.total) || 0;
         const d1RawQueue = selectedHourlyQueueKey === 'custom'
-          ? queueForDurationMinutes((Number(d1Hour.perLane) || 0) / 12, d1HvPct, d1RtPct, isRtrActive, selectedHourlyQueueCustomMinutes)
+          ? queueForDurationMinutes((Number(d1Hour.perLane) || 0) / 12, d1HvPct, d1RtPct, isRtrActive, selectedHourlyQueueCustomMinutes, dv1)
           : (d1Hour.queue && d1Hour.queue[selectedHourlyQueueKey]);
         const d2RawQueue = selectedHourlyQueueKey === 'custom'
-          ? queueForDurationMinutes((Number(d2Hour.perLane) || 0) / 12, d2HvPct, d2RtPct, isRtrActive, selectedHourlyQueueCustomMinutes)
+          ? queueForDurationMinutes((Number(d2Hour.perLane) || 0) / 12, d2HvPct, d2RtPct, isRtrActive, selectedHourlyQueueCustomMinutes, dv2)
           : (d2Hour.queue && d2Hour.queue[selectedHourlyQueueKey]);
         const d1MaxQueue = normalizeHourlyQueueToVehicleLength(d1RawQueue, d1Vol, true);
         const d2MaxQueue = normalizeHourlyQueueToVehicleLength(d2RawQueue, d2Vol, true);
@@ -18729,19 +18816,19 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     let peakVolStr = '';
 
     if (isTmrStyle) {
-      dvFormulaStr = `max(500, ROUNDUP(0.12 * Projected_Directional_Volume / Lanes))`;
+      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Measured hourly profile scaled to target daily volume';
     } else if (sourceText === 'IPSWICH') {
-      dvFormulaStr = `max(500, ROUNDUP(0.12 * Projected_AADT / Total_Lanes))`;
+      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Peak = 12.78% of Daily, Off-Peak = 45% of Peak';
     } else if (sourceText === 'GOLD COAST') {
-      dvFormulaStr = `max(500, ROUNDUP(0.15 * ReferenceCapacity / 2))`;
+      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Peak = 15% * 85% of Daily, Off-Peak = 48.55% of Peak';
     } else if (sourceText === 'BRISBANE' || sourceText === 'LOGAN' || sourceText === 'TOOWOOMBA' || sourceText === 'NSW') {
-      dvFormulaStr = `max(500, ROUNDUP(0.15 * ReferenceCapacity / Total_Lanes))`;
+      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Peak = 12% * 85% of Daily, Off-Peak = 45% of Peak';
     } else {
-      dvFormulaStr = `max(500, ROUNDUP(0.15 * ReferenceCapacity / Total_Lanes))`;
+      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Peak = 60% * 85% of Daily, OP/EV = 15% * 85% of Daily';
     }
 
@@ -18751,6 +18838,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const traceRows = [
       ['Data Source Pattern', displayedSource],
+      ['Road Classification (Cap.)', txt('roadCapacityClass') + ` → ${dv1} vph/lane`],
       ['DV Formula Applied', dvFormulaStr],
       ['Peak Distribution Logic', peakVolStr],
       ['DTCA Path', dtca === 'YES' ? 'Directional VADT (D1_VADT / D2_VADT)' : '50/50 split from VADT'],
@@ -23969,8 +24057,18 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     // Average queue length (vehicles waiting)
     const avgQueue = (pw * rho) / (1 - rho) * lanes;
     
-    // 95th percentile queue
-    const p95Queue = avgQueue + Math.sqrt(avgQueue * 2);
+    // 95th percentile queue — exact M/M/c geometric tail inversion.
+    // In M/M/c, the steady-state queue CDF is P(Nq ≤ k) = 1 − Pw·ρ^k (Gross & Harris §3.4).
+    // This follows from the geometric tail of the conditional queue distribution,
+    // which is much heavier than a Poisson/normal approximation under high utilisation.
+    // Invert at the 95th percentile:  Pw·ρ^k ≤ 0.05  →  k ≥ ln(0.05/Pw) / ln(ρ)
+    let p95Queue;
+    if (pw <= 0.05 || rho <= 0) {
+      // Erlang-C ≤ 0.05: fewer than 5% of arrivals ever wait — p95 queue is zero.
+      p95Queue = 0;
+    } else {
+      p95Queue = Math.ceil(Math.log(0.05 / pw) / Math.log(rho));
+    }
     
     // Level of Service based on utilization
     let los = 'A';
@@ -23981,7 +24079,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     
     return {
       avgQueue: Math.round(avgQueue * 10) / 10,
-      p95Queue: Math.round(p95Queue * 10) / 10,
+      p95Queue: p95Queue,
       los: los,
       utilization: Math.round(rho * 1000) / 10
     };
