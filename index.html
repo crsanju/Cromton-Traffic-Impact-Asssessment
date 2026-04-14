@@ -9884,7 +9884,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   }
 
   function showSmartSuggestBadge(anchorEl, suggestedValue, label, onAccept) {
-    const existingBadge = anchorEl.parentElement && anchorEl.parentElement.querySelector('.smart-suggest-badge');
+    // Use nearest .input-group ancestor so badge renders below the field, not
+    // inside a flex row (e.g. .input-wrapper).  Fall back to parentElement.
+    const container = anchorEl.closest('.input-group') || anchorEl.parentElement;
+    const existingBadge = container && container.querySelector('.smart-suggest-badge');
     if (existingBadge) existingBadge.remove();
     const badge = document.createElement('div');
     badge.className = 'smart-suggest-badge';
@@ -9894,7 +9897,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const dismissBtn = badge.querySelectorAll('button')[1];
     applyBtn.addEventListener('click', () => { onAccept(); badge.remove(); });
     dismissBtn.addEventListener('click', () => badge.remove());
-    anchorEl.parentElement.appendChild(badge);
+    container.appendChild(badge);
   }
 
   function normalizeDayOfWeek(value) {
