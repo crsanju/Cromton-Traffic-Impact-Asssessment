@@ -3469,6 +3469,75 @@
         page-break-before: auto !important;
       }
     }
+
+    /* ===== DEVELOPER SPLIT-PANEL DASHBOARD LAYOUT ===== */
+    .dashboard-wrapper {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      min-height: 100vh;
+      align-items: start;
+    }
+
+    .control-panel {
+      background: #ffffff;
+      border-right: 2px solid #cfd8dc;
+      padding: 20px 18px 40px 18px;
+      min-height: 100vh;
+      overflow-y: auto;
+      position: sticky;
+      top: 0;
+      max-height: 100vh;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.06);
+      z-index: 5;
+    }
+
+    .output-canvas {
+      background: #f0f4f8;
+      padding: 20px 24px 40px 24px;
+      min-height: 100vh;
+      overflow-y: auto;
+    }
+
+    /* In report mode, collapse the split panel — full width for printing */
+    body.report-mode-detailed .dashboard-wrapper,
+    body.report-mode-short .dashboard-wrapper {
+      display: block;
+    }
+    body.report-mode-detailed .control-panel,
+    body.report-mode-short .control-panel {
+      display: none;
+    }
+    body.report-mode-detailed .output-canvas,
+    body.report-mode-short .output-canvas {
+      padding: 0;
+      background: transparent;
+      max-height: none;
+      overflow: visible;
+    }
+
+    /* Panel header label */
+    .panel-section-label {
+      font-size: 0.7em;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #90a4ae;
+      margin: 0 0 10px 2px;
+    }
+
+    /* Responsive: stack vertically on narrow screens */
+    @media (max-width: 960px) {
+      .dashboard-wrapper {
+        display: block;
+      }
+      .control-panel {
+        position: static;
+        max-height: none;
+        border-right: none;
+        border-bottom: 2px solid #cfd8dc;
+      }
+    }
+    /* ===== END DEVELOPER DASHBOARD ===== */
   </style>
 </head>
 <body class="app-locked input-color-mode">
@@ -3746,6 +3815,10 @@
         </div>
       </div>
     </div>
+
+    <div class="dashboard-wrapper">
+    <aside class="control-panel">
+    <p class="panel-section-label">Inputs &amp; Parameters</p>
 
     <h1 class="main-report-heading">Traffic Impact Assessment</h1>
     <p class="subtitle">database-integrated directional traffic, queue metrics, and capacity checks</p>
@@ -4295,6 +4368,10 @@
       </div>
       <div id="kpiModelProfile" style="margin-top:10px; padding:8px 10px; border-radius:6px; background:#eef3f7; border:1px solid #d0dde6; color:#1f5e63; font-size:0.88em; font-weight:700;">Model Profile: -</div>
     </details>
+
+    </aside>
+    <main class="output-canvas">
+    <p class="panel-section-label">Analysis Outputs</p>
 
     <!-- Data Visualization -->
     <details class="card" id="macroDataVizSection" style="display:none;" open>
@@ -5444,6 +5521,8 @@
   </div>
 
     <div class="copyright-footer">© 2026 Crompton Concepts. All rights reserved.</div>
+    </main>
+    </div><!-- end .dashboard-wrapper -->
 <script>
   const AUTH_SESSION_KEY = 'crompton_tia_auth';
   let loadingHintTimer = null;
