@@ -3665,7 +3665,7 @@
     </div>
   </div>
   
-  <div id="loginGate" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+  <div id="loginGate" role="dialog" aria-modal="true" aria-labelledby="loginTitle" style="display:none;">
     <div class="login-card">
       <img class="login-logo" src="logo.jpeg" alt="Crompton logo" />
       <h2 id="loginTitle" class="login-title">Crompton Login</h2>
@@ -8709,6 +8709,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       }
     });
   }
+
+  // ── Developer mode: bypass login gate entirely ───────────────────────────────
+  // index_developer.html is a local-only dev build. Pre-set the auth session key
+  // so setupLoginGate() immediately calls unlockApplication() without showing the
+  // login form. Remove this block if login is ever needed in the dev build.
+  sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+  // ─────────────────────────────────────────────────────────────────────────────
 
   setupLoginGate();
   setupLogoutButton();
