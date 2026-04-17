@@ -1,0 +1,23 @@
+# ── Generated output files ────────────────────────────────────────────────────
+# Large GeoJSON outputs exceed GitHub's 25 MB file limit.
+# Keep source GeoJSON (Brisbane.geojson etc.) but block generated outputs.
+common_tmr_hourly*.geojson
+common_tmr_hourly*.csv
+hourly_*.geojson
+hourly_*.csv
+
+# Compressed combined output is committed from the HOURLY folder.
+# Exclude the uncompressed versions from root.
+*.geojson.gz
+
+# Python virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
