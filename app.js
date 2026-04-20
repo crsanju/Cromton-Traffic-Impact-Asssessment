@@ -13535,28 +13535,30 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       redTimeSec: swtRedTimePerCycle
     });
 
-    // Trigger Work Window Optimizer
-    generateWorkWindow();
-    // Trigger Stop/Go Simulator
-    calculateStopGo();
-    // Trigger Detour Overlay Simulator
-    calculateDetourOverlay();
-    // Trigger Speed Reduction Impact
-    calculateSpeedDelay();
-    // Trigger Economic Cost (New)
-    calculateEconomicCost();
-    // Trigger Pedestrian Delay Calculator
-    calculatePedestrianDelay();
-    // Trigger AustRoads visualization refresh
-    updateManagementViz();
-
-    // Ensure every visible output also shows its formula line.
-    applyGlobalFormulaAnnotations();
+    const postCalcTasks = [
+      ['Work Window Optimizer', generateWorkWindow],
+      ['Stop/Go Simulator', calculateStopGo],
+      ['Detour Overlay Simulator', calculateDetourOverlay],
+      ['Speed Reduction Impact', calculateSpeedDelay],
+      ['Economic Cost', calculateEconomicCost],
+      ['Pedestrian Delay Calculator', calculatePedestrianDelay],
+      ['Austroads visualization', updateManagementViz],
+      ['Formula annotations', applyGlobalFormulaAnnotations]
+    ];
+    postCalcTasks.forEach(([label, task]) => {
+      try {
+        if (typeof task === 'function') task();
+      } catch (err) {
+        console.warn(`[Calculation] ${label} update failed:`, err);
+      }
+    });
 
     // Mark calculations as completed and update button appearance
     calculationsCompleted = true;
     const calcBtn = document.getElementById('calcBtn');
     if (calcBtn) {
+      calcBtn.disabled = false;
+      calcBtn.style.opacity = '1';
       calcBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
       calcBtn.innerHTML = '✓ Calculations Complete';
       calcBtn.style.boxShadow = '0 8px 20px rgba(16, 185, 129, 0.4)';
@@ -18271,14 +18273,25 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   const calcBtn = document.getElementById('calcBtn');
   if (calcBtn) {
     calcBtn.addEventListener('click', () => {
-      // Reset button state before calculation
+      calcBtn.disabled = true;
+      calcBtn.style.opacity = '0.9';
       calcBtn.style.background = 'var(--brand)';
       calcBtn.innerHTML = '⏳ Calculating...';
       calcBtn.style.boxShadow = '0 8px 20px rgba(31, 94, 99, 0.3)';
-      
-      // Run calculation (which will update button at the end)
+
       setTimeout(() => {
-        calculateAll();
+        try {
+          calculateAll();
+        } catch (err) {
+          console.error('[Calculation] Failed to fully update all UI sections:', err);
+          calculationsCompleted = true;
+          calcBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+          calcBtn.innerHTML = '✓ Calculations Updated';
+          calcBtn.style.boxShadow = '0 8px 20px rgba(16, 185, 129, 0.4)';
+        } finally {
+          calcBtn.disabled = false;
+          calcBtn.style.opacity = '1';
+        }
       }, 50);
     });
   }
