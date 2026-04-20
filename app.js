@@ -10019,10 +10019,51 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   function setVcrLosCell(td, value, customFormula){
     td.innerHTML = `
       <div>${formatVCR(value)}</div>
-      <div class="formula-inline">${customFormula || 'Formula: VCR = hourly volume per lane / design capacity'}</div>
+      <div class="formula-inline">${customFormula || 'VCR = current scenario hourly volume / available capacity'}</div>
     `;
     td.style.fontWeight = '700';
     td.style.background = '#ffffff';
+  }
+
+  function resolveFormulaForPeriod(formulaSpec, key) {
+    if (!formulaSpec) return '';
+    if (typeof formulaSpec === 'string') return formulaSpec;
+    return String(formulaSpec[key] || '');
+  }
+
+  function formatFormulaNumber(value, decimals = 0) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '0';
+    return n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals });
+  }
+
+  function buildCapacityStepFormula(capacityProfile, lanes) {
+    if (!capacityProfile) return 'DV = base capacity × terrain × lane-width × lateral-clearance × HV/RT factor';
+    const laneCount = Math.max(1, Number(lanes) || 1);
+    const base = Number(capacityProfile.baseCapacity) || 0;
+    const terrainFactor = Number(capacityProfile.terrainFactor) || 1;
+    const laneWidthFactor = Number(capacityProfile.laneWidthFactor) || 1;
+    const lateralFactor = Number(capacityProfile.lateralFactor) || 1;
+    const hvFactor = Number(capacityProfile.hvFactor) || 1;
+    const adjusted = Number(capacityProfile.adjustedCapacity) || 0;
+    return `DV = ${formatFormulaNumber(base)} × ${terrainFactor.toFixed(2)} × ${laneWidthFactor.toFixed(2)} × ${lateralFactor.toFixed(2)} × ${hvFactor.toFixed(2)} = ${formatFormulaNumber(adjusted)} vph/lane; directional = ${formatFormulaNumber(adjusted)} × ${laneCount} = ${formatFormulaNumber(adjusted * laneCount)} vph`;
+  }
+
+  function buildBaseVcrStep(hourlyTotal, lanes, dv, result) {
+    if (!(Number.isFinite(dv) && dv > 0)) return 'Base VCR = (directional hourly volume / lanes) / DV';
+    const laneCount = Math.max(1, Number(lanes) || 1);
+    return `Base VCR = (${formatFormulaNumber(hourlyTotal, 1)} / ${laneCount}) / ${formatFormulaNumber(dv)} = ${Number.isFinite(result) ? result.toFixed(2) : 'N/A'}`;
+  }
+
+  function buildLaneClosureVcrStep(label, hourlyTotal, openLanes, dv, result) {
+    if (!(Number.isFinite(dv) && dv > 0)) return `${label} VCR = (directional hourly volume / open lanes) / DV`;
+    const availableLanes = Math.max(1, Number(openLanes) || 1);
+    return `${label} VCR = (${formatFormulaNumber(hourlyTotal, 1)} / ${availableLanes}) / ${formatFormulaNumber(dv)} = ${Number.isFinite(result) ? result.toFixed(2) : 'N/A'}`;
+  }
+
+  function buildSlrfVcrStep(d1HourlyTotal, d2HourlyTotal, sharedDv, result) {
+    if (!(Number.isFinite(sharedDv) && sharedDv > 0)) return 'SLRF VCR = (D1 hourly volume + D2 hourly volume) / shared controlling capacity';
+    return `SLRF VCR = (${formatFormulaNumber(d1HourlyTotal, 1)} + ${formatFormulaNumber(d2HourlyTotal, 1)}) / ${formatFormulaNumber(sharedDv)} = ${Number.isFinite(result) ? result.toFixed(2) : 'N/A'}`;
   }
 
   function updateIntersectionQueueCapacityCalculator() {
@@ -12345,6 +12386,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const dv2 = calculateDV(2, d2Daily, site, projectedTotal);
     const dvDisplay = (dv1 === dv2) ? dv1 : `${dv1} (D1) / ${dv2} (D2)`;
     const maxDv = Math.max(dv1, dv2);
+    const sharedDv = Math.max(1, (dv1 > 0 && dv2 > 0) ? Math.min(dv1, dv2) : maxDv);
     const dv = maxDv;
 
     // Map new architecture outputs directly to existing variables for UI rendering
@@ -12426,14 +12468,18 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     // VCR Array Computations
     const periodKeys = ['AM','OP','PM','EV'];
     const baseD1 = {}, baseD2 = {}, slcD1 = {}, slcD2 = {}, slrf = {};
+    const baseD1Formula = {}, baseD2Formula = {}, slcD1Formula = {}, slcD2Formula = {}, slrfFormula = {};
     const laneClosureLabel = getLaneClosureLabel();
+    const roadCapClass = document.getElementById('roadCapacityClass')?.value || 'arterial';
+    const d1CapacityProfile = getAustroadsCapacityProfile(1, roadCapClass);
+    const d2CapacityProfile = getAustroadsCapacityProfile(2, roadCapClass);
     const d1OpenLanes = getEffectiveOpenLanes(d1Metrics.lanes);
     const d2OpenLanes = getEffectiveOpenLanes(d2Metrics.lanes);
     const d1OpenLaneExpr = d1Metrics.lanes > 1 ? `${d1Metrics.lanes} - ${d1Metrics.lanes - d1OpenLanes}` : '1';
     const d2OpenLaneExpr = d2Metrics.lanes > 1 ? `${d2Metrics.lanes} - ${d2Metrics.lanes - d2OpenLanes}` : '1';
     const selectedClosureCount = getSelectedLaneClosureCount();
-    const d1CloseScenarios = Array.from({ length: Math.max(0, d1Metrics.lanes - 1) }, (_, i) => ({ closureCount: i + 1, openLanes: d1Metrics.lanes - i - 1, values: {} }));
-    const d2CloseScenarios = Array.from({ length: Math.max(0, d2Metrics.lanes - 1) }, (_, i) => ({ closureCount: i + 1, openLanes: d2Metrics.lanes - i - 1, values: {} }));
+    const d1CloseScenarios = Array.from({ length: Math.max(0, d1Metrics.lanes - 1) }, (_, i) => ({ closureCount: i + 1, openLanes: d1Metrics.lanes - i - 1, values: {}, formulas: {} }));
+    const d2CloseScenarios = Array.from({ length: Math.max(0, d2Metrics.lanes - 1) }, (_, i) => ({ closureCount: i + 1, openLanes: d2Metrics.lanes - i - 1, values: {}, formulas: {} }));
     const laneClosureAssumptionNoteEl = document.getElementById('laneClosureAssumptionNote');
     if (laneClosureAssumptionNoteEl) {
       if (d1Metrics.lanes === 1 && d2Metrics.lanes === 1) {
@@ -12443,44 +12489,53 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       }
     }
 
+    setFormulaBelow('kpiDV', `DV = max(DV1, DV2) = max(${Math.round(dv1).toLocaleString()}, ${Math.round(dv2).toLocaleString()}) = ${Math.round(maxDv).toLocaleString()} vph/lane`);
+
     periodKeys.forEach(p => {
       const m1 = d1AdjProfile[p];
       const m2 = d2AdjProfile[p];
+      const d1HourlyTotal = (Number(m1.hourlyPerLane) || 0) * Math.max(1, d1Metrics.lanes);
+      const d2HourlyTotal = (Number(m2.hourlyPerLane) || 0) * Math.max(1, d2Metrics.lanes);
 
       baseD1[p] = TMRCalculator.calculateVCR(m1.hourlyPerLane, dv1);
       baseD2[p] = TMRCalculator.calculateVCR(m2.hourlyPerLane, dv2);
+      baseD1Formula[p] = buildBaseVcrStep(d1HourlyTotal, d1Metrics.lanes, dv1, baseD1[p]);
+      baseD2Formula[p] = buildBaseVcrStep(d2HourlyTotal, d2Metrics.lanes, dv2, baseD2[p]);
 
-      if (sourceUpper === 'TMR' || sourceUpper === 'GOLD COAST') {
-        if (d1Metrics.lanes > 1) {
-          slcD1[p] = (m1.hourlyPerLane * d1Metrics.lanes / d1OpenLanes) / maxDv;
-        } else {
-          slcD1[p] = null;
-        }
-        if (d2Metrics.lanes > 1) {
-          slcD2[p] = (m2.hourlyPerLane * d2Metrics.lanes / d2OpenLanes) / maxDv;
-        } else {
-          slcD2[p] = null;
-        }
+      if (d1Metrics.lanes > 1) {
+        slcD1[p] = (m1.hourlyPerLane * d1Metrics.lanes / d1OpenLanes) / dv1;
+        slcD1Formula[p] = buildLaneClosureVcrStep(`${laneClosureLabel} (${d1OpenLanes} open)`, d1HourlyTotal, d1OpenLanes, dv1, slcD1[p]);
       } else {
-        if (d1Metrics.lanes > 1) slcD1[p] = (m1.hourlyPerLane * d1Metrics.lanes / d1OpenLanes) / dv1;
-        else slcD1[p] = null;
-        
-        if (d2Metrics.lanes > 1) slcD2[p] = (m2.hourlyPerLane * d2Metrics.lanes / d2OpenLanes) / dv2;
-        else slcD2[p] = null;
+        slcD1[p] = null;
+        slcD1Formula[p] = '';
+      }
+
+      if (d2Metrics.lanes > 1) {
+        slcD2[p] = (m2.hourlyPerLane * d2Metrics.lanes / d2OpenLanes) / dv2;
+        slcD2Formula[p] = buildLaneClosureVcrStep(`${laneClosureLabel} (${d2OpenLanes} open)`, d2HourlyTotal, d2OpenLanes, dv2, slcD2[p]);
+      } else {
+        slcD2[p] = null;
+        slcD2Formula[p] = '';
       }
 
       if (oneWayMode) {
         slrf[p] = null;
+        slrfFormula[p] = '';
       } else if (d1Metrics.lanes === 1 && d2Metrics.lanes === 1) {
-        // Use normalized hourly demand for period VCR (not multi-hour bucket total).
-        slrf[p] = ((m1.hourlyPerLane * d1Metrics.lanes) + (m2.hourlyPerLane * d2Metrics.lanes)) / maxDv;
+        slrf[p] = sharedDv > 0 ? (((m1.hourlyPerLane * d1Metrics.lanes) + (m2.hourlyPerLane * d2Metrics.lanes)) / sharedDv) : null;
+        slrfFormula[p] = buildSlrfVcrStep(d1HourlyTotal, d2HourlyTotal, sharedDv, slrf[p]);
       } else {
         slrf[p] = null;
+        slrfFormula[p] = '';
       }
-      // Compute VCR for every possible lane closure count (all scenarios shown in table)
-      const isTmrSrc = sourceUpper === 'TMR' || sourceUpper === 'GOLD COAST';
-      d1CloseScenarios.forEach(sc => { sc.values[p] = (m1.hourlyPerLane * d1Metrics.lanes / sc.openLanes) / (isTmrSrc ? maxDv : dv1); });
-      d2CloseScenarios.forEach(sc => { sc.values[p] = (m2.hourlyPerLane * d2Metrics.lanes / sc.openLanes) / (isTmrSrc ? maxDv : dv2); });
+      d1CloseScenarios.forEach(sc => {
+        sc.values[p] = (m1.hourlyPerLane * d1Metrics.lanes / sc.openLanes) / dv1;
+        sc.formulas[p] = buildLaneClosureVcrStep(`${sc.closureCount} lane${sc.closureCount > 1 ? 's' : ''} closed`, d1HourlyTotal, sc.openLanes, dv1, sc.values[p]);
+      });
+      d2CloseScenarios.forEach(sc => {
+        sc.values[p] = (m2.hourlyPerLane * d2Metrics.lanes / sc.openLanes) / dv2;
+        sc.formulas[p] = buildLaneClosureVcrStep(`${sc.closureCount} lane${sc.closureCount > 1 ? 's' : ''} closed`, d2HourlyTotal, sc.openLanes, dv2, sc.values[p]);
+      });
     });
 
     // Update section headers with intelligent direction labels
@@ -12819,15 +12874,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const d2ScenRows = d2CloseScenarios.map(sc => {
         const scenLabel = sc.closureCount === 1 ? `1 Lane Closed (${sc.openLanes} open)` : `${sc.closureCount} Lanes Closed (${sc.openLanes} open)`;
         const isSel = sc.closureCount === selectedClosureCount;
-        return { label: isSel ? `★ ${scenLabel}` : scenLabel, values: isD2Active ? sc.values : null, formula: `VCR = (hourly/lane × ${d2Metrics.lanes} / ${sc.openLanes}) / DV`, highlighted: isSel };
+        return { label: isSel ? `★ ${scenLabel}` : scenLabel, values: isD2Active ? sc.values : null, formula: sc.formulas, highlighted: isSel };
       });
       const d2FallbackRows = d2CloseScenarios.length === 0 ? [{ label: 'Lane Closure (N/A — 1 lane)', values: null }] : [];
       const rowsD2 = [
-        { label: isD2Active ? `Design Volume (Capacity) * = ${Math.round(dv2).toLocaleString()}` : 'Design Volume (Capacity) *', values: null },
-        { label: 'Base VCR', values: isD2Active ? baseD2 : null, formula: 'Base VCR = (Vol / Lanes) / DV' },
+        { label: isD2Active ? `Design Capacity * = ${Math.round(dv2).toLocaleString()} vph/lane (${Math.round(dv2 * Math.max(1, d2Metrics.lanes)).toLocaleString()} vph directional)<div class="formula-inline">${buildCapacityStepFormula(d2CapacityProfile, d2Metrics.lanes)}</div>` : 'Design Capacity *', values: null },
+        { label: 'Base VCR', values: isD2Active ? baseD2 : null, formula: baseD2Formula },
         ...d2ScenRows,
         ...d2FallbackRows,
-        { label: 'Single Lane Reversible Flow', values: isD2Active ? slrf : null, formula: 'SLRF VCR = (D1_Vol + D2_Vol) / Max(DV1, DV2)' }
+        { label: 'Single Lane Reversible Flow', values: isD2Active ? slrf : null, formula: slrfFormula }
       ];
 
       vcrGroupedBodyD2.innerHTML = '';
@@ -12848,10 +12903,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             cell.style.background = '#f4f3f0';
           });
         } else {
-          setVcrLosCell(cells[0], row.values.AM, row.formula);
-          setVcrLosCell(cells[1], row.values.OP, row.formula);
-          setVcrLosCell(cells[2], row.values.PM, row.formula);
-          setVcrLosCell(cells[3], row.values.EV, row.formula);
+          setVcrLosCell(cells[0], row.values.AM, resolveFormulaForPeriod(row.formula, 'AM'));
+          setVcrLosCell(cells[1], row.values.OP, resolveFormulaForPeriod(row.formula, 'OP'));
+          setVcrLosCell(cells[2], row.values.PM, resolveFormulaForPeriod(row.formula, 'PM'));
+          setVcrLosCell(cells[3], row.values.EV, resolveFormulaForPeriod(row.formula, 'EV'));
         }
         vcrGroupedBodyD2.appendChild(tr);
       });
@@ -12862,15 +12917,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const d1ScenRows = d1CloseScenarios.map(sc => {
         const scenLabel = sc.closureCount === 1 ? `1 Lane Closed (${sc.openLanes} open)` : `${sc.closureCount} Lanes Closed (${sc.openLanes} open)`;
         const isSel = sc.closureCount === selectedClosureCount;
-        return { label: isSel ? `★ ${scenLabel}` : scenLabel, values: isD1Active ? sc.values : null, formula: `VCR = (hourly/lane × ${d1Metrics.lanes} / ${sc.openLanes}) / DV`, highlighted: isSel };
+        return { label: isSel ? `★ ${scenLabel}` : scenLabel, values: isD1Active ? sc.values : null, formula: sc.formulas, highlighted: isSel };
       });
       const d1FallbackRows = d1CloseScenarios.length === 0 ? [{ label: 'Lane Closure (N/A — 1 lane)', values: null }] : [];
       const rowsD1 = [
-        { label: isD1Active ? `Design Volume (Capacity) * = ${Math.round(dv1).toLocaleString()}` : 'Design Volume (Capacity) *', values: null },
-        { label: 'Base VCR', values: isD1Active ? baseD1 : null, formula: 'Base VCR = (Vol / Lanes) / DV' },
+        { label: isD1Active ? `Design Capacity * = ${Math.round(dv1).toLocaleString()} vph/lane (${Math.round(dv1 * Math.max(1, d1Metrics.lanes)).toLocaleString()} vph directional)<div class="formula-inline">${buildCapacityStepFormula(d1CapacityProfile, d1Metrics.lanes)}</div>` : 'Design Capacity *', values: null },
+        { label: 'Base VCR', values: isD1Active ? baseD1 : null, formula: baseD1Formula },
         ...d1ScenRows,
         ...d1FallbackRows,
-        { label: 'Single Lane Reversible Flow', values: isD1Active ? slrf : null, formula: 'SLRF VCR = (D1_Vol + D2_Vol) / Max(DV1, DV2)' }
+        { label: 'Single Lane Reversible Flow', values: isD1Active ? slrf : null, formula: slrfFormula }
       ];
 
       vcrGroupedBodyD1.innerHTML = '';
@@ -12891,10 +12946,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             cell.style.background = '#f4f3f0';
           });
         } else {
-          setVcrLosCell(cells[0], row.values.AM, row.formula);
-          setVcrLosCell(cells[1], row.values.OP, row.formula);
-          setVcrLosCell(cells[2], row.values.PM, row.formula);
-          setVcrLosCell(cells[3], row.values.EV, row.formula);
+          setVcrLosCell(cells[0], row.values.AM, resolveFormulaForPeriod(row.formula, 'AM'));
+          setVcrLosCell(cells[1], row.values.OP, resolveFormulaForPeriod(row.formula, 'OP'));
+          setVcrLosCell(cells[2], row.values.PM, resolveFormulaForPeriod(row.formula, 'PM'));
+          setVcrLosCell(cells[3], row.values.EV, resolveFormulaForPeriod(row.formula, 'EV'));
         }
         vcrGroupedBodyD1.appendChild(tr);
       });
@@ -12998,7 +13053,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         if (d1Metrics.lanes > 1) d1WorkVcr = (d1BaseVcr * d1Metrics.lanes) / getEffectiveOpenLanes(d1Metrics.lanes);
         if (d2Metrics.lanes > 1) d2WorkVcr = (d2BaseVcr * d2Metrics.lanes) / getEffectiveOpenLanes(d2Metrics.lanes);
         if (d1Metrics.lanes === 1 && d2Metrics.lanes === 1) {
-          d1WorkVcr = d2WorkVcr = maxDv > 0 ? ((d1Hour.perLane + d2Hour.perLane) / maxDv) : 0;
+          d1WorkVcr = d2WorkVcr = sharedDv > 0 ? ((d1Hour.perLane + d2Hour.perLane) / sharedDv) : 0;
         }
 
         const d1WorkCap = d1WorkVcr > 0 ? (d1Hour.total / d1WorkVcr) : 0;
@@ -13212,7 +13267,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         if (d2Metrics.lanes > 1) d2WorkVcr = (d2BaseVcr * d2Metrics.lanes) / getEffectiveOpenLanes(d2Metrics.lanes);
 
         if (d1Metrics.lanes === 1 && d2Metrics.lanes === 1) {
-          const slrfHourly = maxDv > 0 ? ((d1PerLane + d2PerLane) / maxDv) : null;
+          const slrfHourly = sharedDv > 0 ? ((d1PerLane + d2PerLane) / sharedDv) : null;
           d1WorkVcr = slrfHourly;
           d2WorkVcr = slrfHourly;
         }
@@ -13239,13 +13294,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           <td class="hourly-vcr-cell" data-label="Worst Hourly VCR"></td>
         `;
         const vcrCells = tr.querySelectorAll('.hourly-vcr-cell');
-        const f1Base = 'Base VCR = (D1 Vol / D1 Lanes) / DV1';
+        const f1Base = buildBaseVcrStep(d1Hour.total, d1Metrics.lanes, dv1, d1BaseVcr);
         const d1Closed = Math.max(1, d1Metrics.lanes - getEffectiveOpenLanes(d1Metrics.lanes));
         const d2Closed = Math.max(1, d2Metrics.lanes - getEffectiveOpenLanes(d2Metrics.lanes));
         const laneClosureLabel = getLaneClosureLabel();
-        const f1Work = d1Metrics.lanes === 1 ? 'SLRF VCR = (D1 Vol + D2 Vol) / Max_DV' : `${laneClosureLabel} VCR = (D1 Vol / (D1 Lanes - ${d1Closed})) / DV1`;
-        const f2Base = 'Base VCR = (D2 Vol / D2 Lanes) / DV2';
-        const f2Work = d2Metrics.lanes === 1 ? 'SLRF VCR = (D1 Vol + D2 Vol) / Max_DV' : `${laneClosureLabel} VCR = (D2 Vol / (D2 Lanes - ${d2Closed})) / DV2`;
+        const f1Work = d1Metrics.lanes === 1 ? buildSlrfVcrStep(d1Hour.total, d2Hour.total, sharedDv, d1WorkVcr) : buildLaneClosureVcrStep(`${laneClosureLabel} (${getEffectiveOpenLanes(d1Metrics.lanes)} open)`, d1Hour.total, getEffectiveOpenLanes(d1Metrics.lanes), dv1, d1WorkVcr);
+        const f2Base = buildBaseVcrStep(d2Hour.total, d2Metrics.lanes, dv2, d2BaseVcr);
+        const f2Work = d2Metrics.lanes === 1 ? buildSlrfVcrStep(d1Hour.total, d2Hour.total, sharedDv, d2WorkVcr) : buildLaneClosureVcrStep(`${laneClosureLabel} (${getEffectiveOpenLanes(d2Metrics.lanes)} open)`, d2Hour.total, getEffectiveOpenLanes(d2Metrics.lanes), dv2, d2WorkVcr);
 
         setHourlyVcrLosCell(vcrCells[0], d1BaseVcr, f1Base);
         setHourlyVcrLosCell(vcrCells[1], d1WorkVcr, f1Work);
@@ -13275,7 +13330,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           } else {
             d1CloseScenarios.forEach((sc, idx) => {
               const scenVcr = dv1 > 0 ? (d1PerLane * d1Metrics.lanes / sc.openLanes) / dv1 : null;
-              const scenFormula = `${sc.closureCount} Lane${sc.closureCount > 1 ? 's' : ''} Closed: (D1 Vol/hr × ${d1Metrics.lanes}/${sc.openLanes}) / DV1`;
+              const scenFormula = buildLaneClosureVcrStep(`${sc.closureCount} Lane${sc.closureCount > 1 ? 's' : ''} Closed`, d1Hour.total, sc.openLanes, dv1, scenVcr);
               setHourlyVcrLosCell(d1Cells[1 + idx], scenVcr, scenFormula);
               if (sc.closureCount === selectedClosureCount && d1Cells[1 + idx]) {
                 d1Cells[1 + idx].style.outline = '2px solid #1565C0';
@@ -13305,7 +13360,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           } else {
             d2CloseScenarios.forEach((sc, idx) => {
               const scenVcr = dv2 > 0 ? (d2PerLane * d2Metrics.lanes / sc.openLanes) / dv2 : null;
-              const scenFormula = `${sc.closureCount} Lane${sc.closureCount > 1 ? 's' : ''} Closed: (D2 Vol/hr × ${d2Metrics.lanes}/${sc.openLanes}) / DV2`;
+              const scenFormula = buildLaneClosureVcrStep(`${sc.closureCount} Lane${sc.closureCount > 1 ? 's' : ''} Closed`, d2Hour.total, sc.openLanes, dv2, scenVcr);
               setHourlyVcrLosCell(d2Cells[1 + idx], scenVcr, scenFormula);
               if (sc.closureCount === selectedClosureCount && d2Cells[1 + idx]) {
                 d2Cells[1 + idx].style.outline = '2px solid #1565C0';
@@ -14116,6 +14171,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const dv1 = calculateDV(1, d1Daily, site, projectedTotal);
     const dv2 = calculateDV(2, d2Daily, site, projectedTotal);
     const maxDv = Math.max(dv1, dv2);
+    const sharedDv = Math.max(1, (dv1 > 0 && dv2 > 0) ? Math.min(dv1, dv2) : maxDv);
 
     const d1PerLane = d1Metrics.lanes > 0 ? (v1 / d1Metrics.lanes) : 0;
     const d2PerLane = d2Metrics.lanes > 0 ? (v2 / d2Metrics.lanes) : 0;
@@ -14128,7 +14184,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (d1Metrics.lanes > 1) d1WorkVcr = (d1BaseVcr * d1Metrics.lanes) / getEffectiveOpenLanes(d1Metrics.lanes);
     if (d2Metrics.lanes > 1) d2WorkVcr = (d2BaseVcr * d2Metrics.lanes) / getEffectiveOpenLanes(d2Metrics.lanes);
     if (d1Metrics.lanes === 1 && d2Metrics.lanes === 1) {
-      const sharedWorkVcr = maxDv > 0 ? ((v1 + v2) / maxDv) : 0;
+      const sharedWorkVcr = sharedDv > 0 ? ((v1 + v2) / sharedDv) : 0;
       d1WorkVcr = sharedWorkVcr;
       d2WorkVcr = sharedWorkVcr;
     }
@@ -18341,6 +18397,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const dv1 = calculateDV(1, num('D1_VADT'), site, projectedTotal);
     const dv2 = calculateDV(2, num('D2_VADT'), site, projectedTotal);
     const maxDv = Math.max(dv1, dv2);
+    const sharedDv = Math.max(1, (dv1 > 0 && dv2 > 0) ? Math.min(dv1, dv2) : maxDv);
 
     const d1Lanes = Math.max(1, num('D1_Lanes'));
     const d2Lanes = Math.max(1, num('D2_Lanes'));
@@ -18469,7 +18526,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         if (Number.isFinite(fromWorst)) return fromWorst;
         const vol1 = Number(gazData[h]) || 0;
         const vol2 = Number(agData[h]) || 0;
-        return maxDv > 0 ? ((vol1 + vol2) / maxDv) : 0;
+        return sharedDv > 0 ? ((vol1 + vol2) / sharedDv) : 0;
       });
       const sched = buildSchedule('Single Lane Reversible Flow Scheduler (Both Directions Combined)', combinedVcr);
       timelineEl.appendChild(sched.card);
