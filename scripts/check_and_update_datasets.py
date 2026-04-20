@@ -34,47 +34,47 @@ DATASETS: list[DatasetConfig] = [
     DatasetConfig(
         key="tmr",
         local_file="tmr.geojson",
-        url="https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/tmr.geojson",
+        url="https://media.githubusercontent.com/media/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/tmr.geojson",
     ),
     DatasetConfig(
         key="goldcoast",
         local_file="goldcoast.geojson",
-        url="https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/goldcoast.geojson",
+        url="https://media.githubusercontent.com/media/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/goldcoast.geojson",
     ),
     DatasetConfig(
         key="brisbane",
         local_file="Brisbane.geojson",
-        url="https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/Brisbane.geojson",
+        url="https://media.githubusercontent.com/media/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/Brisbane.geojson",
     ),
     DatasetConfig(
         key="ipswich",
         local_file="Ipswich.geojson",
-        url="https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/Ipswich.geojson",
+        url="https://media.githubusercontent.com/media/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/Ipswich.geojson",
     ),
     DatasetConfig(
         key="logan",
         local_file="logan.geojson",
-        url="https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/logan.geojson",
+        url="https://media.githubusercontent.com/media/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/logan.geojson",
     ),
     DatasetConfig(
         key="toowoomba",
         local_file="toowoomba.geojson",
-        url="https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/toowoomba.geojson",
+        url="https://media.githubusercontent.com/media/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/toowoomba.geojson",
     ),
     DatasetConfig(
         key="tewantin",
         local_file="tewantin.geojson",
-        url="https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/tewantin.geojson",
+        url="https://media.githubusercontent.com/media/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/tewantin.geojson",
     ),
     DatasetConfig(
         key="nsw_2026",
         local_file="nsw_2026.geojson",
-        url="https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/main/nsw_2026.geojson",
+        url="https://media.githubusercontent.com/media/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/nsw_2026.geojson",
     ),
     DatasetConfig(
         key="tnsw",
         local_file="tnsw.geojson",
-        url="https://raw.githubusercontent.com/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/TNSW.geojson",
+        url="https://media.githubusercontent.com/media/cromptonconcepts/Cromton-Traffic-Impact-Asssessment/refs/heads/main/TNSW.geojson",
     ),
 ]
 
