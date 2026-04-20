@@ -4521,7 +4521,7 @@
           <canvas id="vcrChartD1" class="chart-canvas-280"></canvas>
         </div>
       </div>
-      <p class="table-note">* Design Volume is greater of 30th highest hour of AADT or 500.</p>
+      <p class="table-note">* Design capacity uses Austroads/TMR practical per-lane capacity adjusted for terrain, geometry and HV/RT mix, with a minimum of 500 vph/lane.</p>
     </div>
 <details class="card" id="hourlyEstimateCard" open>
   <summary style="cursor: pointer; font-size: 1.2em; font-weight: 700; color: #1f5e63; margin-bottom: 10px;">HOURLY ESTIMATE</summary>
@@ -10996,7 +10996,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (t.includes('vadt') || t.includes('aadt') || t.includes('predicted')) return 'Projected volume = base volume * (1 + growth rate)^years';
     if (t.includes('time')) return 'Time = distance / speed';
     if (t.includes('distance') || t.includes('length')) return 'Distance-based result = speed * time or queue vehicles * spacing';
-    if (t.includes('capacity') || t.includes('dv')) return 'Capacity (DV) = max(500, factor * volume / lanes)';
+    if (t.includes('capacity') || t.includes('dv')) return 'Capacity (DV) = base class capacity × terrain factor × lane-width factor × lateral-clearance factor × HV/RT factor, floor 500 vph/lane';
     if (t.includes('peak')) return 'Peak value = max(values across AM, OP, PM, EV or hourly profile)';
     if (t.includes('hour') || t.includes('profile')) return 'Hourly value = DB measured profile (if ≥6 non-zero hours stored) scaled to daily total; otherwise Austroads diurnal template (Brisbane urban arterial: peak 8–9am / 5–6pm)';
     if (t.includes('ratio') || t.includes('%') || t.includes('percent')) return 'Ratio (%) = part / total * 100';
@@ -11044,7 +11044,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       pedcrossingdelay: 'Crossing delay = controlled crossings*delay + uncontrolled crossings*delay',
       pedaddeddelaysec: 'Added delay (s) = detour walk + crossing delay - existing walk',
       pedaddeddelaymin: 'Added delay (min) = added delay (s) / 60',
-      kpidv: 'DV = max(DV_D1, DV_D2)',
+      kpidv: 'DV = max(DV_D1, DV_D2), using Austroads adjusted per-lane capacity',
       kpid1peakqueue: 'D1 Peak Queue (2m) = max(D1 q2 across AM/OP/PM/EV)',
       kpid2peakqueue: 'D2 Peak Queue (2m) = max(D2 q2 across AM/OP/PM/EV)',
       kpislrfpeak: 'SLRF Peak = max((D1 + D2)/DV) when both directions are single-lane',
@@ -15246,13 +15246,73 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return null;
   }
 
+  const AUSTROADS_TERRAIN_CAPACITY_FACTORS = {
+    flat: 1.0,
+    rolling: 0.94,
+    mountainous: 0.88
+  };
+
+  function getAustroadsLaneWidthFactor() {
+    const laneWidth = Number(document.getElementById('laneWidth')?.value);
+    if (!Number.isFinite(laneWidth) || laneWidth <= 0) return 1.0;
+    if (laneWidth >= 3.5) return 1.0;
+    if (laneWidth >= 3.3) return 0.97;
+    if (laneWidth >= 3.1) return 0.93;
+    return 0.88;
+  }
+
+  function getAustroadsLateralClearanceFactor() {
+    const clearance = Number(document.getElementById('lateralOffset')?.value);
+    if (!Number.isFinite(clearance) || clearance < 0) return 1.0;
+    if (clearance >= 1.5) return 1.0;
+    if (clearance >= 1.0) return 0.97;
+    if (clearance >= 0.5) return 0.94;
+    return 0.90;
+  }
+
+  function getAustroadsCapacityProfile(direction, roadCapClass) {
+    const baseCapacity = TMRCalculator.calculateCapacity(roadCapClass);
+    const terrain = String(txt('macroTerrainType') || 'flat').toLowerCase();
+    const terrainFactor = AUSTROADS_TERRAIN_CAPACITY_FACTORS[terrain] || 1.0;
+    const laneWidthFactor = getAustroadsLaneWidthFactor();
+    const lateralFactor = getAustroadsLateralClearanceFactor();
+
+    const eqHv = terrain === 'mountainous' ? 4.0 : (terrain === 'rolling' ? 3.0 : 2.0);
+    const eqRt = terrain === 'mountainous' ? 7.0 : (terrain === 'rolling' ? 5.0 : 3.0);
+
+    const hvPct = Math.max(0, Math.min(1, getDirectionalPercentage(direction, 'HV')));
+    const rtPct = txt('RTR').toUpperCase() === 'YES'
+      ? Math.max(0, Math.min(1, getDirectionalPercentage(direction, 'RT')))
+      : 0;
+
+    const hvFactorDenominator = 1 + (hvPct * (eqHv - 1)) + (rtPct * (eqRt - 1));
+    const hvFactor = hvFactorDenominator > 0 ? (1 / hvFactorDenominator) : 1.0;
+
+    const adjustedCapacity = Math.max(
+      500,
+      Math.round(baseCapacity * terrainFactor * laneWidthFactor * lateralFactor * hvFactor)
+    );
+
+    return {
+      baseCapacity,
+      terrain,
+      terrainFactor,
+      laneWidthFactor,
+      lateralFactor,
+      hvPct,
+      rtPct,
+      hvFactor,
+      adjustedCapacity
+    };
+  }
+
   function calculateDV(direction, directionalDaily, site, totalProjectedAadt) {
-    // Returns physical per-lane capacity (vph/lane) for the V/C ratio denominator.
-    // Capacity is defined by road infrastructure classification — NOT by traffic demand.
-    // The road class is selected by the user in the "Road Classification (Capacity)" dropdown.
+    // Austroads/TMR practical per-lane capacity for the V/C denominator.
+    // Base lane capacity is adjusted for terrain, lane width, lateral clearance,
+    // and the adopted heavy-vehicle / road-train mix, with a floor of 500 vph/lane.
     const roadCapClassEl = document.getElementById('roadCapacityClass');
     const roadCapClass = roadCapClassEl ? (roadCapClassEl.value || 'arterial') : 'arterial';
-    return TMRCalculator.calculateCapacity(roadCapClass);
+    return getAustroadsCapacityProfile(direction, roadCapClass).adjustedCapacity;
   }
 
   // --- SOURCE-AWARE PEAK/OFF-PEAK CALCULATION ENGINE ---
@@ -18909,20 +18969,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     let dvFormulaStr = '';
     let peakVolStr = '';
 
+    dvFormulaStr = 'Austroads practical per-lane capacity = Base class capacity × terrain factor × lane-width factor × lateral-clearance factor × HV/RT factor (minimum 500 vph/lane)';
+
     if (isTmrStyle) {
-      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Measured hourly profile scaled to target daily volume';
     } else if (sourceText === 'IPSWICH') {
-      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Peak = 12.78% of Daily, Off-Peak = 45% of Peak';
     } else if (sourceText === 'GOLD COAST') {
-      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Peak = 15% * 85% of Daily, Off-Peak = 48.55% of Peak';
     } else if (sourceText === 'BRISBANE' || sourceText === 'LOGAN' || sourceText === 'TOOWOOMBA' || sourceText === 'NSW') {
-      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Peak = 12% * 85% of Daily, Off-Peak = 45% of Peak';
     } else {
-      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Peak = 60% * 85% of Daily, OP/EV = 15% * 85% of Daily';
     }
 
@@ -18932,7 +18989,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const traceRows = [
       ['Data Source Pattern', displayedSource],
-      ['Road Classification (Cap.)', txt('roadCapacityClass') + ` → ${dv1} vph/lane`],
+      ['Road Classification (Cap.)', txt('roadCapacityClass') + ` → D1 ${dv1} vph/lane, D2 ${dv2} vph/lane`],
       ['DV Formula Applied', dvFormulaStr],
       ['Peak Distribution Logic', peakVolStr],
       ['DTCA Path', dtca === 'YES' ? 'Directional VADT (D1_VADT / D2_VADT)' : '50/50 split from VADT'],
@@ -19485,7 +19542,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
 
     const selectedLanes = peakDirection === 'D2' ? Math.max(1, Number(d2Lanes) || 1) : Math.max(1, Number(d1Lanes) || 1);
-    const satFlowVph = selectedLanes * 1800;
+    const roadCapClassEl = document.getElementById('roadCapacityClass');
+    const roadCapClass = roadCapClassEl ? (roadCapClassEl.value || 'arterial') : 'arterial';
+    const selectedDirection = peakDirection === 'D2' ? 2 : 1;
+    const perLaneCapacity = getAustroadsCapacityProfile(selectedDirection, roadCapClass).adjustedCapacity;
+    const satFlowVph = Math.round(selectedLanes * perLaneCapacity);
 
     const hvPct = peakDirection === 'D2' ? (Number(d2HvPct) || 0) : (Number(d1HvPct) || 0);
     const spacing = resolveQueueVehicleSpacing(hvPct, isRtrActive);
