@@ -13263,6 +13263,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         d2VcrThead.innerHTML = d2ThHtml;
       }
       for (let hour = 0; hour < 24; hour += 1) {
+        const d1Hour = d1HourlyProfile[hour] || { queue: { q2: 0, q5: 0, q10: 0, q15: 0 }, total: 0, perLane: 0 };
+        const d2Hour = d2HourlyProfile[hour] || { queue: { q2: 0, q5: 0, q10: 0, q15: 0 }, total: 0, perLane: 0 };
         const d1PerLane = (d1HourlyProfile[hour] && Number(d1HourlyProfile[hour].perLane)) || 0;
         const d2PerLane = (d2HourlyProfile[hour] && Number(d2HourlyProfile[hour].perLane)) || 0;
 
