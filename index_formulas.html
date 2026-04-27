@@ -17204,28 +17204,41 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         cell.style.border = '1px solid #b0bec5';
         cell.style.fontSize = '11px';
         cell.style.verticalAlign = 'top';
+        cell.style.backgroundColor = '#ffffff';
+        cell.style.color = '#111827';
       });
       clone.querySelectorAll('thead').forEach((head) => {
         head.style.display = 'table-header-group';
         head.style.visibility = 'visible';
+        head.style.pageBreakInside = 'avoid';
       });
       clone.querySelectorAll('thead th').forEach((cell) => {
         cell.style.background = '#eceff1';
+        cell.style.backgroundColor = '#eceff1';
         cell.style.color = '#0f172a';
         cell.style.fontWeight = '800';
         cell.style.display = 'table-cell';
         cell.style.visibility = 'visible';
         cell.style.textAlign = 'center';
         cell.style.borderBottom = '2px solid #64748b';
+        cell.style.borderTop = '2px solid #64748b';
+        cell.style.opacity = '1';
       });
       clone.querySelectorAll('tbody th, .rowhead').forEach((cell) => {
         cell.style.fontWeight = '800';
         cell.style.color = '#111827';
+        cell.style.backgroundColor = '#f8fafc';
+        cell.style.fontWeight = '700';
+      });
+      clone.querySelectorAll('tbody td').forEach((cell) => {
+        cell.style.backgroundColor = '#ffffff';
       });
       clone.style.width = '100%';
       clone.style.borderCollapse = 'collapse';
       clone.style.tableLayout = 'auto';
       clone.style.marginBottom = '10px';
+      clone.style.pageBreakInside = 'avoid';
+      clone.style.backgroundColor = '#ffffff';
       return clone.outerHTML;
     };
 
@@ -17591,11 +17604,44 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
         const html2canvas = await ensureHtml2CanvasLoaded();
         const captureEl = previewHost.firstElementChild;
+        
+        // Ensure tables are fully visible and headers have proper styling before capture
+        if (captureEl) {
+          captureEl.querySelectorAll('table').forEach((table) => {
+            table.style.breakInside = 'avoid';
+            table.querySelectorAll('thead').forEach((thead) => {
+              thead.style.display = 'table-header-group';
+              thead.style.visibility = 'visible';
+              thead.style.pageBreakInside = 'avoid';
+            });
+            table.querySelectorAll('thead th').forEach((th) => {
+              th.style.display = 'table-cell';
+              th.style.visibility = 'visible';
+              th.style.opacity = '1';
+            });
+          });
+        }
+        
         const contentCanvas = await html2canvas(captureEl, {
           backgroundColor: '#ffffff',
-          scale: 2,
+          scale: 3,
           useCORS: true,
-          logging: false
+          logging: false,
+          allowTaint: true,
+          onclone: (clonedDocument) => {
+            // Additional styling pass on the cloned document
+            clonedDocument.querySelectorAll('thead th').forEach((th) => {
+              th.style.display = 'table-cell';
+              th.style.visibility = 'visible';
+              th.style.opacity = '1';
+              th.style.fontWeight = '800';
+              th.style.backgroundColor = '#eceff1';
+              th.style.color = '#0f172a';
+            });
+            clonedDocument.querySelectorAll('table').forEach((table) => {
+              table.style.backgroundColor = 'transparent';
+            });
+          }
         });
 
         // Export onto an A4 landscape canvas so the saved image follows page layout conventions.
