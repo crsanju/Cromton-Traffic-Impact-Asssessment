@@ -17225,22 +17225,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         head.style.pageBreakInside = 'avoid';
       });
       clone.querySelectorAll('thead th').forEach((cell) => {
-        cell.style.background = '#3f4b5c';
-        cell.style.backgroundColor = '#3f4b5c';
-        cell.style.color = '#ffffff';
+        cell.style.background = '#ffffff';
+        cell.style.backgroundColor = '#ffffff';
+        cell.style.color = '#000000';
         cell.style.fontWeight = '900';
         cell.style.display = 'table-cell';
         cell.style.visibility = 'visible';
         cell.style.textAlign = 'center';
-        cell.style.borderBottom = '3px solid #1e293b';
-        cell.style.borderTop = '3px solid #1e293b';
+        cell.style.borderBottom = '2px solid #000000';
+        cell.style.borderTop = '1.5px solid #64748b';
         cell.style.opacity = '1';
         cell.style.fontSize = '13px';
       });
       clone.querySelectorAll('tbody th, .rowhead').forEach((cell) => {
         cell.style.fontWeight = '900';
-        cell.style.color = '#ffffff';
-        cell.style.backgroundColor = '#1e293b';
+        cell.style.color = '#000000';
+        cell.style.backgroundColor = '#ffffff';
         cell.style.fontSize = '12px';
         cell.style.textAlign = 'center';
       });
@@ -17329,14 +17329,14 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:10px; margin-bottom:10px;">
     <table style="width:100%; border-collapse:collapse; table-layout:fixed; background:#ffffff;">
       <tr>
-        <th colspan="5" style="text-align:left; background:#1e293b; color:#ffffff; border:1.5px solid #0f172a; padding:10px 12px; font-size:13px; font-weight:900; letter-spacing:0.01em;">Count Location: ${escapeHtml(title)} - Site ${escapeHtml(siteId)}</th>
+        <th colspan="5" style="text-align:left; background:#ffffff; color:#000000; border:1.5px solid #64748b; border-bottom:2px solid #000000; padding:10px 12px; font-size:13px; font-weight:900; letter-spacing:0.01em;">Count Location: ${escapeHtml(title)} - Site ${escapeHtml(siteId)}</th>
       </tr>
       <tr>
-        <th style="border:1.5px solid #334155; padding:8px 10px; font-size:12px; background:#334155; color:#ffffff; font-weight:900; text-align:center;">Period</th>
-        <th style="border:1.5px solid #334155; padding:8px 10px; font-size:12px; background:#334155; color:#ffffff; font-weight:900; text-align:center;">From</th>
-        <th style="border:1.5px solid #334155; padding:8px 10px; font-size:12px; background:#334155; color:#ffffff; font-weight:900; text-align:center;">To</th>
-        <th style="border:1.5px solid #334155; padding:8px 10px; font-size:12px; background:#334155; color:#ffffff; font-weight:900; text-align:center;">Hrs</th>
-        <th style="border:1.5px solid #334155; padding:8px 10px; font-size:12px; background:#334155; color:#ffffff; font-weight:900; text-align:center;">Notes</th>
+        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#ffffff; color:#000000; font-weight:900; text-align:center;">Period</th>
+        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#ffffff; color:#000000; font-weight:900; text-align:center;">From</th>
+        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#ffffff; color:#000000; font-weight:900; text-align:center;">To</th>
+        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#ffffff; color:#000000; font-weight:900; text-align:center;">Hrs</th>
+        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#ffffff; color:#000000; font-weight:900; text-align:center;">Notes</th>
       </tr>
       <tr><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; text-align:center; background:#ffffff;">AM</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">07:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">09:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">2</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">Morning peak</td></tr>
       <tr><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; text-align:center; background:#ffffff;">OP</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">09:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">16:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">7</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">Off-peak day</td></tr>
@@ -17345,16 +17345,16 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     </table>
 
     <table style="width:100%; border-collapse:collapse; table-layout:fixed; background:#ffffff;">
-      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Year of Traffic Count</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(baseYear)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Current Year</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(targetYear)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Number of Years</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(yearDelta)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Growth Rate (% p.a.)</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(growthRate)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">HV %</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(hvPercent)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Lanes Direction 1</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(d1Lanes)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Lanes Direction 2</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(d2Lanes)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Worst VCR / LOS</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(worstVcrText)} (${escapeHtml(worstLosText)})</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Peak Queue</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(queuePeakText)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Work VCR Assumption</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(laneClosureMode)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; border-bottom:2px solid #000000; padding:8px 10px; font-weight:900;">Year of Traffic Count</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(baseYear)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Current Year</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(targetYear)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Number of Years</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(yearDelta)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Growth Rate (% p.a.)</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(growthRate)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">HV %</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(hvPercent)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Lanes Direction 1</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(d1Lanes)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Lanes Direction 2</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(d2Lanes)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Worst VCR / LOS</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(worstVcrText)} (${escapeHtml(worstLosText)})</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Peak Queue</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(queuePeakText)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Work VCR Assumption</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(laneClosureMode)}</td></tr>
     </table>
   </div>
 
@@ -17720,15 +17720,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
               th.style.visibility = 'visible';
               th.style.opacity = '1';
               th.style.fontWeight = '900';
-              th.style.backgroundColor = '#334155';
-              th.style.color = '#ffffff';
+              th.style.backgroundColor = '#ffffff';
+              th.style.color = '#000000';
               th.style.fontSize = '13px';
-              th.style.borderBottom = '3px solid #1e293b';
+              th.style.borderBottom = '2px solid #000000';
             });
             clonedDocument.querySelectorAll('tbody th, .rowhead').forEach((th) => {
               th.style.fontWeight = '900';
-              th.style.backgroundColor = '#1e293b';
-              th.style.color = '#ffffff';
+              th.style.backgroundColor = '#ffffff';
+              th.style.color = '#000000';
               th.style.fontSize = '12px';
             });
             clonedDocument.querySelectorAll('tbody td').forEach((td) => {
