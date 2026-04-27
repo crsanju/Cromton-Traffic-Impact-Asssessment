@@ -5153,7 +5153,7 @@
         Calculates the safe stopping distance required for approaching traffic based on speed, reaction time, and road gradient.
       </p>
       <div style="margin: 0 0 12px 0; padding: 8px 10px; border-radius: 6px; background: #f3e5f5; border: 1px solid #d1c4e9; color: #4a148c; font-size: 0.8em; line-height: 1.45;">
-        <strong>Reference note:</strong> Backend longitudinal deceleration friction factors (<em>d</em>) used in ASD braking-distance calculations are sourced from Austroads AGRD Part 3, Table 5.2.
+        <strong>Reference note:</strong> Longitudinal deceleration friction factors (<em>f</em>) used in ASD braking-distance calculations are taken from Austroads AGRD Part 3, Table 5.2, General Case <em>d</em> (sealed road, passenger vehicle).
       </div>
 
       <div class="grid" style="margin-bottom: 15px;">
@@ -5174,8 +5174,8 @@
           <label style="color: #4527a0;" class="tooltip" data-tip="Time taken for the driver to perceive the work zone and hit the brakes.">Reaction Time (sec)</label>
           <select id="asdRt" onchange="calculateASD()" style="border: 1px solid #b39ddb; background: #f9f6fd;">
             <option value="1.5">1.5s (Alert / Urban)</option>
-            <option value="2.0" selected>2.0s (Normal / General)</option>
-            <option value="2.5">2.5s (Unexpected / Rural)</option>
+            <option value="2.0">2.0s (Normal / General)</option>
+            <option value="2.5" selected>2.5s (Austroads AGRD §5.4 / Rural — default)</option>
           </select>
         </div>
         <div style="background: #ffffff; border: 1px solid #b39ddb; border-radius: 6px; padding: 10px;">
@@ -15119,6 +15119,20 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const m = Math.pow(10,digits);
     return Math.ceil(((Number(n)||0) * m) - 1e-12) / m;
   }
+  // Standard (half-up) rounding — use this for any value that drives LOS classification
+  // to avoid numberRoundUp's ceiling behaviour pushing a real value across a band boundary.
+  function fmtRound(n, digits=0){
+    const m = Math.pow(10, digits);
+    return Math.round((Number(n) || 0) * m) / m;
+  }
+
+  // Single source of truth — Austroads AGTM Part 3 queue spacing (m, front-to-front, including reaction gap)
+  const QUEUE_SPACING_M = Object.freeze({
+    LV: 7.0,   // passenger car incl. ~2 m gap
+    HV: 12.0,  // rigid HV; use 18 m for articulated if known
+    RT: 36.5   // AB-Triple road train per NHVR; use 53.5 for Type-2 RT
+  });
+
   function applyYesNoColor(selectId){
     const el = document.getElementById(selectId);
     if (!el) return;
@@ -15593,10 +15607,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         return { lv, hv, rt, total: lv + hv + rt };
       };
 
-      const amParts = calcParts(amBase);
-      const opParts = calcParts(opBase);
-      const pmParts = calcParts(pmBase);
-      const evParts = calcParts(evBase);
+      amParts = calcParts(amBase);
+      opParts = calcParts(opBase);
+      pmParts = calcParts(pmBase);
+      evParts = calcParts(evBase);
 
       amVol = amParts.total; amLv = amParts.lv; amHv = amParts.hv; amRt = amParts.rt;
       opVol = opParts.total; opLv = opParts.lv; opHv = opParts.hv; opRt = opParts.rt;
@@ -15614,10 +15628,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const rt5 = numberRoundUp(rtPL * 5 / 60, 0);
         const per5 = lv5 + hv5 + rt5;
 
-        let q2 = lv5*2.4 + hv5*8 + rt5*25.2;
-        let q5 = lv5*6 + hv5*20 + rt5*63;
-        let q10 = lv5*12 + hv5*40 + rt5*126;
-        let q15 = lv5*18 + hv5*60 + rt5*189;
+        // Queue length (m) = vehicles-per-period × spacing; scale by (mins/5) from the 5-min base
+        const baseQ5 = lv5 * QUEUE_SPACING_M.LV + hv5 * QUEUE_SPACING_M.HV + rt5 * QUEUE_SPACING_M.RT;
+        const q2  = baseQ5 * (2 / 5);
+        const q5  = baseQ5;
+        const q10 = baseQ5 * 2;
+        const q15 = baseQ5 * 3;
 
         const factor = isRtr ? 1.5 : 1;
 
@@ -15684,10 +15700,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const hv5 = numberRoundUp(hvPL * 5 / 60, 0);
       const rt5 = numberRoundUp(rtPL * 5 / 60, 0);
 
-      let q2 = lv5*2.4 + hv5*8 + rt5*25.2;
-      let q5 = lv5*6 + hv5*20 + rt5*63;
-      let q10 = lv5*12 + hv5*40 + rt5*126;
-      let q15 = lv5*18 + hv5*60 + rt5*189;
+      // Queue length (m) = vehicles-per-period × spacing; scale by (mins/5) from the 5-min base
+      const baseQ5 = lv5 * QUEUE_SPACING_M.LV + hv5 * QUEUE_SPACING_M.HV + rt5 * QUEUE_SPACING_M.RT;
+      const q2  = baseQ5 * (2 / 5);
+      const q5  = baseQ5;
+      const q10 = baseQ5 * 2;
+      const q15 = baseQ5 * 3;
 
       const factor = isRtr ? 1.5 : 1;
 
@@ -20307,12 +20325,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
    * @param {number} pctRt - Percentage of recreational trailers (decimal: 0-1)
    * @param {number} durationSeconds - Red time PER CYCLE in seconds (NOT hourly total)
    * @param {boolean} isRtrActive - Whether RTR management is active (adds 25% spacing)
+   * @param {number} [cycleSecondsOverride] - Actual cycle time in seconds. If omitted, defaults to
+   *   2 × red time (50/50 split assumption). Pass the real cycle length to get accurate
+   *   over-saturation detection and residual-growth estimates.
    * @returns {object} { queueLength: number, w12: number, w23: number, oversaturated: boolean }
    */
-  function calculateShockwaveQueue(demandVph, capacityVph, approachSpeedKmh, pctLv, pctHv, pctRt, durationSeconds, isRtrActive) {
-    const lvSpace = 8;
-    const hvSpace = 24;
-    const rtSpace = 69;
+  function calculateShockwaveQueue(demandVph, capacityVph, approachSpeedKmh, pctLv, pctHv, pctRt, durationSeconds, isRtrActive, cycleSecondsOverride) {
+    const lvSpace = QUEUE_SPACING_M.LV;
+    const hvSpace = QUEUE_SPACING_M.HV;
+    const rtSpace = QUEUE_SPACING_M.RT;
 
     // Base PCE factors aligned to DetourCapacityModel grade index 0 (<2% grade).
     const pceLv = 1.0;
@@ -20381,7 +20402,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const tQ = Math.abs(denomTq) < 1e-12 ? Number.POSITIVE_INFINITY : ((wBr * redTimeSec) / denomTq);
     const xMax = Number.isFinite(tQ) ? Math.max(0, Math.abs(wBf) * tQ) : Number.POSITIVE_INFINITY;
 
-    const cycleSec = Math.max(1, redTimeSec * 2);
+    // Use caller-supplied cycle length when available; fall back to 2 × red (50/50 split)
+    // only when the actual cycle is unknown (e.g. hourly diurnal overview).
+    const cycleSec = Math.max(1, Number(cycleSecondsOverride) || (redTimeSec * 2));
     const vCRatio = satFlowVph > 0 ? (qInDemandPl / satFlowVph) : Number.POSITIVE_INFINITY;
     const oversaturated = vCRatio > 1 || tQ > cycleSec;
     const residualGrowthPerCycleM = oversaturated && Number.isFinite(tQ)
@@ -20511,7 +20534,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   function resolveQueueVehicleSpacing(hvPct, isRtrActive) {
     const hv = Math.max(0, Math.min(1, Number(hvPct) || 0));
-    const spacing = (7.0 * (1 - hv)) + (12.0 * hv);
+    const spacing = (QUEUE_SPACING_M.LV * (1 - hv)) + (QUEUE_SPACING_M.HV * hv);
     return numberRoundUp(spacing, 2);
   }
 
@@ -20588,7 +20611,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     resultDisplay.style.color = (typeof result === 'string' && result.includes('Warning')) ? 'red' : '#333';
     const vcr = satFlowVph > 0 ? (peakArrivalVph / satFlowVph) : 0;
     const q95Factor = getQueue95thPercentileFactor(vcr);
-    setFormulaBelow('queue-result', `Q95 = [((v * R / 3600) / (1 - v/s)) * spacing] * F95, with v=${Math.round(peakArrivalVph)}, R=${Math.round(redTime)}s, s=${Math.round(satFlowVph)} vph, spacing=${spacing.toFixed(2)} m, v/c=${numberRoundUp(vcr, 3)}, F95=${numberRoundUp(q95Factor, 3)}`);
+    setFormulaBelow('queue-result', `Q95 = [((v * R / 3600) / (1 - v/s)) * spacing] * F95, with v=${Math.round(peakArrivalVph)}, R=${Math.round(redTime)}s, s=${Math.round(satFlowVph)} vph, spacing=${spacing.toFixed(2)} m, v/c=${fmtRound(vcr, 3)}, F95=${fmtRound(q95Factor, 3)}`);
   }
 
   // ===== STOP/GO SHUTTLE SIMULATOR LOGIC =====
@@ -20662,17 +20685,27 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const red1 = g2 + totalClearance;
     const red2 = g1 + totalClearance;
     
-    // Vehicles arriving during the red phase (Arrival rate per second * Red seconds)
-    const vehQ1 = (v1 / 3600) * red1;
-    const vehQ2 = (v2 / 3600) * red2;
+    // Shockwave amplification: max back-of-queue = arrivals-during-red / (1 − q/s)
+    // q = per-lane arrival flow (vph), s = per-lane saturation flow (vph)
+    // At low saturation this ≈ 1 (no change); at high saturation it can be 2-3× larger.
+    const sat1 = dv1 > 0 ? dv1 : 1800;
+    const sat2 = dv2 > 0 ? dv2 : 1800;
+    const perLaneArrival1 = d1Metrics.lanes > 0 ? (v1 / d1Metrics.lanes) : v1;
+    const perLaneArrival2 = d2Metrics.lanes > 0 ? (v2 / d2Metrics.lanes) : v2;
+    const ratio1 = Math.min(0.99, perLaneArrival1 / sat1);
+    const ratio2 = Math.min(0.99, perLaneArrival2 / sat2);
+
+    // Max back-of-queue per shockwave theory (vehicles) — replaces simple arrival×red
+    const vehQ1 = ((v1 / 3600) * red1) / (1 - ratio1);
+    const vehQ2 = ((v2 / 3600) * red2) / (1 - ratio2);
     
     // Calculate blended vehicle length based on your inputs
     const hv1 = getHVPercent(1); const rt1 = getRTPercent(1); const lv1 = Math.max(0, 1 - hv1 - rt1);
     const hv2 = getHVPercent(2); const rt2 = getRTPercent(2); const lv2 = Math.max(0, 1 - hv2 - rt2);
     
-    // Base queue: Update the spacing to include safety gaps (8m, 24m, 69m)
-    const space1 = (lv1 * 8) + (hv1 * 24) + (rt1 * 69);
-    const space2 = (lv2 * 8) + (hv2 * 24) + (rt2 * 69);
+    // Base queue: blended front-to-front spacing per Austroads AGTM Part 3
+    const space1 = (lv1 * QUEUE_SPACING_M.LV) + (hv1 * QUEUE_SPACING_M.HV) + (rt1 * QUEUE_SPACING_M.RT);
+    const space2 = (lv2 * QUEUE_SPACING_M.LV) + (hv2 * QUEUE_SPACING_M.HV) + (rt2 * QUEUE_SPACING_M.RT);
     
     // Factor in Road Train Route multiplier if active
     const rtrFactor = txt('RTR').toUpperCase() === 'YES' ? 1.5 : 1;
@@ -20732,8 +20765,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const d1CapacityPerLane = d1Metrics.lanes > 0 ? (d1WorkCap / d1Metrics.lanes) : d1WorkCap;
     const d2CapacityPerLane = d2Metrics.lanes > 0 ? (d2WorkCap / d2Metrics.lanes) : d2WorkCap;
 
-    const q1_swtResult = calculateShockwaveQueue(d1PerLane, d1CapacityPerLane, approachSpeed, lv1, hv1, rt1, red1, isRtrActive);
-    const q2_swtResult = calculateShockwaveQueue(d2PerLane, d2CapacityPerLane, approachSpeed, lv2, hv2, rt2, red2, isRtrActive);
+    const q1_swtResult = calculateShockwaveQueue(d1PerLane, d1CapacityPerLane, approachSpeed, lv1, hv1, rt1, red1, isRtrActive, cycleTime);
+    const q2_swtResult = calculateShockwaveQueue(d2PerLane, d2CapacityPerLane, approachSpeed, lv2, hv2, rt2, red2, isRtrActive, cycleTime);
     const q1_swt = q1_swtResult.queueLength;
     const q2_swt = q2_swtResult.queueLength;
 
@@ -24331,32 +24364,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const laneWidthEl = document.getElementById('laneWidth') || document.getElementById('agttmWidth');
     const width = Number(laneWidthEl && laneWidthEl.value) || 3.5;
 
-    let D = 15;
-    let baseMergeTaper = 15;
+    let D = 30;
+    let baseMergeTaper = 30;
 
-    // AGTTM Part 3 Table values for 3.5m lane width
-    if (speed <= 50) { 
-      D = 15; 
-      baseMergeTaper = 15; 
-    } else if (speed === 60) { 
-      D = 15; 
-      baseMergeTaper = 30; 
-    } else if (speed === 70) { 
-      D = 115; 
-      baseMergeTaper = 70; 
-    } else if (speed === 80) { 
-      D = 115; 
-      baseMergeTaper = 80; 
-    } else if (speed === 90) { 
-      D = 115; 
-      baseMergeTaper = 90; 
-    } else if (speed === 100) { 
-      D = 115; 
-      baseMergeTaper = 100; 
-    } else if (speed >= 110) { 
-      D = 115; 
-      baseMergeTaper = 110; 
-    }
+    // AGTTM Part 3 Table 3.1 — longitudinal buffer (D) and merge taper (T_base) for 3.5 m lane width
+    if      (speed <= 50) { D = 30;  baseMergeTaper = 30;  }
+    else if (speed === 60){ D = 40;  baseMergeTaper = 50;  }
+    else if (speed === 70){ D = 55;  baseMergeTaper = 65;  }
+    else if (speed === 80){ D = 70;  baseMergeTaper = 80;  }
+    else if (speed === 90){ D = 90;  baseMergeTaper = 100; }
+    else if (speed === 100){ D = 110; baseMergeTaper = 120; }
+    else                  { D = 130; baseMergeTaper = 140; } // ≥110 km/h
 
     // Scale taper proportionally if width is different from standard 3.5m
     const adjustedTaper = Math.max(15, Math.round(baseMergeTaper * (width / 3.5)));
@@ -24370,7 +24388,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     document.getElementById('agttmT').textContent = `${adjustedTaper}m`;
     document.getElementById('agttmShift').textContent = `${shiftTaper}m`;
     document.getElementById('agttmShoulder').textContent = `${shoulderTaper}m`;
-    setFormulaBelow('agttmD', 'Dimension D from AGTTM speed table');
+    setFormulaBelow('agttmD', `Dimension D = ${D}m — AGTTM Part 3 Table 3.1 longitudinal buffer at ${speed} km/h`);
     setFormulaBelow('agttmT', `Merge taper T = max(15, round(T_base * laneWidth/3.5)) = ${adjustedTaper}m`);
     setFormulaBelow('agttmShift', `Shift taper = max(15, round(T/2)) = ${shiftTaper}m`);
     setFormulaBelow('agttmShoulder', `Shoulder taper = max(15, round(T/3)) = ${shoulderTaper}m`);
@@ -24381,17 +24399,20 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   // ===== APPROACH SIGHT DISTANCE (ASD) CALCULATOR LOGIC =====
   function calculateASD() {
     const speed = Number(document.getElementById('asdSpeed').value) || 60;
-    const rt = Number(document.getElementById('asdRt').value) || 2.0;
+    const rt = Number(document.getElementById('asdRt').value) || 2.5; // Austroads AGRD Part 3 §5.4 — 2.5 s (non-conservative default was 2.0 s)
     const grade = Number(document.getElementById('asdGrade').value) || 0;
 
-    // Austroads approximate coefficient of deceleration/friction (f) by speed
+    // Austroads AGRD Part 3, Table 5.2 (General Case d) — coefficient of deceleration/friction (f) by speed
     let f = 0.30;
-    if (speed <= 40) f = 0.35;
-    else if (speed === 50) f = 0.33;
-    else if (speed === 60) f = 0.31;
-    else if (speed === 70) f = 0.30;
-    else if (speed === 80) f = 0.29;
-    else f = 0.28; // 90km/h+
+    if      (speed <= 40) f = 0.46;
+    else if (speed === 50) f = 0.43;
+    else if (speed === 60) f = 0.40;
+    else if (speed === 70) f = 0.36;
+    else if (speed === 80) f = 0.34;
+    else if (speed === 90) f = 0.32;
+    else if (speed === 100) f = 0.31;
+    else if (speed === 110) f = 0.30;
+    else f = 0.29; // 120 km/h
 
     // 1. Reaction Distance: d = (v * t) / 3.6
     const reactionDist = (speed * rt) / 3.6;
@@ -25266,8 +25287,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
                       (Math.pow(rho * lanes, lanes) / factorial(lanes) * (1 / (1 - rho)));
     const pw = erlangNum / erlangDen; // Probability of waiting
     
-    // Average queue length (vehicles waiting)
-    const avgQueue = (pw * rho) / (1 - rho) * lanes;
+    // Average queue length (vehicles waiting) — M/M/c steady-state: L_q = C(c,a)·ρ/(1−ρ)
+    // Do NOT multiply by lanes; C(c,a) already accounts for all c servers.
+    const avgQueue = (pw * rho) / (1 - rho);
     
     // 95th percentile queue — exact M/M/c geometric tail inversion.
     // In M/M/c, the steady-state queue CDF is P(Nq ≤ k) = 1 − Pw·ρ^k (Gross & Harris §3.4).
@@ -25291,12 +25313,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         : 1;
     }
     
-    // Level of Service based on utilization
+    // Level of Service — Austroads AGTM Part 3 thresholds (consistent with losLabel / evaluateSaturationAndLOS)
     let los = 'A';
-    if (rho >= 0.85) los = 'E';
-    else if (rho >= 0.70) los = 'D';
-    else if (rho >= 0.50) los = 'C';
-    else if (rho >= 0.30) los = 'B';
+    if (rho > 1.00)      los = 'F';
+    else if (rho > 0.90) los = 'E';
+    else if (rho > 0.80) los = 'D';
+    else if (rho > 0.70) los = 'C';
+    else if (rho > 0.60) los = 'B';
     
     return {
       avgQueue: Math.round(avgQueue * 10) / 10,
@@ -28144,6 +28167,19 @@ const LoganTrafficEngine = (function() {
     MINIMUM_CAPACITY_FLOOR:  200     // absolute minimum directional floor (PCE/hr)
   };
 
+  // Per-class K factors (keyed to ROAD_CAPACITIES keys).
+  // Rural roads are not in ROAD_CAPACITIES; resolveInfrastructureClass falls back
+  // to 'Two Lane Urban', so the rural entry here is informational only — set it
+  // explicitly if a rural capacity key is added later.
+  const PEAK_K_BY_CLASS = {
+    'Motorway / Freeway':       0.125,  // dual carriageway / freeway
+    'Urban Arterial (Divided)': 0.125,  // divided arterial
+    'Two Lane Urban':           0.10,   // undivided urban arterial / default
+    'Collector Street':         0.10,
+    'Local Street':             0.10,
+    'Rural Single Carriageway': 0.0833  // reserved for future rural capacity key
+  };
+
   // ─── ROAD TYPE RESOLUTION ─────────────────────────────────────────────────
   function resolveInfrastructureClass(rawRoadType) {
     const raw = String(rawRoadType || '').trim();
@@ -28233,9 +28269,14 @@ const LoganTrafficEngine = (function() {
   // ─── PEAK HOUR VOLUME ─────────────────────────────────────────────────────
   // Formula: Peak Hour Volume = AADT × K
   // Source: TMR CBA Manual Table 3 / Austroads AP-R264/05.
-  // K = 0.10 for urban single carriageway (default).
-  function extractPeakAndClassify(projectedAADT, commercialPercentage) {
-    const rawPeakThroughput = (Number(projectedAADT) || 0) * ENGINEERING_CONSTANTS.PEAK_K_FACTOR;
+  // K is resolved from PEAK_K_BY_CLASS using the road type; falls back to
+  // ENGINEERING_CONSTANTS.PEAK_K_FACTOR (0.10) when the class is not listed.
+  function extractPeakAndClassify(projectedAADT, commercialPercentage, roadType) {
+    const cls = resolveInfrastructureClass(roadType).capacityKey;
+    const k = PEAK_K_BY_CLASS[cls] !== undefined
+      ? PEAK_K_BY_CLASS[cls]
+      : ENGINEERING_CONSTANTS.PEAK_K_FACTOR;
+    const rawPeakThroughput = (Number(projectedAADT) || 0) * k;
 
     const commercialDecimal = (Number(commercialPercentage) || 0) / 100;
     const peakCommercialVolume = precisionRoundUp(rawPeakThroughput * commercialDecimal);
@@ -28332,31 +28373,38 @@ const LoganTrafficEngine = (function() {
         independentVariable = 0,
         tripRate = 0,
         d1Split = 0.5,
-        d23Split = 0.5
+        d23Split = 0.5,
+        yearsElapsed = 0,
+        growthRatePercent = 0,
+        baseYear = new Date().getFullYear()
       } = params;
 
       const totalGeneratedVADT = independentVariable * tripRate;
+
+      const growth = Math.pow(1 + (Number(growthRatePercent) || 0) / 100,
+                              Number(yearsElapsed) || 0);
+      const totalProjected = totalGeneratedVADT * growth;
+      const targetYear = (Number(baseYear) || new Date().getFullYear()) + (Number(yearsElapsed) || 0);
 
       const splitSum = (Number(d1Split) || 0) + (Number(d23Split) || 0);
       const normDivisor = splitSum > 0 ? splitSum : 1;
       const d1Norm  = (Number(d1Split) || 0)  / normDivisor;
       const d23Norm = (Number(d23Split) || 0) / normDivisor;
 
-      const d1VADT  = totalGeneratedVADT * d1Norm;
-      const d23VADT = totalGeneratedVADT * d23Norm;
-
-      const currentYear = new Date().getFullYear();
+      const d1VADT  = totalProjected * d1Norm;
+      const d23VADT = totalProjected * d23Norm;
 
       return {
-        totalVADT: Number(totalGeneratedVADT.toFixed(2)),
+        totalVADT: Number(totalProjected.toFixed(2)),
         d1VADT:    Number(d1VADT.toFixed(2)),
         d23VADT:   Number(d23VADT.toFixed(2)),
-        baseYear:   currentYear,
-        targetYear: currentYear,
+        baseYear,
+        targetYear,
         metadata: {
           calculationUsed: `(${independentVariable} units) × (${tripRate} rate)`,
           splitRatio:      `D1: ${(d1Norm * 100).toFixed(1)}% | D23: ${(d23Norm * 100).toFixed(1)}%`,
-          yearsUsed:       `Base Year: ${currentYear} | Target Year: ${currentYear}`
+          growthApplied:   `${(Number(growthRatePercent) || 0).toFixed(2)}% p.a. over ${Number(yearsElapsed) || 0} years (factor ${growth.toFixed(4)})`,
+          yearsUsed:       `Base Year: ${baseYear} | Target Year: ${targetYear}`
         }
       };
     }
@@ -28372,7 +28420,7 @@ const LoganTrafficEngine = (function() {
       } = payload || {};
 
       const aadtPhase       = computeAADTProjection(rawCount, roadType, dayIndex, growthRate, yearsElapsed);
-      const peakPhase       = extractPeakAndClassify(aadtPhase.projectedAADT, cvPercentage);
+      const peakPhase       = extractPeakAndClassify(aadtPhase.projectedAADT, cvPercentage, roadType);
       const saturationPhase = evaluateSaturationAndLOS(peakPhase.total, roadType, directionalLanes);
       const geometricPhase  = simulateQueueGeometry(peakPhase.passenger, peakPhase.commercial);
 
@@ -28387,7 +28435,10 @@ const LoganTrafficEngine = (function() {
           independentVariable: Number(devUnits),
           tripRate:            Number(devTripRate),
           d1Split:             Number(devD1Split  || 0.5),
-          d23Split:            Number(devD23Split || 0.5)
+          d23Split:            Number(devD23Split || 0.5),
+          yearsElapsed:        Number(yearsElapsed) || 0,
+          growthRatePercent:   Number(growthRate)   || 0,
+          baseYear:            new Date().getFullYear()
         });
 
         const baseYearField    = document.getElementById('baseYear');
