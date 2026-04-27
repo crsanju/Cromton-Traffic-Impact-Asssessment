@@ -17463,11 +17463,29 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const previewHost = document.getElementById('tgsTiaPreviewHost');
     if (!previewHost) return;
 
-    const editableNodes = previewHost.querySelectorAll('td, li');
+    // Table cells, list items, note card body spans, direction/section labels
+    const editableNodes = previewHost.querySelectorAll(
+      'td, th, li, ' +
+      'div[style] > span[style], ' +   // note card headings and body spans
+      'div[style] > span:not([style])' // plain body text spans inside note cards
+    );
     editableNodes.forEach((node) => {
       node.setAttribute('contenteditable', enabled ? 'true' : 'false');
       node.style.outline = enabled ? '1px dashed #f59e0b' : '';
       node.style.cursor = enabled ? 'text' : '';
+    });
+
+    // Also make the direction/section label divs editable (direct text divs)
+    previewHost.querySelectorAll('div[style]').forEach((div) => {
+      // Only target leaf-like divs that contain text and no block children
+      const hasBlockChild = Array.from(div.children).some((c) =>
+        ['DIV', 'TABLE', 'THEAD', 'TBODY', 'TR', 'UL', 'OL'].includes(c.tagName)
+      );
+      if (!hasBlockChild && div.textContent.trim()) {
+        div.setAttribute('contenteditable', enabled ? 'true' : 'false');
+        div.style.outline = enabled ? '1px dashed #f59e0b' : '';
+        div.style.cursor = enabled ? 'text' : '';
+      }
     });
   }
 
