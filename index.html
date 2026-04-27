@@ -4511,6 +4511,14 @@
               onclick="downloadTgsTiaSheetImage(this)">
               Download as Image
             </button>
+            <button
+              type="button"
+              id="toggleTgsTiaEditBtn"
+              class="copy-table-btn"
+              style="background:#b45309; border-color:#92400e;"
+              onclick="toggleTgsTiaEditMode(this)">
+              Enable Edit Mode
+            </button>
           </div>
           <span id="tgsTiaPreviewStatus" style="font-size:11px; color:#334155; font-weight:600;">Preview not generated yet.</span>
         </div>
@@ -17332,15 +17340,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     Prepared from live TIA calculator outputs for direct paste into TGS design pages.
   </div>
 </div>`;
-
-    const plainText = (() => {
-      const temp = document.createElement('div');
-      temp.innerHTML = html;
-      return cleanText(temp.textContent || '');
-    })();
-
     window.lastTgsTiaSheetHtml = html;
-    window.lastTgsTiaSheetText = plainText;
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    window.lastTgsTiaSheetText = cleanText(temp.textContent || '');
 
     const previewWrap = document.getElementById('tgsTiaPreviewWrap');
     const previewHost = document.getElementById('tgsTiaPreviewHost');
@@ -17350,6 +17353,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (previewHost) {
       previewHost.innerHTML = html;
     }
+
+    setTgsPreviewEditable(Boolean(window.tgsTiaEditMode));
+
     if (previewWrap) {
       previewWrap.style.display = 'block';
     }
@@ -17378,9 +17384,60 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
   }
 
+  function getCurrentTgsPreviewPayload() {
+    const previewHost = document.getElementById('tgsTiaPreviewHost');
+    const node = previewHost ? previewHost.firstElementChild : null;
+    if (node) {
+      const html = String(node.outerHTML || '');
+      const plainText = String(node.textContent || '').replace(/\s+/g, ' ').trim();
+      return { html, plainText };
+    }
+    return {
+      html: String(window.lastTgsTiaSheetHtml || ''),
+      plainText: String(window.lastTgsTiaSheetText || '')
+    };
+  }
+
+  function setTgsPreviewEditable(enabled) {
+    const previewHost = document.getElementById('tgsTiaPreviewHost');
+    if (!previewHost) return;
+
+    const editableNodes = previewHost.querySelectorAll('td, li');
+    editableNodes.forEach((node) => {
+      node.setAttribute('contenteditable', enabled ? 'true' : 'false');
+      node.style.outline = enabled ? '1px dashed #f59e0b' : '';
+      node.style.cursor = enabled ? 'text' : '';
+    });
+  }
+
+  function toggleTgsTiaEditMode(button) {
+    window.tgsTiaEditMode = !window.tgsTiaEditMode;
+    const enabled = Boolean(window.tgsTiaEditMode);
+    const previewStatus = document.getElementById('tgsTiaPreviewStatus');
+
+    setTgsPreviewEditable(enabled);
+
+    if (button) {
+      button.textContent = enabled ? 'Disable Edit Mode' : 'Enable Edit Mode';
+      button.style.background = enabled ? '#15803d' : '#b45309';
+      button.style.borderColor = enabled ? '#166534' : '#92400e';
+    }
+
+    if (previewStatus) {
+      if (enabled) {
+        previewStatus.textContent = 'Edit mode enabled: values and notes are now editable. Auto-refresh paused.';
+        previewStatus.style.color = '#166534';
+      } else {
+        previewStatus.textContent = 'Edit mode disabled: auto-refresh resumed.';
+        previewStatus.style.color = '#0d47a1';
+      }
+    }
+  }
+
   function copyTgsTiaSheetPreview(button) {
-    const html = String(window.lastTgsTiaSheetHtml || '');
-    const plainText = String(window.lastTgsTiaSheetText || '');
+    const payload = getCurrentTgsPreviewPayload();
+    const html = String(payload.html || '');
+    const plainText = String(payload.plainText || '');
     const previewStatus = document.getElementById('tgsTiaPreviewStatus');
 
     if (!html && !plainText) {
@@ -17572,6 +17629,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   function scheduleTgsPreviewAutoRefresh(delayMs = 280) {
     if (!isTgsPreviewVisible()) return;
+    if (window.tgsTiaEditMode) return;
     if (tgsPreviewAutoRefreshTimer) {
       clearTimeout(tgsPreviewAutoRefreshTimer);
       tgsPreviewAutoRefreshTimer = null;
