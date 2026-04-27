@@ -4533,50 +4533,6 @@
       <p class="table-note">* Design capacity uses Austroads/TMR practical per-lane capacity adjusted for terrain, geometry and HV/RT mix, with a minimum of 500 vph/lane.</p>
     </div>
 
-    <div style="margin:0 0 16px 0;">
-      <button
-        type="button"
-        id="generateTgsTiaBtn"
-        style="display:block; width:100%; padding:16px 24px; background:#00695c; border:2px solid #004d40; border-radius:8px; color:#ffffff; font-size:1.1em; font-weight:900; letter-spacing:0.03em; cursor:pointer; text-align:center; box-shadow:0 2px 8px rgba(0,105,92,0.25); transition:background 0.15s;"
-        onmouseover="this.style.background='#004d40'"
-        onmouseout="this.style.background='#00695c'"
-        onclick="copyTgsTiaSheet(this)">
-        &#9654;&nbsp; Generate TGS TIA Sheet
-      </button>
-      <div id="tgsTiaPreviewWrap" style="display:none; border:1.5px solid #90a4ae; border-radius:8px; padding:10px; background:#f8fafc; margin:10px 0 0 0;">
-        <div class="table-actions" style="justify-content:space-between; margin:0 0 8px 0;">
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <button
-              type="button"
-              id="copyTgsTiaPreviewBtn"
-              class="copy-table-btn"
-              style="background:#1d4ed8; border-color:#1e40af;"
-              onclick="copyTgsTiaSheetPreview(this)">
-              Copy Preview to Clipboard
-            </button>
-            <button
-              type="button"
-              id="downloadTgsTiaImageBtn"
-              class="copy-table-btn"
-              style="background:#7c3aed; border-color:#6d28d9;"
-              onclick="downloadTgsTiaSheetImage(this)">
-              Download as Image
-            </button>
-            <button
-              type="button"
-              id="toggleTgsTiaEditBtn"
-              class="copy-table-btn"
-              style="background:#b45309; border-color:#92400e;"
-              onclick="toggleTgsTiaEditMode(this)">
-              Enable Edit Mode
-            </button>
-          </div>
-          <span id="tgsTiaPreviewStatus" style="font-size:11px; color:#334155; font-weight:600;">Preview not generated yet.</span>
-        </div>
-        <div id="tgsTiaPreviewHost" style="max-height:520px; overflow:auto; border:1px solid #cbd5e1; background:#ffffff; padding:8px;"></div>
-      </div>
-    </div>
-
 <details class="card" id="hourlyEstimateCard" open>
   <summary style="cursor: pointer; font-size: 1.2em; font-weight: 700; color: #1f5e63; margin-bottom: 10px;">HOURLY ESTIMATE</summary>
       <p style="margin: 6px 0 12px 0; font-size: 0.86em; color: #37474f; background: #f1f8ff; border: 1px solid #bbdefb; border-radius: 6px; padding: 8px 10px;">
@@ -4917,6 +4873,50 @@
       </div>
     </div>
 
+    <div style="margin:16px 0;">
+      <button
+        type="button"
+        id="generateTgsTiaBtn"
+        style="display:block; width:100%; padding:16px 24px; background:#00695c; border:2px solid #004d40; border-radius:8px; color:#ffffff; font-size:1.1em; font-weight:900; letter-spacing:0.03em; cursor:pointer; text-align:center; box-shadow:0 2px 8px rgba(0,105,92,0.25); transition:background 0.15s;"
+        onmouseover="this.style.background='#004d40'"
+        onmouseout="this.style.background='#00695c'"
+        onclick="copyTgsTiaSheet(this)">
+        &#9654;&nbsp; Generate TGS TIA Sheet
+      </button>
+      <div id="tgsTiaPreviewWrap" style="display:none; border:1.5px solid #90a4ae; border-radius:8px; padding:10px; background:#f8fafc; margin:10px 0 0 0;">
+        <div class="table-actions" style="justify-content:space-between; margin:0 0 8px 0;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button
+              type="button"
+              id="copyTgsTiaPreviewBtn"
+              class="copy-table-btn"
+              style="background:#1d4ed8; border-color:#1e40af;"
+              onclick="copyTgsTiaSheetPreview(this)">
+              Copy Preview to Clipboard
+            </button>
+            <button
+              type="button"
+              id="downloadTgsTiaImageBtn"
+              class="copy-table-btn"
+              style="background:#7c3aed; border-color:#6d28d9;"
+              onclick="downloadTgsTiaSheetImage(this)">
+              Download as Image
+            </button>
+            <button
+              type="button"
+              id="toggleTgsTiaEditBtn"
+              class="copy-table-btn"
+              style="background:#b45309; border-color:#92400e;"
+              onclick="toggleTgsTiaEditMode(this)">
+              Enable Edit Mode
+            </button>
+          </div>
+          <span id="tgsTiaPreviewStatus" style="font-size:11px; color:#334155; font-weight:600;">Preview not generated yet.</span>
+        </div>
+        <div id="tgsTiaPreviewHost" style="max-height:520px; overflow:auto; border:1px solid #cbd5e1; background:#ffffff; padding:8px;"></div>
+      </div>
+    </div>
+
 
 
     <details class="card" id="formulaTraceSection">
@@ -4967,6 +4967,18 @@
       </div>
       <p class="diag-note">Hidden panel: open with Ctrl+Shift+D or add ?debug=1 to URL.</p>
     </details>
+
+    <div style="margin: 0 0 12px 0;">
+      <button
+        type="button"
+        id="generateDetourTgsTiaBtn"
+        style="display:block; width:100%; padding:14px 24px; background:#7b1fa2; border:2px solid #6a1b9a; border-radius:8px; color:#ffffff; font-size:1.0em; font-weight:900; letter-spacing:0.02em; cursor:pointer; text-align:center; box-shadow:0 2px 8px rgba(123,31,162,0.25); transition:background 0.15s;"
+        onmouseover="this.style.background='#6a1b9a'"
+        onmouseout="this.style.background='#7b1fa2'"
+        onclick="copyTgsTiaSheet(this, { detourOnly: true })">
+        &#9654;&nbsp; Generate Detour TIA Sheet
+      </button>
+    </div>
 
     <details class="card print-custom-card" id="printCustomizationCard">
       <summary style="cursor: pointer; font-size: 1em; font-weight: 700; color: #1f5e63; margin-bottom: 10px;">🖨️ Print Customization (All Sections & Tables) (Click to Expand)</summary>
@@ -17554,9 +17566,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         ]);
 
         const capacitySummaryHtml = cloneTableForTgs('detourSegmentDetailedTable')
-          || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">No detour route capacity summary available.</div>';
+          || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">Detour road summary table not available for this route. Run Detour analysis and try again.</div>';
         const roadStatusHtml = cloneTableForTgs('postDiversionTable')
-          || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">No post-diversion road status table available.</div>';
+          || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">Road Status After Diversion table not available for this route. Run Detour analysis and try again.</div>';
         const pedDelayHtml = cloneTableForTgs('pedDetailTable')
           || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">No pedestrian delay table available.</div>';
 
@@ -17570,13 +17582,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   <div style="font-weight:900; font-size:12px; margin: 0 0 6px 0; color:#4a148c;">Detour Route</div>
   ${routeSummaryHtml}
 
-  <div style="font-weight:900; font-size:12px; margin: 6px 0; color:#4a148c;">Detour Route Capacity Summary</div>
+  <div style="font-weight:900; font-size:12px; margin: 6px 0; color:#4a148c;">Detour road summary: each selected road is assessed separately, with D1 and D2 LOS shown for every period.</div>
   ${capacitySummaryHtml}
 
   <div style="font-weight:900; font-size:12px; margin: 6px 0; color:#4a148c;">Estimated Delay Table</div>
   ${buildDetourDelayTableForTgs()}
 
-  <div style="font-weight:900; font-size:12px; margin: 6px 0; color:#4a148c;">Detour Road Summary: Road Status After Diversion</div>
+  <div style="font-weight:900; font-size:12px; margin: 6px 0; color:#4a148c;">Road Status After Diversion (Existing Road)</div>
   ${roadStatusHtml}
 
   <div style="font-weight:900; font-size:12px; margin: 6px 0; color:#4a148c;">Pedestrian Delay Table</div>
@@ -17716,8 +17728,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     </div>
   </div>
 </div>`;
-  const html = `${baseHtml}${buildDetourSheetsForTgs()}`;
-  window.lastTgsTiaSheetHtml = html;
+    const detourHtml = buildDetourSheetsForTgs();
+    const detourOnlyMode = !!(options && options.detourOnly);
+    const html = detourOnlyMode ? detourHtml : `${baseHtml}${detourHtml}`;
+    window.lastTgsTiaSheetHtml = html;
     const temp = document.createElement('div');
     temp.innerHTML = html;
     window.lastTgsTiaSheetText = cleanText(temp.textContent || '');
@@ -17746,9 +17760,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       }
     }
 
-    const original = button ? button.textContent : 'Generate TGS TIA Sheet';
+    const original = button
+      ? button.textContent
+      : (detourOnlyMode ? 'Generate Detour TIA Sheet' : 'Generate TGS TIA Sheet');
     if (button && !(options && options.silentButton)) {
-      button.textContent = 'Preview Updated';
+      button.textContent = detourOnlyMode ? 'Detour Sheet Updated' : 'Preview Updated';
       setTimeout(() => {
         button.textContent = original;
       }, 1300);
@@ -23519,6 +23535,31 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const diversionRate = Math.max(0, Math.min(100, Number.isFinite(diversionRatePct) ? diversionRatePct : 0)) / 100;
     const resultsPanel = document.getElementById('detourResults');
     const delayEstimateEl = document.getElementById('detourDelayEstimate');
+    const segmentTbody = document.getElementById('detourSegmentDetailedBody');
+    const postDivBody = document.getElementById('postDiversionBody');
+    const postDivHeadRow = document.getElementById('postDiversionHeadRow');
+    const postDivResultsPanel = document.getElementById('postDiversionResults');
+
+    const renderDetourTablePlaceholders = (message) => {
+      const statusText = String(message || 'Detour inputs are incomplete.');
+      if (segmentTbody) {
+        segmentTbody.innerHTML = `<tr><td colspan="6" style="padding:10px; text-align:left; color:#6a1b9a; background:#faf5ff; border:1px dashed #ce93d8;">${statusText}</td></tr>`;
+      }
+      if (postDivHeadRow) {
+        postDivHeadRow.innerHTML = [
+          '<th style="background: #00897b; color: white; padding: 6px;">Metric</th>',
+          '<th style="background: #00897b; color: white; padding: 6px;">AM</th>',
+          '<th style="background: #00897b; color: white; padding: 6px;">OP</th>',
+          '<th style="background: #00897b; color: white; padding: 6px;">PM</th>',
+          '<th style="background: #00897b; color: white; padding: 6px;">EV</th>'
+        ].join('');
+      }
+      if (postDivBody) {
+        postDivBody.innerHTML = `<tr><td colspan="5" style="padding:10px; text-align:left; color:#00695c; background:#f1f8f7; border:1px dashed #80cbc4;">${statusText}</td></tr>`;
+      }
+      if (resultsPanel) resultsPanel.style.display = 'block';
+      if (postDivResultsPanel) postDivResultsPanel.style.display = 'block';
+    };
     
     // Get Primary Coordinates
     let pLat, pLon;
@@ -23534,7 +23575,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
 
     if (!Number.isFinite(pLat) || !Number.isFinite(pLon)) {
-      if (resultsPanel) resultsPanel.style.display = 'none';
+      renderDetourTablePlaceholders('Select a primary site to populate detour road summary and post-diversion status tables.');
       if (delayEstimateEl) delayEstimateEl.textContent = 'Estimated delay per diverted vehicle: -';
       renderDetourManualVpdPanel([]);
       renderDetourRoadVpdSummary([], 0);
@@ -23811,8 +23852,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       renderDetourRoadVpdSummary([], 0);
       const tbody = document.getElementById('detourDetailedBody');
       if (tbody) tbody.innerHTML = '';
-      const segmentTbody = document.getElementById('detourSegmentDetailedBody');
-      if (segmentTbody) segmentTbody.innerHTML = '';
+      renderDetourTablePlaceholders('Select one or more detour roads to populate this summary.');
       return;
     }
 
@@ -23832,8 +23872,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       renderDetourRoadVpdSummary([], 0);
       const tbody = document.getElementById('detourDetailedBody');
       if (tbody) tbody.innerHTML = '';
-      const segmentTbody = document.getElementById('detourSegmentDetailedBody');
-      if (segmentTbody) segmentTbody.innerHTML = '';
+      renderDetourTablePlaceholders('Detour roads selected but no valid model could be generated. Review manual VPD / lane inputs.');
       return;
     }
 
@@ -23915,7 +23954,6 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const tbody = document.getElementById('detourDetailedBody');
     if (tbody) tbody.innerHTML = '';
-    const segmentTbody = document.getElementById('detourSegmentDetailedBody');
     if (segmentTbody) segmentTbody.innerHTML = '';
     const detourSegmentThead = document.querySelector('#detourSegmentDetailedTable thead tr');
     if (detourSegmentThead) {
@@ -24211,9 +24249,6 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
 
     // --- POST-DIVERSION TABLE: Remaining traffic on the existing work zone road ---
-    const postDivBody = document.getElementById('postDiversionBody');
-    const postDivHeadRow = document.getElementById('postDiversionHeadRow');
-    const postDivResultsPanel = document.getElementById('postDiversionResults');
     if (postDivBody && postDivHeadRow && postDivResultsPanel) {
       const remainingRate = 1 - diversionRate;
       postDivBody.innerHTML = '';
