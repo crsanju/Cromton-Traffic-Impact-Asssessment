@@ -4494,14 +4494,24 @@
       </div>
       <div id="tgsTiaPreviewWrap" style="display:none; border:1px solid #90a4ae; border-radius:8px; padding:10px; background:#f8fafc; margin:0 0 10px 0;">
         <div class="table-actions" style="justify-content:space-between; margin:0 0 8px 0;">
-          <button
-            type="button"
-            id="copyTgsTiaPreviewBtn"
-            class="copy-table-btn"
-            style="background:#1d4ed8; border-color:#1e40af;"
-            onclick="copyTgsTiaSheetPreview(this)">
-            Copy Preview to Clipboard
-          </button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button
+              type="button"
+              id="copyTgsTiaPreviewBtn"
+              class="copy-table-btn"
+              style="background:#1d4ed8; border-color:#1e40af;"
+              onclick="copyTgsTiaSheetPreview(this)">
+              Copy Preview to Clipboard
+            </button>
+            <button
+              type="button"
+              id="downloadTgsTiaImageBtn"
+              class="copy-table-btn"
+              style="background:#7c3aed; border-color:#6d28d9;"
+              onclick="downloadTgsTiaSheetImage(this)">
+              Download as Image
+            </button>
+          </div>
           <span id="tgsTiaPreviewStatus" style="font-size:11px; color:#334155; font-weight:600;">Preview not generated yet.</span>
         </div>
         <div id="tgsTiaPreviewHost" style="max-height:520px; overflow:auto; border:1px solid #cbd5e1; background:#ffffff; padding:8px;"></div>
@@ -17443,6 +17453,110 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             previewStatus.textContent = 'Copy failed. Try again.';
             previewStatus.style.color = '#b91c1c';
           }
+        }
+      }
+    })();
+  }
+
+  function ensureHtml2CanvasLoaded() {
+    if (typeof window.html2canvas === 'function') {
+      return Promise.resolve(window.html2canvas);
+    }
+    if (window.__html2canvasLoadingPromise) {
+      return window.__html2canvasLoadingPromise;
+    }
+
+    window.__html2canvasLoadingPromise = new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-lib="html2canvas"]');
+      if (existing) {
+        existing.addEventListener('load', () => resolve(window.html2canvas));
+        existing.addEventListener('error', () => reject(new Error('Failed to load html2canvas.')));
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+      script.async = true;
+      script.setAttribute('data-lib', 'html2canvas');
+      script.onload = () => {
+        if (typeof window.html2canvas === 'function') {
+          resolve(window.html2canvas);
+        } else {
+          reject(new Error('html2canvas loaded but not available on window.'));
+        }
+      };
+      script.onerror = () => reject(new Error('Could not load html2canvas script.'));
+      document.head.appendChild(script);
+    });
+
+    return window.__html2canvasLoadingPromise;
+  }
+
+  function downloadTgsTiaSheetImage(button) {
+    const previewHost = document.getElementById('tgsTiaPreviewHost');
+    const previewStatus = document.getElementById('tgsTiaPreviewStatus');
+
+    if (!previewHost || !previewHost.firstElementChild) {
+      if (previewStatus) {
+        previewStatus.textContent = 'Generate preview first, then download image.';
+        previewStatus.style.color = '#b91c1c';
+      }
+      return;
+    }
+
+    const original = button ? button.textContent : 'Download as Image';
+    const setButtonState = (text, resetDelay = 1300) => {
+      if (!button) return;
+      button.textContent = text;
+      if (resetDelay > 0) {
+        setTimeout(() => {
+          button.textContent = original;
+        }, resetDelay);
+      }
+    };
+
+    (async () => {
+      try {
+        setButtonState('Rendering...', 0);
+        if (previewStatus) {
+          previewStatus.textContent = 'Rendering preview image...';
+          previewStatus.style.color = '#0d47a1';
+        }
+
+        const html2canvas = await ensureHtml2CanvasLoaded();
+        const captureEl = previewHost.firstElementChild;
+        const canvas = await html2canvas(captureEl, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true,
+          logging: false
+        });
+
+        const dataUrl = canvas.toDataURL('image/png');
+        const safeTitle = String((typeof getReportAddressForPrint === 'function' ? getReportAddressForPrint() : 'tia_sheet') || 'tia_sheet')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '')
+          .slice(0, 64) || 'tia_sheet';
+        const fileName = `${safeTitle}_tgs_sheet.png`;
+
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setButtonState('Downloaded');
+        if (previewStatus) {
+          previewStatus.textContent = `Downloaded image: ${fileName}`;
+          previewStatus.style.color = '#0f766e';
+        }
+      } catch (_err) {
+        setButtonState('Download Failed');
+        if (previewStatus) {
+          previewStatus.textContent = 'Image download failed. Try again after preview fully loads.';
+          previewStatus.style.color = '#b91c1c';
         }
       }
     })();
