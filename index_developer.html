@@ -908,12 +908,12 @@
     }
 
     /* Updated Austroads/HCM Aligned LOS Colors */
-    .queue-calculator-card .los-a { background-color: #dcfce7; color: #14532d; } /* <= 0.60 */
-    .queue-calculator-card .los-b { background-color: #d1fae5; color: #134e4a; } /* <= 0.70 */
-    .queue-calculator-card .los-c { background-color: #fef9c3; color: #713f12; } /* <= 0.80 */
-    .queue-calculator-card .los-d { background-color: #ffedd5; color: #7c2d12; } /* <= 0.90 */
-    .queue-calculator-card .los-e { background-color: #fee2e2; color: #7f1d1d; } /* <= 1.00 */
-    .queue-calculator-card .los-f { background-color: #fce7f3; color: #831843; } /* > 1.00 */
+    .queue-calculator-card .los-a { background-color: #2e7d32; color: #ffffff; } /* <= 0.60 */
+    .queue-calculator-card .los-b { background-color: #8bc34a; color: #111827; } /* <= 0.70 */
+    .queue-calculator-card .los-c { background-color: #ffeb3b; color: #111827; } /* <= 0.80 */
+    .queue-calculator-card .los-d { background-color: #ffb300; color: #111827; } /* <= 0.90 */
+    .queue-calculator-card .los-e { background-color: #f57c00; color: #ffffff; } /* <= 1.00 */
+    .queue-calculator-card .los-f { background-color: #c62828; color: #ffffff; } /* > 1.00 */
 
     .ux-intro {
       margin-top: 14px;
@@ -1986,12 +1986,12 @@
       border: 1px solid rgba(15, 23, 42, 0.18);
       letter-spacing: 0.02em;
     }
-    .vcr-los-a { background-color: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; } /* LOS A: VCR ≤ 0.60 */
-    .vcr-los-b { background-color: #d1fae5; color: #134e4a; border: 1px solid #a7f3d0; } /* LOS B: VCR ≤ 0.70 */
-    .vcr-los-c { background-color: #fef9c3; color: #713f12; border: 1px solid #fde68a; } /* LOS C: VCR ≤ 0.80 */
-    .vcr-los-d { background-color: #ffedd5; color: #7c2d12; border: 1px solid #fed7aa; } /* LOS D: VCR ≤ 0.90 */
-    .vcr-los-e { background-color: #fee2e2; color: #7f1d1d; border: 1px solid #fecaca; } /* LOS E: VCR ≤ 1.00 */
-    .vcr-los-f { background-color: #fce7f3; color: #831843; border: 1px solid #fbcfe8; } /* LOS F: VCR > 1.00 */
+    .vcr-los-a { background-color: #2e7d32; color: #ffffff; border: 1px solid #1b5e20; } /* LOS A: VCR ≤ 0.60 */
+    .vcr-los-b { background-color: #8bc34a; color: #111827; border: 1px solid #689f38; } /* LOS B: VCR ≤ 0.70 */
+    .vcr-los-c { background-color: #ffeb3b; color: #111827; border: 1px solid #f9a825; } /* LOS C: VCR ≤ 0.80 */
+    .vcr-los-d { background-color: #ffb300; color: #111827; border: 1px solid #ef6c00; } /* LOS D: VCR ≤ 0.90 */
+    .vcr-los-e { background-color: #f57c00; color: #ffffff; border: 1px solid #d84315; } /* LOS E: VCR ≤ 1.00 */
+    .vcr-los-f { background-color: #c62828; color: #ffffff; border: 1px solid #8e0000; } /* LOS F: VCR > 1.00 */
 
     .section-icon {
       color: #1f5e63;
@@ -3658,6 +3658,22 @@
       </div>
     </div>
 
+    <!-- Developer View PIN Modal -->
+    <div id="devPinModal" role="dialog" aria-modal="true" aria-labelledby="devPinModalTitle" style="display:none; position:fixed; inset:0; background:rgba(7,20,22,0.75); z-index:200000; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px);">
+      <div style="background:#fff; border-radius:12px; border:1px solid #dbe2ea; box-shadow:0 16px 40px rgba(0,0,0,0.3); padding:36px 32px; max-width:340px; width:100%; text-align:center;">
+        <div style="font-size:2.2rem; margin-bottom:8px;">🔒</div>
+        <h2 id="devPinModalTitle" style="margin:0 0 6px; color:#0f2f32; font-size:1.2rem;">Developer Access</h2>
+        <p style="margin:0 0 20px; color:#5a7a7d; font-size:0.9rem;">Enter PIN to open Developer View</p>
+        <input id="devPinModalInput" type="password" inputmode="numeric" maxlength="10" placeholder="Enter PIN" autocomplete="off"
+          style="width:100%; box-sizing:border-box; padding:10px 14px; font-size:1.3rem; letter-spacing:0.4em; border:2px solid #dbe2ea; border-radius:8px; text-align:center; outline:none; margin-bottom:10px;">
+        <div id="devPinModalError" style="color:#b91c1c; font-size:0.85rem; min-height:1.2em; margin-bottom:14px;"></div>
+        <div style="display:flex; gap:10px;">
+          <button id="devPinModalSubmit" type="button" style="flex:1; background:#0f6b7a; color:#fff; border:none; border-radius:8px; padding:11px 0; font-size:1rem; cursor:pointer; font-weight:600;">Unlock</button>
+          <button id="devPinModalCancel" type="button" style="flex:1; background:#e5e7eb; color:#374151; border:none; border-radius:8px; padding:11px 0; font-size:1rem; cursor:pointer;">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <div id="userManualModal" role="dialog" aria-modal="true" aria-label="Traffic Impact Assessment User Manual" class="hide-print" style="display:none; position:fixed; inset:0; background:rgba(15, 23, 42, 0.68); z-index:100000; padding:18px; overflow:auto;">
       <div style="max-width:980px; margin:0 auto; background:#fff; border-radius:12px; border:1px solid #dbe2ea; box-shadow:0 16px 40px rgba(0,0,0,0.24); padding:18px;">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
@@ -4228,8 +4244,9 @@
             <select id="laneClosureCount" style="border: 1px solid #e57373; background-color: #fff5f5; color: #b71c1c;">
               <option value="1" selected>Single Lane Closure</option>
               <option value="2">Two Lane Closure</option>
+              <option value="contraflow">Contraflow (1 lane each direction)</option>
             </select>
-            <p style="font-size: 0.78em; color: #666; margin: 4px 0 0 0;">Shown only when a direction has more than 2 lanes. Applied per direction where feasible.</p>
+            <p style="font-size: 0.78em; color: #666; margin: 4px 0 0 0;">Shown only when a direction has more than 2 lanes. Contraflow requires ≥2 lanes in each direction: all lanes in one direction closed, opposite direction split 1+1.</p>
           </div>
           <div id="oneWayDirectionWrap" style="display:none; background: #ffebee; border: 1px solid #ef9a9a; border-radius: 6px; padding: 10px;">
             <label style="color: #c30000; font-weight: bold;">🧭 Active One-way Direction *</label>
@@ -4500,8 +4517,53 @@
           <canvas id="vcrChartD1" class="chart-canvas-280"></canvas>
         </div>
       </div>
-      <p class="table-note">* Design Volume is greater of 30th highest hour of AADT or 500.</p>
+      <p class="table-note">* Design capacity uses Austroads/TMR practical per-lane capacity adjusted for terrain, geometry and HV/RT mix, with a minimum of 500 vph/lane.</p>
     </div>
+
+    <div style="margin:0 0 16px 0;">
+      <button
+        type="button"
+        id="generateTgsTiaBtn"
+        style="display:block; width:100%; padding:16px 24px; background:#00695c; border:2px solid #004d40; border-radius:8px; color:#ffffff; font-size:1.1em; font-weight:900; letter-spacing:0.03em; cursor:pointer; text-align:center; box-shadow:0 2px 8px rgba(0,105,92,0.25); transition:background 0.15s;"
+        onmouseover="this.style.background='#004d40'"
+        onmouseout="this.style.background='#00695c'"
+        onclick="copyTgsTiaSheet(this)">
+        &#9654;&nbsp; Generate TGS TIA Sheet
+      </button>
+      <div id="tgsTiaPreviewWrap" style="display:none; border:1.5px solid #90a4ae; border-radius:8px; padding:10px; background:#f8fafc; margin:10px 0 0 0;">
+        <div class="table-actions" style="justify-content:space-between; margin:0 0 8px 0;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button
+              type="button"
+              id="copyTgsTiaPreviewBtn"
+              class="copy-table-btn"
+              style="background:#1d4ed8; border-color:#1e40af;"
+              onclick="copyTgsTiaSheetPreview(this)">
+              Copy Preview to Clipboard
+            </button>
+            <button
+              type="button"
+              id="downloadTgsTiaImageBtn"
+              class="copy-table-btn"
+              style="background:#7c3aed; border-color:#6d28d9;"
+              onclick="downloadTgsTiaSheetImage(this)">
+              Download as Image
+            </button>
+            <button
+              type="button"
+              id="toggleTgsTiaEditBtn"
+              class="copy-table-btn"
+              style="background:#b45309; border-color:#92400e;"
+              onclick="toggleTgsTiaEditMode(this)">
+              Enable Edit Mode
+            </button>
+          </div>
+          <span id="tgsTiaPreviewStatus" style="font-size:11px; color:#334155; font-weight:600;">Preview not generated yet.</span>
+        </div>
+        <div id="tgsTiaPreviewHost" style="max-height:520px; overflow:auto; border:1px solid #cbd5e1; background:#ffffff; padding:8px;"></div>
+      </div>
+    </div>
+
 <details class="card" id="hourlyEstimateCard" open>
   <summary style="cursor: pointer; font-size: 1.2em; font-weight: 700; color: #1f5e63; margin-bottom: 10px;">HOURLY ESTIMATE</summary>
       <p style="margin: 6px 0 12px 0; font-size: 0.86em; color: #37474f; background: #f1f8ff; border: 1px solid #bbdefb; border-radius: 6px; padding: 8px 10px;">
@@ -5458,7 +5520,12 @@
       <button class="print-btn" onclick="toggleReportMode(true, 'short')" style="background: linear-gradient(135deg, #8e24aa 0%, #6a1b9a 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">📄 Short Report</button>
       <button class="print-btn" onclick="openPythonEditableReport('detailed')" style="background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">🐍 Detailed Python Report</button>
       <button class="print-btn" onclick="openPythonEditableReport('short')" style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">🐍 Python Short Report</button>
+      <button class="print-btn" type="button" onclick="triggerPythonEditsProfileLoad()" style="background: linear-gradient(135deg, #00695c 0%, #00897b 100%); font-size: 0.86em; padding: 8px 12px; white-space: nowrap;">📂 Load Python Edits JSON</button>
+      <button class="print-btn" type="button" onclick="downloadLoadedPythonEditsProfile()" style="background: linear-gradient(135deg, #37474f 0%, #455a64 100%); font-size: 0.86em; padding: 8px 12px; white-space: nowrap;">💾 Download Loaded Edits</button>
+      <button class="print-btn" type="button" onclick="clearLoadedPythonEditsProfile()" style="background: linear-gradient(135deg, #8d6e63 0%, #6d4c41 100%); font-size: 0.86em; padding: 8px 12px; white-space: nowrap;">🧹 Clear Edits</button>
+      <input type="file" id="pythonEditsProfileInput" accept=".json,application/json" style="display:none;" onchange="loadPythonEditsProfileFromInput(event)">
     </div>
+    <div id="pythonEditsProfileStatus" style="margin-top:6px; font-size:0.8em; color:#455a64;">Python edits profile: not loaded.</div>
   </div>
 
     <div class="copyright-footer">© 2026 Crompton Concepts. All rights reserved.</div>
@@ -6555,6 +6622,111 @@
   }
 
   const REPORT_SERVICE_BASE_URL = 'http://127.0.0.1:8060';
+  const PYTHON_EDITS_PROFILE_KEY = 'tia_python_edits_profile_v1';
+  window.loadedPythonEditsProfile = null;
+
+  function isValidPythonEditsProfile(profile) {
+    return Boolean(
+      profile
+      && typeof profile === 'object'
+      && String(profile.schema || '') === 'tia-python-edit-profile-v1'
+      && Array.isArray(profile.entries)
+    );
+  }
+
+  function updatePythonEditsProfileStatus() {
+    const statusEl = document.getElementById('pythonEditsProfileStatus');
+    if (!statusEl) return;
+
+    const profile = window.loadedPythonEditsProfile;
+    if (!isValidPythonEditsProfile(profile)) {
+      statusEl.textContent = 'Python edits profile: not loaded.';
+      return;
+    }
+
+    const projectName = String(profile.project_name || '').trim() || 'Unknown project';
+    const entryCount = Array.isArray(profile.entries) ? profile.entries.length : 0;
+    const exportedAt = String(profile.exported_at || '').trim();
+    const stamp = exportedAt ? `, exported ${new Date(exportedAt).toLocaleString()}` : '';
+    statusEl.textContent = `Python edits profile loaded: ${projectName} (${entryCount} text edits${stamp}).`;
+  }
+
+  function triggerPythonEditsProfileLoad() {
+    const input = document.getElementById('pythonEditsProfileInput');
+    if (input) input.click();
+  }
+
+  function loadPythonEditsProfileFromInput(event) {
+    const input = event && event.target;
+    const file = input && input.files && input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || '{}'));
+        if (!isValidPythonEditsProfile(parsed)) {
+          alert('Invalid edits JSON. Please select a file exported from Python report editor.');
+          return;
+        }
+        window.loadedPythonEditsProfile = parsed;
+        localStorage.setItem(PYTHON_EDITS_PROFILE_KEY, JSON.stringify(parsed));
+        updatePythonEditsProfileStatus();
+        alert(`Loaded Python edits profile (${parsed.entries.length} text edits).`);
+      } catch (_) {
+        alert('Could not parse edits JSON file.');
+      } finally {
+        input.value = '';
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function downloadLoadedPythonEditsProfile() {
+    const profile = window.loadedPythonEditsProfile;
+    if (!isValidPythonEditsProfile(profile)) {
+      alert('No Python edits profile is loaded.');
+      return;
+    }
+
+    const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    link.href = url;
+    link.download = `tia-python-edits-loaded-${stamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function clearLoadedPythonEditsProfile() {
+    window.loadedPythonEditsProfile = null;
+    localStorage.removeItem(PYTHON_EDITS_PROFILE_KEY);
+    updatePythonEditsProfileStatus();
+  }
+
+  (function restorePythonEditsProfileFromStorage() {
+    try {
+      const raw = localStorage.getItem(PYTHON_EDITS_PROFILE_KEY);
+      if (!raw) {
+        updatePythonEditsProfileStatus();
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      if (!isValidPythonEditsProfile(parsed)) {
+        localStorage.removeItem(PYTHON_EDITS_PROFILE_KEY);
+        updatePythonEditsProfileStatus();
+        return;
+      }
+      window.loadedPythonEditsProfile = parsed;
+      updatePythonEditsProfileStatus();
+    } catch (_) {
+      localStorage.removeItem(PYTHON_EDITS_PROFILE_KEY);
+      updatePythonEditsProfileStatus();
+    }
+  })();
 
   function getElementValueOrText(id) {
     const el = document.getElementById(id);
@@ -7274,7 +7446,8 @@
     // 2. Detour Road Capacity Summary — per-road parameters
     var capRows = [];
     snap.roads.forEach(function(road) {
-      var surplusVph = road.totalCapacity - convertDailyVpdTo80thHourly(road.baseVpd + snap.divertedVpdTotal);
+      var designYearVpd = Math.round(road.baseVpd * gf);
+      var surplusVph = road.totalCapacity - convertDailyVpdTo80thHourly(designYearVpd + snap.divertedVpdTotal);
       capRows.push(
         [road.name + ' - Posted Speed (km/h)', String(road.speedLimitKmh), ''],
         [road.name + ' - Lanes', String(road.laneCount), ''],
@@ -7641,6 +7814,9 @@
       : await buildEditableReportPayload();
 
     payload.report_variant = normalizedMode;
+    if (isValidPythonEditsProfile(window.loadedPythonEditsProfile)) {
+      payload.editor_edits_profile = window.loadedPythonEditsProfile;
+    }
     const baseTitle = (payload && payload.project && payload.project.name) || 'TIA Report';
     const title = normalizedMode === 'short'
       ? `${baseTitle} - Short Report`
@@ -8100,7 +8276,7 @@
     const d1VADT = document.getElementById('d1Aadt')?.value || 'N/A';
     const d2VADT = document.getElementById('d2Aadt')?.value || 'N/A';
     const baseYear = document.getElementById('baseYear')?.value || new Date().getFullYear();
-    const targetYear = document.getElementById('targetYear')?.value || new Date().getFullYear();
+    const targetYear = document.getElementById('macroOpeningYear')?.value || new Date().getFullYear();
     
     // Get growth data if available
     const growthRate = document.getElementById('annualGrowthRate')?.value || 'N/A';
@@ -9185,75 +9361,20 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   }
 
   /* DEV-BYPASS-BLOCK */
-  // Developer build only: PIN-gated bypass. Requires PIN 808080 once per session.
+  // Developer build only: bypass login gate entirely.
+  // Pre-set auth session key and synchronously remove the app-locked blur so
+  // the UI is immediately usable regardless of async data-loading failures.
+  sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
   (function() {
-    var DEV_PIN = '808080';
-    var DEV_PIN_SESSION_KEY = 'crompton_dev_pin_auth';
-
-    function continueSetup() {
-      setupLoginGate();
-      setupLogoutButton();
-      setupContactDeveloperButton();
-      setupUserManualModal();
-      setupPythonSetupModal();
-    }
-
-    function applyDevBypass() {
-      sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
-      document.body.classList.remove('app-locked');
-      var _g = document.getElementById('loginGate');
-      if (_g) _g.style.display = 'none';
-      continueSetup();
-    }
-
-    // Already authenticated this session — bypass immediately.
-    if (sessionStorage.getItem(DEV_PIN_SESSION_KEY) === 'true') {
-      applyDevBypass();
-      return;
-    }
-
-    // Build and show the PIN gate overlay.
-    var overlay = document.createElement('div');
-    overlay.id = 'devPinGate';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(7,20,22,0.85);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
-    overlay.innerHTML =
-      '<div style="background:#fff;border-radius:12px;border:1px solid #dbe2ea;box-shadow:0 16px 40px rgba(0,0,0,0.3);padding:36px 32px;max-width:340px;width:100%;text-align:center;">'
-      + '<div style="font-size:2.5rem;margin-bottom:8px;">🔒</div>'
-      + '<h2 style="margin:0 0 6px;color:#0f2f32;font-size:1.25rem;">Developer Access</h2>'
-      + '<p style="margin:0 0 20px;color:#5a7a7d;font-size:0.9rem;">Enter PIN to access developer mode</p>'
-      + '<input id="devPinGateInput" type="password" inputmode="numeric" maxlength="10" placeholder="Enter PIN" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px 14px;font-size:1.3rem;letter-spacing:0.4em;border:2px solid #dbe2ea;border-radius:8px;text-align:center;outline:none;margin-bottom:10px;">'
-      + '<div id="devPinGateError" style="color:#b91c1c;font-size:0.85rem;min-height:1.2em;margin-bottom:14px;"></div>'
-      + '<button id="devPinGateSubmit" type="button" style="background:#0f6b7a;color:#fff;border:none;border-radius:8px;padding:11px 32px;font-size:1rem;cursor:pointer;font-weight:600;width:100%;">Unlock</button>'
-      + '</div>';
-    document.body.appendChild(overlay);
-
-    setTimeout(function() {
-      var inp = document.getElementById('devPinGateInput');
-      if (inp) inp.focus();
-    }, 80);
-
-    function attemptUnlock() {
-      var inp = document.getElementById('devPinGateInput');
-      var errEl = document.getElementById('devPinGateError');
-      if (!inp) return;
-      if (inp.value === DEV_PIN) {
-        sessionStorage.setItem(DEV_PIN_SESSION_KEY, 'true');
-        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-        applyDevBypass();
-      } else {
-        if (errEl) errEl.textContent = 'Incorrect PIN. Try again.';
-        inp.value = '';
-        inp.focus();
-      }
-    }
-
-    document.getElementById('devPinGateSubmit').addEventListener('click', attemptUnlock);
-    document.getElementById('devPinGateInput').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') { e.preventDefault(); attemptUnlock(); }
-    });
+    document.body.classList.remove('app-locked');
+    var _g = document.getElementById('loginGate');
+    if (_g) _g.style.display = 'none';
   })();
+  setupLoginGate();
+  setupLogoutButton();
+  setupContactDeveloperButton();
+  setupUserManualModal();
+  setupPythonSetupModal();
 
   function resolveRepoRelativePath(fileName) {
     const cleanName = String(fileName || '').replace(/^\.\//, '');
@@ -9395,7 +9516,47 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const formulaLink = document.getElementById('formulaViewLink');
     if (formulaLink) formulaLink.href = resolveRepoRelativePath('index_formulas.html');
     const developerLink = document.getElementById('developerViewLink');
-    if (developerLink) developerLink.href = resolveRepoRelativePath('index_developer.html');
+    if (developerLink) {
+      developerLink.href = resolveRepoRelativePath('index_developer.html');
+      developerLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        openDevPinModal(developerLink.href);
+      });
+    }
+  }
+
+  function openDevPinModal(targetUrl) {
+    const modal = document.getElementById('devPinModal');
+    const input = document.getElementById('devPinModalInput');
+    const errorEl = document.getElementById('devPinModalError');
+    const submitBtn = document.getElementById('devPinModalSubmit');
+    const cancelBtn = document.getElementById('devPinModalCancel');
+    if (!modal || !input) return;
+
+    input.value = '';
+    errorEl.textContent = '';
+    modal.style.display = 'flex';
+    setTimeout(function() { input.focus(); }, 60);
+
+    function close() {
+      modal.style.display = 'none';
+    }
+
+    function attemptUnlock() {
+      if (input.value === '808080') {
+        close();
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        errorEl.textContent = 'Incorrect PIN. Try again.';
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    submitBtn.onclick = attemptUnlock;
+    cancelBtn.onclick = close;
+    input.onkeydown = function(e) { if (e.key === 'Enter') { e.preventDefault(); attemptUnlock(); } };
+    modal.onclick = function(e) { if (e.target === modal) close(); };
   }
 
   bindRepoSafeLinks();
@@ -9503,7 +9664,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     // 4. Deterministic Growth Modeling (CAGR)
     calculateProjectedVolume: function(baseVolume, baseYear, designYear, growthRate) {
-      const t = designYear - baseYear;
+      const t = Math.max(0, designYear - baseYear);
       const projected = baseVolume * Math.pow(1 + (growthRate / 100), t);
       return Math.ceil(projected);
     },
@@ -9658,7 +9819,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       );
 
       const baseSpeedSafe = Math.max(1, Number(baseSpeed) || 1);
-      const speedReductionFactor = adjustedFFS / baseSpeedSafe;
+      // HCM-aligned FFS capacity adjustment.
+      // A 1:1 linear ratio (adjustedFFS / baseSpeed) is incorrect: it would imply
+      // a 40 km/h road has half the throughput of an 80 km/h road. In practice,
+      // vehicles at lower speeds travel closer together, preserving throughput.
+      // HCM 6th Ed. (Exhibit 15-2) shows capacity falls only ~3-4% per 10 km/h
+      // drop in FFS. We apply a dampened factor where the maximum capacity penalty
+      // is capped at 20% regardless of how low the adjusted FFS falls.
+      // Formula: factor = 1 - 0.8 * max(0, (base - adjusted) / base)
+      // This limits the linear speed penalty to 20% at zero FFS, matching HCM guidance.
+      const rawLinearRatio = adjustedFFS / baseSpeedSafe;
+      const speedReductionFactor = Math.max(0.80, rawLinearRatio);
       let operationalCapacity = theoreticalRouteCapacity * speedReductionFactor;
       operationalCapacity *= Number(this.config.environmentalFactor) || 1;
 
@@ -9678,7 +9849,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       }
 
       const demandPCE = this.calculatePCEVolume(vehicleMix, grade);
-      const safeCapacity = Math.max(1, bottleneckCapacity);
+
+      // Convert bottleneckCapacity from mixed vph → PCE/h so the V/C ratio is
+      // dimensionally consistent. calculateIntersectionAbsorption() returns mixed
+      // vph; calculatePCEVolume() returns pc/h. Dividing PCE demand by a mixed-vph
+      // capacity inflates the V/C ratio. Fix: scale the capacity by the same
+      // fleet PCE factor (demandPCE / rawVehicles).
+      const rawVehicles = Object.values(vehicleMix).reduce((s, v) => s + (Number(v) || 0), 0);
+      const pceFactor = rawVehicles > 0 ? demandPCE / rawVehicles : 1;
+      const bottleneckCapacityPCE = bottleneckCapacity * pceFactor;
+
+      const safeCapacity = Math.max(1, bottleneckCapacityPCE);
       const vcRatio = demandPCE / safeCapacity;
       const breakdownRisk = vcRatio > this.config.targetMaxVC ? 'CRITICAL' : (vcRatio > 0.75 ? 'ELEVATED' : 'STABLE');
       const estimatedOperatingSpeed = vcRatio > this.config.targetMaxVC ? adjustedFFS * 0.4 : adjustedFFS;
@@ -9686,11 +9867,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
       return {
         theoreticalBase: theoreticalRouteCapacity,
-        operationalCapacity: Math.floor(safeCapacity),
+        operationalCapacity: Math.floor(bottleneckCapacity),        // mixed vph — infrastructure unit
         demandPCE: Math.floor(demandPCE),
-        volumeToCapacityRatio: Number(vcRatio.toFixed(3)),
+        volumeToCapacityRatio: Number(vcRatio.toFixed(3)),          // PCE/h ÷ PCE/h — dimensionally consistent
         flowBreakdownRisk: breakdownRisk,
-        recommendedMaxDemand: Math.floor(safeCapacity * this.config.targetMaxVC),
+        recommendedMaxDemand: Math.floor(bottleneckCapacity * this.config.targetMaxVC), // mixed vph threshold
         bottleneckConstrained: bottleneckActive,
         vehicleHoursDelay: Number(delayHours.toFixed(2))
       };
@@ -9705,7 +9886,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   const IPSWICH_CONSTANTS = {
     CAPACITY_FLOOR: 500,
-    PED_SPEED_MS: 1.5,
+    PED_SPEED_MS: 1.2,
     DELAY_SIG_CROSSING_S: 55,
     DELAY_UNSIG_CROSSING_S: 15,
     QUEUE_MA_SCALAR: 1.2,
@@ -10979,7 +11160,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (t.includes('vadt') || t.includes('aadt') || t.includes('predicted')) return 'Projected volume = base volume * (1 + growth rate)^years';
     if (t.includes('time')) return 'Time = distance / speed';
     if (t.includes('distance') || t.includes('length')) return 'Distance-based result = speed * time or queue vehicles * spacing';
-    if (t.includes('capacity') || t.includes('dv')) return 'Capacity (DV) = max(500, factor * volume / lanes)';
+    if (t.includes('capacity') || t.includes('dv')) return 'Capacity (DV) = base class capacity × terrain factor × lane-width factor × lateral-clearance factor × HV/RT factor, floor 500 vph/lane';
     if (t.includes('peak')) return 'Peak value = max(values across AM, OP, PM, EV or hourly profile)';
     if (t.includes('hour') || t.includes('profile')) return 'Hourly value = DB measured profile (if ≥6 non-zero hours stored) scaled to daily total; otherwise Austroads diurnal template (Brisbane urban arterial: peak 8–9am / 5–6pm)';
     if (t.includes('ratio') || t.includes('%') || t.includes('percent')) return 'Ratio (%) = part / total * 100';
@@ -11027,7 +11208,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       pedcrossingdelay: 'Crossing delay = controlled crossings*delay + uncontrolled crossings*delay',
       pedaddeddelaysec: 'Added delay (s) = detour walk + crossing delay - existing walk',
       pedaddeddelaymin: 'Added delay (min) = added delay (s) / 60',
-      kpidv: 'DV = max(DV_D1, DV_D2)',
+      kpidv: 'DV = max(DV_D1, DV_D2), using Austroads adjusted per-lane capacity',
       kpid1peakqueue: 'D1 Peak Queue (2m) = max(D1 q2 across AM/OP/PM/EV)',
       kpid2peakqueue: 'D2 Peak Queue (2m) = max(D2 q2 across AM/OP/PM/EV)',
       kpislrfpeak: 'SLRF Peak = max((D1 + D2)/DV) when both directions are single-lane',
@@ -12574,6 +12755,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
       site.d1_direction_label = (baseGazGeneric && finalGazLabel) ? `${baseGazLabel} (${finalGazLabel})` : baseGazLabel;
       site.d2_direction_label = (baseAgGeneric && finalAgLabel) ? `${baseAgLabel} (${finalAgLabel})` : baseAgLabel;
+
+      // Write corrected compass labels back so the arrow display block reads fixed values
+      if (finalGazLabel) site.direction_descriptions['GAZETTAL'] = finalGazLabel;
+      if (finalAgLabel)  site.direction_descriptions['AGAINST GAZETTAL'] = finalAgLabel;
     });
 
     return sites;
@@ -14072,7 +14257,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const yearRangeEl = document.getElementById('printYearRange');
     const baseYearVal = Number(document.getElementById('baseYear')?.value);
-    const openingYearVal = Number(document.getElementById('openingYear')?.value);
+    const openingYearVal = Number(document.getElementById('macroOpeningYear')?.value);
     const yearRangeText = Number.isFinite(baseYearVal) && Number.isFinite(openingYearVal)
       ? `${Math.round(baseYearVal)} -> ${Math.round(openingYearVal)}`
       : '-';
@@ -15104,8 +15289,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return raw === 2 ? 2 : 1;
   }
 
+  function isContraflowMode() {
+    const el = document.getElementById('laneClosureCount');
+    return el ? el.value === 'contraflow' : false;
+  }
+
   function getEffectiveOpenLanes(totalLanes) {
     const lanes = Math.max(1, Math.round(Number(totalLanes) || 1));
+    // Contraflow: both directions reduced to 1 lane each
+    if (isContraflowMode()) return 1;
     if (lanes <= 1) return 1;
     if (lanes === 2) return 1;
     const closureCount = getSelectedLaneClosureCount();
@@ -15114,6 +15306,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   }
 
   function getLaneClosureLabel() {
+    if (isContraflowMode()) return 'Contraflow (1 lane each direction)';
     return getSelectedLaneClosureCount() >= 2 ? 'Two Lane Closure' : 'Single Lane Closure';
   }
 
@@ -15134,6 +15327,16 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       twoLaneOption.disabled = !allowTwo;
       twoLaneOption.textContent = allowTwo ? 'Two Lane Closure' : 'Two Lane Closure (requires >3 lanes)';
       if (!allowTwo && Number(selectEl.value) === 2) selectEl.value = '1';
+    }
+
+    const contraflowOption = selectEl.querySelector('option[value="contraflow"]');
+    if (contraflowOption) {
+      const allowContraflow = d1 >= 2 && d2 >= 2;
+      contraflowOption.disabled = !allowContraflow;
+      contraflowOption.textContent = allowContraflow
+        ? 'Contraflow (1 lane each direction)'
+        : 'Contraflow (requires ≥2 lanes each direction)';
+      if (!allowContraflow && selectEl.value === 'contraflow') selectEl.value = '1';
     }
   }
 
@@ -15220,13 +15423,77 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return null;
   }
 
+  const AUSTROADS_TERRAIN_CAPACITY_FACTORS = {
+    flat: 1.0,
+    rolling: 0.94,
+    mountainous: 0.88
+  };
+
+  function getAustroadsLaneWidthFactor() {
+    const laneWidth = Number(document.getElementById('laneWidth')?.value);
+    if (!Number.isFinite(laneWidth) || laneWidth <= 0) return 1.0;
+    if (laneWidth >= 3.5) return 1.0;
+    if (laneWidth >= 3.3) return 0.97;
+    if (laneWidth >= 3.1) return 0.93;
+    return 0.88;
+  }
+
+  function getAustroadsLateralClearanceFactor() {
+    const clearance = Number(document.getElementById('lateralOffset')?.value);
+    if (!Number.isFinite(clearance) || clearance < 0) return 1.0;
+    if (clearance >= 1.5) return 1.0;
+    if (clearance >= 1.0) return 0.97;
+    if (clearance >= 0.5) return 0.94;
+    return 0.90;
+  }
+
+  function getAustroadsCapacityProfile(direction, roadCapClass) {
+    const baseCapacity = TMRCalculator.calculateCapacity(roadCapClass);
+    const terrain = String(txt('macroTerrainType') || 'flat').toLowerCase();
+    const laneWidthFactor = getAustroadsLaneWidthFactor();
+    const lateralFactor = getAustroadsLateralClearanceFactor();
+
+    // Austroads/HCM PCE values already capture the full terrain effect on
+    // heavy-vehicle operations.  A separate terrain factor is NOT applied
+    // because that would double-count the terrain penalty.  The terrain
+    // influence is embedded in the escalating E_T / E_R values below.
+    const eqHv = terrain === 'mountainous' ? 4.0 : (terrain === 'rolling' ? 3.0 : 2.0);
+    const eqRt = terrain === 'mountainous' ? 7.0 : (terrain === 'rolling' ? 5.0 : 3.0);
+
+    const hvPct = Math.max(0, Math.min(1, getDirectionalPercentage(direction, 'HV')));
+    const rtPct = txt('RTR').toUpperCase() === 'YES'
+      ? Math.max(0, Math.min(1, getDirectionalPercentage(direction, 'RT')))
+      : 0;
+
+    const hvFactorDenominator = 1 + (hvPct * (eqHv - 1)) + (rtPct * (eqRt - 1));
+    const hvFactor = hvFactorDenominator > 0 ? (1 / hvFactorDenominator) : 1.0;
+
+    const adjustedCapacity = Math.max(
+      500,
+      Math.round(baseCapacity * laneWidthFactor * lateralFactor * hvFactor)
+    );
+
+    return {
+      baseCapacity,
+      terrain,
+      laneWidthFactor,
+      lateralFactor,
+      hvPct,
+      rtPct,
+      eqHv,
+      eqRt,
+      hvFactor,
+      adjustedCapacity
+    };
+  }
+
   function calculateDV(direction, directionalDaily, site, totalProjectedAadt) {
-    // Returns physical per-lane capacity (vph/lane) for the V/C ratio denominator.
-    // Capacity is defined by road infrastructure classification — NOT by traffic demand.
-    // The road class is selected by the user in the "Road Classification (Capacity)" dropdown.
+    // Austroads/TMR practical per-lane capacity for the V/C denominator.
+    // Base lane capacity is adjusted for terrain, lane width, lateral clearance,
+    // and the adopted heavy-vehicle / road-train mix, with a floor of 500 vph/lane.
     const roadCapClassEl = document.getElementById('roadCapacityClass');
     const roadCapClass = roadCapClassEl ? (roadCapClassEl.value || 'arterial') : 'arterial';
-    return TMRCalculator.calculateCapacity(roadCapClass);
+    return getAustroadsCapacityProfile(direction, roadCapClass).adjustedCapacity;
   }
 
   // --- SOURCE-AWARE PEAK/OFF-PEAK CALCULATION ENGINE ---
@@ -15478,7 +15745,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     else if (value > 0.60) colorClass = 'vcr-los-b';
 
     const thresholds = { 'vcr-los-a': '≤0.60', 'vcr-los-b': '≤0.70', 'vcr-los-c': '≤0.80', 'vcr-los-d': '≤0.90', 'vcr-los-e': '≤1.00', 'vcr-los-f': '>1.00' };
-    return `<span class="vcr-badge ${colorClass}">${value.toFixed(2)} ${losLabel(value)} <span style="opacity:0.65;font-size:0.88em;">${thresholds[colorClass]}</span></span>`;
+    return `<span class="vcr-badge ${colorClass}">${value.toFixed(2)} ${losLabel(value)} <span style="font-size:0.88em;">${thresholds[colorClass]}</span></span>`;
   }
 
   function setVcrCell(td, value){
@@ -15490,10 +15757,51 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   function setVcrLosCell(td, value, customFormula){
     td.innerHTML = `
       <div>${formatVCR(value)}</div>
-      <div class="formula-inline">${customFormula || 'Formula: VCR = hourly volume per lane / design capacity'}</div>
+      <div class="formula-inline">${customFormula || 'VCR = current scenario hourly volume / available capacity'}</div>
     `;
     td.style.fontWeight = '700';
     td.style.background = '#ffffff';
+  }
+
+  function resolveFormulaForPeriod(formulaSpec, key) {
+    if (!formulaSpec) return '';
+    if (typeof formulaSpec === 'string') return formulaSpec;
+    return String(formulaSpec[key] || '');
+  }
+
+  function formatFormulaNumber(value, decimals = 0) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '0';
+    return n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals });
+  }
+
+  function buildCapacityStepFormula(capacityProfile, lanes) {
+    if (!capacityProfile) return 'DV = base capacity × lane-width × lateral-clearance × f<sub>HV</sub>';
+    const laneCount = Math.max(1, Number(lanes) || 1);
+    const base = Number(capacityProfile.baseCapacity) || 0;
+    const laneWidthFactor = Number(capacityProfile.laneWidthFactor) || 1;
+    const lateralFactor = Number(capacityProfile.lateralFactor) || 1;
+    const hvFactor = Number(capacityProfile.hvFactor) || 1;
+    const adjusted = Number(capacityProfile.adjustedCapacity) || 0;
+    // Show HV/RT factor at 4 dp so the displayed arithmetic is verifiable
+    return `DV = ${formatFormulaNumber(base)} × ${laneWidthFactor.toFixed(2)} × ${lateralFactor.toFixed(2)} × ${hvFactor.toFixed(4)} = ${formatFormulaNumber(adjusted)} vph/lane; directional = ${formatFormulaNumber(adjusted)} × ${laneCount} = ${formatFormulaNumber(adjusted * laneCount)} vph`;
+  }
+
+  function buildBaseVcrStep(hourlyTotal, lanes, dv, result) {
+    if (!(Number.isFinite(dv) && dv > 0)) return 'Base VCR = (directional hourly volume / lanes) / DV';
+    const laneCount = Math.max(1, Number(lanes) || 1);
+    return `Base VCR = (${formatFormulaNumber(hourlyTotal, 1)} / ${laneCount}) / ${formatFormulaNumber(dv)} = ${Number.isFinite(result) ? result.toFixed(2) : 'N/A'}`;
+  }
+
+  function buildLaneClosureVcrStep(label, hourlyTotal, openLanes, dv, result) {
+    if (!(Number.isFinite(dv) && dv > 0)) return `${label} VCR = (directional hourly volume / open lanes) / DV`;
+    const availableLanes = Math.max(1, Number(openLanes) || 1);
+    return `${label} VCR = (${formatFormulaNumber(hourlyTotal, 1)} / ${availableLanes}) / ${formatFormulaNumber(dv)} = ${Number.isFinite(result) ? result.toFixed(2) : 'N/A'}`;
+  }
+
+  function buildSlrfVcrStep(d1HourlyTotal, d2HourlyTotal, sharedDv, result) {
+    if (!(Number.isFinite(sharedDv) && sharedDv > 0)) return 'SLRF VCR = (D1 hourly volume + D2 hourly volume) / shared controlling capacity';
+    return `SLRF VCR = (${formatFormulaNumber(d1HourlyTotal, 1)} + ${formatFormulaNumber(d2HourlyTotal, 1)}) / ${formatFormulaNumber(sharedDv)} = ${Number.isFinite(result) ? result.toFixed(2) : 'N/A'}`;
   }
 
   function updateIntersectionQueueCapacityCalculator() {
@@ -17001,6 +17309,768 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     });
   }
 
+  function copyTgsTiaSheet(button, options = {}) {
+    const escapeHtml = (value) => String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    const cleanText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+    const getValue = (id) => {
+      const el = document.getElementById(id);
+      if (!el) return '';
+      if (typeof el.value === 'string' && el.value.trim()) return cleanText(el.value);
+      return cleanText(el.textContent || '');
+    };
+
+    const getNumber = (id) => {
+      const raw = getValue(id);
+      const match = raw.match(/-?\d+(?:,\d{3})*(?:\.\d+)?/);
+      if (!match) return null;
+      const parsed = Number(match[0].replace(/,/g, ''));
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const cloneTableForTgs = (tableId) => {
+      const table = document.getElementById(tableId);
+      if (!table) return '';
+      const losPalette = {
+        'vcr-los-a': { background: '#2e7d32', color: '#ffffff', border: '#1b5e20' },
+        'vcr-los-b': { background: '#8bc34a', color: '#111827', border: '#689f38' },
+        'vcr-los-c': { background: '#ffeb3b', color: '#111827', border: '#f9a825' },
+        'vcr-los-d': { background: '#ffb300', color: '#111827', border: '#ef6c00' },
+        'vcr-los-e': { background: '#f57c00', color: '#ffffff', border: '#d84315' },
+        'vcr-los-f': { background: '#c62828', color: '#ffffff', border: '#8e0000' }
+      };
+      const clone = table.cloneNode(true);
+      clone.removeAttribute('id');
+      clone.querySelectorAll('.formula-inline, .report-remove-x, .report-remove-part-btn').forEach((el) => el.remove());
+      clone.querySelectorAll('th, td').forEach((cell) => {
+        cell.style.padding = '8px 10px';
+        cell.style.border = '1.5px solid #64748b';
+        cell.style.fontSize = '12px';
+        cell.style.fontWeight = '600';
+        cell.style.verticalAlign = 'middle';
+        cell.style.backgroundColor = '#ffffff';
+        cell.style.color = '#000000';
+      });
+      clone.querySelectorAll('thead').forEach((head) => {
+        head.style.display = 'table-header-group';
+        head.style.visibility = 'visible';
+        head.style.pageBreakInside = 'avoid';
+      });
+      clone.querySelectorAll('thead th').forEach((cell) => {
+        cell.style.background = '#ffffff';
+        cell.style.backgroundColor = '#ffffff';
+        cell.style.color = '#000000';
+        cell.style.fontWeight = '900';
+        cell.style.display = 'table-cell';
+        cell.style.visibility = 'visible';
+        cell.style.textAlign = 'center';
+        cell.style.borderBottom = '2px solid #000000';
+        cell.style.borderTop = '1.5px solid #64748b';
+        cell.style.opacity = '1';
+        cell.style.fontSize = '13px';
+      });
+      clone.querySelectorAll('tbody th, .rowhead').forEach((cell) => {
+        cell.style.fontWeight = '900';
+        cell.style.color = '#000000';
+        cell.style.backgroundColor = '#ffffff';
+        cell.style.fontSize = '12px';
+        cell.style.textAlign = 'center';
+      });
+      clone.querySelectorAll('tbody td').forEach((cell) => {
+        cell.style.backgroundColor = '#ffffff';
+        cell.style.fontWeight = '700';
+        cell.style.color = '#000000';
+      });
+      clone.querySelectorAll('.vcr-badge').forEach((badge) => {
+        badge.style.display = 'inline-flex';
+        badge.style.alignItems = 'center';
+        badge.style.justifyContent = 'center';
+        badge.style.gap = '4px';
+        badge.style.padding = '5px 8px';
+        badge.style.borderRadius = '999px';
+        badge.style.fontWeight = '800';
+        badge.style.fontSize = '10px';
+        badge.style.letterSpacing = '0.01em';
+        badge.style.lineHeight = '1.15';
+
+        const losClass = Array.from(badge.classList).find((className) => losPalette[className]);
+        const palette = losClass ? losPalette[losClass] : null;
+        if (palette) {
+          badge.style.backgroundColor = palette.background;
+          badge.style.color = palette.color;
+          badge.style.border = `1px solid ${palette.border}`;
+        }
+
+        badge.querySelectorAll('span').forEach((child) => {
+          child.style.color = 'inherit';
+          child.style.opacity = '1';
+        });
+      });
+      clone.style.width = '100%';
+      clone.style.borderCollapse = 'collapse';
+      clone.style.tableLayout = 'auto';
+      clone.style.marginBottom = '10px';
+      clone.style.pageBreakInside = 'avoid';
+      clone.style.backgroundColor = '#ffffff';
+      return clone.outerHTML;
+    };
+
+    const title = (typeof getReportAddressForPrint === 'function'
+      ? getReportAddressForPrint()
+      : getValue('printSiteName')) || 'Traffic Impact Assessment';
+    const siteId = getValue('macroSiteId') || getValue('printCounterId') || '-';
+    const baseYear = getValue('baseYear') || String(new Date().getFullYear());
+    const targetYear = getValue('macroOpeningYear') || baseYear;
+    const baseYearNum = Number(baseYear);
+    const targetYearNum = Number(targetYear);
+    const yearDelta = Number.isFinite(baseYearNum) && Number.isFinite(targetYearNum)
+      ? Math.max(0, targetYearNum - baseYearNum)
+      : '-';
+    const growthRate = getValue('macroGrowthRate') || '0';
+    const hvPercent = getValue('HVP') || '-';
+    const d1Lanes = getValue('D1_Lanes') || '1';
+    const d2Lanes = getValue('D2_Lanes') || '1';
+    const laneClosureMode = (typeof getLaneClosureLabel === 'function' ? getLaneClosureLabel() : getValue('laneClosureCount')) || '-';
+
+    const worstVcr = getNumber('kpiWorstVcr') ?? getNumber('vcrResult');
+    const worstVcrText = Number.isFinite(worstVcr) ? worstVcr.toFixed(2) : '-';
+    const worstLosText = Number.isFinite(worstVcr) && typeof losLabel === 'function' ? losLabel(worstVcr) : '-';
+    const queuePeak = getNumber('queue-result') ?? getNumber('kpiPeakQueue');
+    const queuePeakText = Number.isFinite(queuePeak) ? `${Math.round(queuePeak).toLocaleString()} m` : '-';
+    const generatedAt = new Date().toLocaleString('en-AU', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const groupedD2Html = cloneTableForTgs('groupedTableD2');
+    const groupedD1Html = cloneTableForTgs('groupedTableD1');
+    const queueD2Html = cloneTableForTgs('queueGroupedTableD2');
+    const queueD1Html = cloneTableForTgs('queueGroupedTableD1');
+    const vcrD2Html = cloneTableForTgs('vcrGroupedTableD2');
+    const vcrD1Html = cloneTableForTgs('vcrGroupedTableD1');
+    const vcrRiskText = getValue('vcrRiskBadge') || '-';
+    const queueRiskText = getValue('queueRiskBadge') || '-';
+
+    const html = `
+<div style="font-family: Calibri, 'Segoe UI', Tahoma, Arial, sans-serif; color:#111827; border:2px solid #334155; padding:14px; background:#eef1f6; max-width:1280px; width:100%; box-sizing:border-box;">
+  <div style="font-size:11px; color:#1e293b; font-weight:700; text-align:right; margin-bottom:8px;">Generated ${escapeHtml(generatedAt)}</div>
+
+  <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:10px; margin-bottom:10px;">
+    <table style="width:100%; border-collapse:collapse; table-layout:fixed; background:#ffffff;">
+      <tr>
+        <th colspan="5" style="text-align:left; background:#ffffff; color:#000000; border:1.5px solid #64748b; border-bottom:2px solid #000000; padding:10px 12px; font-size:13px; font-weight:900; letter-spacing:0.01em;">Count Location: ${escapeHtml(title)} - Site ${escapeHtml(siteId)}</th>
+      </tr>
+      <tr>
+        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#ffffff; color:#000000; font-weight:900; text-align:center;">Period</th>
+        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#ffffff; color:#000000; font-weight:900; text-align:center;">From</th>
+        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#ffffff; color:#000000; font-weight:900; text-align:center;">To</th>
+        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#ffffff; color:#000000; font-weight:900; text-align:center;">Hrs</th>
+        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#ffffff; color:#000000; font-weight:900; text-align:center;">Notes</th>
+      </tr>
+      <tr><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; text-align:center; background:#ffffff;">AM</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">07:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">09:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">2</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">Morning peak</td></tr>
+      <tr><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; text-align:center; background:#ffffff;">OP</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">09:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">16:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">7</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">Off-peak day</td></tr>
+      <tr><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; text-align:center; background:#ffffff;">PM</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">16:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">18:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">2</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">Evening peak</td></tr>
+      <tr><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; text-align:center; background:#ffffff;">EV</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">18:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">07:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">13</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">Night/off-peak</td></tr>
+    </table>
+
+    <table style="width:100%; border-collapse:collapse; table-layout:fixed; background:#ffffff;">
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; border-bottom:2px solid #000000; padding:8px 10px; font-weight:900;">Year of Traffic Count</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(baseYear)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Current Year</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(targetYear)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Number of Years</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(yearDelta)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Growth Rate (% p.a.)</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(growthRate)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">HV %</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(hvPercent)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Lanes Direction 1</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(d1Lanes)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Lanes Direction 2</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(d2Lanes)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Worst VCR / LOS</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(worstVcrText)} (${escapeHtml(worstLosText)})</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Peak Queue</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(queuePeakText)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#ffffff; color:#000000; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Work VCR Assumption</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(laneClosureMode)}</td></tr>
+    </table>
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:10px;">
+    <div style="border:1.5px solid #475569; border-top:4px solid #1e293b; padding:10px; background:#ffffff;">
+      <div style="font-weight:900; font-size:13px; margin-bottom:8px; color:#0f172a; letter-spacing:0.01em;">Direction 2, Against Gazettal</div>
+      <div style="font-size:11.5px; font-weight:900; margin-bottom:5px; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #475569; text-transform:uppercase; letter-spacing:0.05em;">Grouped Directional Summary</div>
+      ${groupedD2Html}
+      <div style="font-size:11.5px; font-weight:900; margin:8px 0 5px 0; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #475569; text-transform:uppercase; letter-spacing:0.05em;">Queue Length Estimation</div>
+      ${queueD2Html}
+      <div style="font-size:11.5px; font-weight:900; margin:8px 0 5px 0; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #475569; text-transform:uppercase; letter-spacing:0.05em;">VCR / LOS</div>
+      ${vcrD2Html}
+    </div>
+
+    <div style="border:1.5px solid #475569; border-top:4px solid #1e293b; padding:10px; background:#ffffff;">
+      <div style="font-weight:900; font-size:13px; margin-bottom:8px; color:#0f172a; letter-spacing:0.01em;">Direction 1, Gazettal</div>
+      <div style="font-size:11.5px; font-weight:900; margin-bottom:5px; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #475569; text-transform:uppercase; letter-spacing:0.05em;">Grouped Directional Summary</div>
+      ${groupedD1Html}
+      <div style="font-size:11.5px; font-weight:900; margin:8px 0 5px 0; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #475569; text-transform:uppercase; letter-spacing:0.05em;">Queue Length Estimation</div>
+      ${queueD1Html}
+      <div style="font-size:11.5px; font-weight:900; margin:8px 0 5px 0; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #475569; text-transform:uppercase; letter-spacing:0.05em;">VCR / LOS</div>
+      ${vcrD1Html}
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns: minmax(0, 3fr) minmax(220px, 1fr); gap:12px; margin-bottom:8px; align-items:stretch;">
+    <div style="border:1.5px solid #475569; border-top:4px solid #1e293b; padding:10px; background:#ffffff;">
+      <div style="font-weight:900; font-size:13px; margin-bottom:8px; color:#0f172a; padding-bottom:4px; border-bottom:2px solid #334155;">Notes &amp; Application Guidance</div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px 10px;">
+        <div style="border:1px solid #64748b; border-left:3px solid #334155; padding:7px 9px; background:#f1f5f9;"><div style="font-weight:900; color:#0f172a; margin-bottom:4px; font-size:11.5px;">Use Of Output</div><div style="color:#111827; font-size:11px; line-height:1.45;">Prepared from live TIA calculator inputs and intended for direct placement in TGS / TMP layout sheets.</div></div>
+        <div style="border:1px solid #64748b; border-left:3px solid #334155; padding:7px 9px; background:#f1f5f9;"><div style="font-weight:900; color:#0f172a; margin-bottom:4px; font-size:11.5px;">Worst Capacity Condition</div><div style="color:#111827; font-size:11px; line-height:1.45;">Current worst case is ${escapeHtml(worstVcrText)} (${escapeHtml(worstLosText)}). ${escapeHtml(vcrRiskText)}.</div></div>
+        <div style="border:1px solid #64748b; border-left:3px solid #334155; padding:7px 9px; background:#f1f5f9;"><div style="font-weight:900; color:#0f172a; margin-bottom:4px; font-size:11.5px;">Queue Interpretation</div><div style="color:#111827; font-size:11px; line-height:1.45;">Adopted peak queue is ${escapeHtml(queuePeakText)}. ${escapeHtml(queueRiskText)}.</div></div>
+        <div style="border:1px solid #64748b; border-left:3px solid #334155; padding:7px 9px; background:#f1f5f9;"><div style="font-weight:900; color:#0f172a; margin-bottom:4px; font-size:11.5px;">Closure Assumption</div><div style="color:#111827; font-size:11px; line-height:1.45;">Assessment reflects D1 ${escapeHtml(d1Lanes)} lane(s), D2 ${escapeHtml(d2Lanes)} lane(s), under ${escapeHtml(laneClosureMode)} conditions.</div></div>
+        <div style="border:1px solid #64748b; border-left:3px solid #334155; padding:7px 9px; background:#f1f5f9;"><div style="font-weight:900; color:#0f172a; margin-bottom:4px; font-size:11.5px;">Assessment Periods</div><div style="color:#111827; font-size:11px; line-height:1.45;">AM 07:00-09:00, OP 09:00-16:00, PM 16:00-18:00, EV 18:00-07:00. Review staging against the highest-risk period before issue.</div></div>
+        <div style="border:1px solid #64748b; border-left:3px solid #334155; padding:7px 9px; background:#f1f5f9;"><div style="font-weight:900; color:#0f172a; margin-bottom:4px; font-size:11.5px;">Design Check</div><div style="color:#111827; font-size:11px; line-height:1.45;">Use LOS and queue outputs together. Where LOS E/F or extended queues remain, revise staging, timing, or lane management before finalising the sheet.</div></div>
+      </div>
+    </div>
+
+    <div style="border:1.5px solid #475569; border-top:4px solid #1e293b; padding:10px; background:#ffffff; align-self:start;">
+        <div style="font-weight:900; font-size:12px; margin-bottom:6px; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #334155;">LOS Legend</div>
+        <div style="font-size:11px; border:1px solid #1b5e20; margin-bottom:4px; background:#2e7d32; color:#ffffff; padding:4px 8px; font-weight:800;">LOS A (VCR &lt;= 0.60)</div>
+        <div style="font-size:11px; border:1px solid #689f38; margin-bottom:4px; background:#8bc34a; color:#111827; padding:4px 8px; font-weight:800;">LOS B (0.60 &lt; VCR &lt;= 0.70)</div>
+        <div style="font-size:11px; border:1px solid #f9a825; margin-bottom:4px; background:#ffeb3b; color:#111827; padding:4px 8px; font-weight:800;">LOS C (0.70 &lt; VCR &lt;= 0.80)</div>
+        <div style="font-size:11px; border:1px solid #ef6c00; margin-bottom:4px; background:#ffb300; color:#111827; padding:4px 8px; font-weight:800;">LOS D (0.80 &lt; VCR &lt;= 0.90)</div>
+        <div style="font-size:11px; border:1px solid #d84315; margin-bottom:4px; background:#f57c00; color:#ffffff; padding:4px 8px; font-weight:800;">LOS E (0.90 &lt; VCR &lt;= 1.00)</div>
+        <div style="font-size:11px; border:1px solid #8e0000; background:#c62828; color:#ffffff; padding:4px 8px; font-weight:800;">LOS F (VCR &gt; 1.00)</div>
+    </div>
+  </div>
+</div>`;
+    window.lastTgsTiaSheetHtml = html;
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    window.lastTgsTiaSheetText = cleanText(temp.textContent || '');
+
+    const previewWrap = document.getElementById('tgsTiaPreviewWrap');
+    const previewHost = document.getElementById('tgsTiaPreviewHost');
+    const previewStatus = document.getElementById('tgsTiaPreviewStatus');
+    const autoRefresh = !!(options && options.autoRefresh);
+
+    if (previewHost) {
+      previewHost.innerHTML = html;
+    }
+
+    setTgsPreviewEditable(Boolean(window.tgsTiaEditMode));
+
+    if (previewWrap) {
+      previewWrap.style.display = 'block';
+    }
+    if (previewStatus) {
+      if (autoRefresh) {
+        previewStatus.textContent = `Preview auto-updated at ${new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}.`;
+        previewStatus.style.color = '#0d47a1';
+      } else {
+        previewStatus.textContent = 'Preview generated. Review below, then click Copy Preview to Clipboard.';
+        previewStatus.style.color = '#0f766e';
+      }
+    }
+
+    const original = button ? button.textContent : 'Generate TGS TIA Sheet';
+    if (button && !(options && options.silentButton)) {
+      button.textContent = 'Preview Updated';
+      setTimeout(() => {
+        button.textContent = original;
+      }, 1300);
+    }
+
+    if (!options || !options.noScroll) {
+      if (previewWrap && typeof previewWrap.scrollIntoView === 'function') {
+      previewWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }
+
+  function getCurrentTgsPreviewPayload() {
+    const previewHost = document.getElementById('tgsTiaPreviewHost');
+    const node = previewHost ? previewHost.firstElementChild : null;
+    if (node) {
+      const html = String(node.outerHTML || '');
+      const plainText = String(node.textContent || '').replace(/\s+/g, ' ').trim();
+      return { html, plainText };
+    }
+    return {
+      html: String(window.lastTgsTiaSheetHtml || ''),
+      plainText: String(window.lastTgsTiaSheetText || '')
+    };
+  }
+
+  function setTgsPreviewEditable(enabled) {
+    const previewHost = document.getElementById('tgsTiaPreviewHost');
+    if (!previewHost) return;
+
+    // Table cells, list items, note card body spans, direction/section labels
+    const editableNodes = previewHost.querySelectorAll(
+      'td, th, li, ' +
+      'div[style] > span[style], ' +   // note card headings and body spans
+      'div[style] > span:not([style])' // plain body text spans inside note cards
+    );
+    editableNodes.forEach((node) => {
+      node.setAttribute('contenteditable', enabled ? 'true' : 'false');
+      node.style.outline = enabled ? '1px dashed #f59e0b' : '';
+      node.style.cursor = enabled ? 'text' : '';
+    });
+
+    // Also make the direction/section label divs editable (direct text divs)
+    previewHost.querySelectorAll('div[style]').forEach((div) => {
+      // Only target leaf-like divs that contain text and no block children
+      const hasBlockChild = Array.from(div.children).some((c) =>
+        ['DIV', 'TABLE', 'THEAD', 'TBODY', 'TR', 'UL', 'OL'].includes(c.tagName)
+      );
+      if (!hasBlockChild && div.textContent.trim()) {
+        div.setAttribute('contenteditable', enabled ? 'true' : 'false');
+        div.style.outline = enabled ? '1px dashed #f59e0b' : '';
+        div.style.cursor = enabled ? 'text' : '';
+      }
+    });
+  }
+
+  function toggleTgsTiaEditMode(button) {
+    window.tgsTiaEditMode = !window.tgsTiaEditMode;
+    const enabled = Boolean(window.tgsTiaEditMode);
+    const previewStatus = document.getElementById('tgsTiaPreviewStatus');
+
+    setTgsPreviewEditable(enabled);
+
+    if (button) {
+      button.textContent = enabled ? 'Disable Edit Mode' : 'Enable Edit Mode';
+      button.style.background = enabled ? '#15803d' : '#b45309';
+      button.style.borderColor = enabled ? '#166534' : '#92400e';
+    }
+
+    if (previewStatus) {
+      if (enabled) {
+        previewStatus.textContent = 'Edit mode enabled: values and notes are now editable. Auto-refresh paused.';
+        previewStatus.style.color = '#166534';
+      } else {
+        previewStatus.textContent = 'Edit mode disabled: auto-refresh resumed.';
+        previewStatus.style.color = '#0d47a1';
+      }
+    }
+  }
+
+  function copyTgsTiaSheetPreview(button) {
+    const payload = getCurrentTgsPreviewPayload();
+    const html = String(payload.html || '');
+    const plainText = String(payload.plainText || '');
+    const previewStatus = document.getElementById('tgsTiaPreviewStatus');
+
+    if (!html && !plainText) {
+      if (previewStatus) {
+        previewStatus.textContent = 'Generate preview first, then copy.';
+        previewStatus.style.color = '#b91c1c';
+      }
+      return;
+    }
+
+    const original = button ? button.textContent : 'Copy Preview to Clipboard';
+    const setButtonState = (text) => {
+      if (!button) return;
+      button.textContent = text;
+      setTimeout(() => {
+        button.textContent = original;
+      }, 1300);
+    };
+
+    const fallbackCopyText = () => {
+      const ta = document.createElement('textarea');
+      ta.value = plainText;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    };
+
+    (async () => {
+      try {
+        if (navigator.clipboard && window.ClipboardItem && html) {
+          const payload = {
+            'text/html': new Blob([html], { type: 'text/html' }),
+            'text/plain': new Blob([plainText], { type: 'text/plain' })
+          };
+          await navigator.clipboard.write([new ClipboardItem(payload)]);
+          setButtonState('Copied');
+          if (previewStatus) {
+            previewStatus.textContent = 'Copied preview to clipboard (HTML + text).';
+            previewStatus.style.color = '#0f766e';
+          }
+          return;
+        }
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          await navigator.clipboard.writeText(plainText);
+          setButtonState('Copied (Text)');
+          if (previewStatus) {
+            previewStatus.textContent = 'Copied preview to clipboard (text only).';
+            previewStatus.style.color = '#0f766e';
+          }
+          return;
+        }
+        fallbackCopyText();
+        setButtonState('Copied (Text)');
+        if (previewStatus) {
+          previewStatus.textContent = 'Copied preview to clipboard (text only).';
+          previewStatus.style.color = '#0f766e';
+        }
+      } catch (_err) {
+        try {
+          fallbackCopyText();
+          setButtonState('Copied (Text)');
+          if (previewStatus) {
+            previewStatus.textContent = 'Copied preview to clipboard (text only).';
+            previewStatus.style.color = '#0f766e';
+          }
+        } catch (_innerErr) {
+          setButtonState('Copy Failed');
+          if (previewStatus) {
+            previewStatus.textContent = 'Copy failed. Try again.';
+            previewStatus.style.color = '#b91c1c';
+          }
+        }
+      }
+    })();
+  }
+
+  function ensureHtml2CanvasLoaded() {
+    if (typeof window.html2canvas === 'function') {
+      return Promise.resolve(window.html2canvas);
+    }
+    if (window.__html2canvasLoadingPromise) {
+      return window.__html2canvasLoadingPromise;
+    }
+
+    window.__html2canvasLoadingPromise = new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-lib="html2canvas"]');
+      if (existing) {
+        existing.addEventListener('load', () => resolve(window.html2canvas));
+        existing.addEventListener('error', () => reject(new Error('Failed to load html2canvas.')));
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+      script.async = true;
+      script.setAttribute('data-lib', 'html2canvas');
+      script.onload = () => {
+        if (typeof window.html2canvas === 'function') {
+          resolve(window.html2canvas);
+        } else {
+          reject(new Error('html2canvas loaded but not available on window.'));
+        }
+      };
+      script.onerror = () => reject(new Error('Could not load html2canvas script.'));
+      document.head.appendChild(script);
+    });
+
+    return window.__html2canvasLoadingPromise;
+  }
+
+  function downloadTgsTiaSheetImage(button) {
+    const previewHost = document.getElementById('tgsTiaPreviewHost');
+    const previewStatus = document.getElementById('tgsTiaPreviewStatus');
+
+    if (!previewHost || !previewHost.firstElementChild) {
+      if (previewStatus) {
+        previewStatus.textContent = 'Generate preview first, then download image.';
+        previewStatus.style.color = '#b91c1c';
+      }
+      return;
+    }
+
+    const original = button ? button.textContent : 'Download as Image';
+    const setButtonState = (text, resetDelay = 1300) => {
+      if (!button) return;
+      button.textContent = text;
+      if (resetDelay > 0) {
+        setTimeout(() => {
+          button.textContent = original;
+        }, resetDelay);
+      }
+    };
+
+    (async () => {
+      let captureEl = null;
+      let originalCaptureWidth = '';
+      let originalCaptureMaxWidth = '';
+      let originalCaptureMargin = '';
+      try {
+        setButtonState('Rendering...', 0);
+        if (previewStatus) {
+          previewStatus.textContent = 'Rendering preview image...';
+          previewStatus.style.color = '#0d47a1';
+        }
+
+        const html2canvas = await ensureHtml2CanvasLoaded();
+        captureEl = previewHost.firstElementChild;
+        originalCaptureWidth = captureEl ? captureEl.style.width : '';
+        originalCaptureMaxWidth = captureEl ? captureEl.style.maxWidth : '';
+        originalCaptureMargin = captureEl ? captureEl.style.margin : '';
+
+        // Remove scroll clipping on the host so html2canvas sees the full content
+        const originalHostMaxHeight = previewHost.style.maxHeight;
+        const originalHostOverflow = previewHost.style.overflow;
+        previewHost.style.maxHeight = 'none';
+        previewHost.style.overflow = 'visible';
+
+        // Ensure tables are fully visible and headers have proper styling before capture
+        if (captureEl) {
+          captureEl.style.width = '2200px';
+          captureEl.style.maxWidth = 'none';
+          captureEl.style.margin = '0';
+          captureEl.querySelectorAll('table').forEach((table) => {
+            table.style.breakInside = 'avoid';
+            table.querySelectorAll('thead').forEach((thead) => {
+              thead.style.display = 'table-header-group';
+              thead.style.visibility = 'visible';
+              thead.style.pageBreakInside = 'avoid';
+            });
+            table.querySelectorAll('thead th').forEach((th) => {
+              th.style.display = 'table-cell';
+              th.style.visibility = 'visible';
+              th.style.opacity = '1';
+            });
+          });
+        }
+        
+        const losPalette = {
+          'vcr-los-a': { background: '#2e7d32', color: '#ffffff', border: '#1b5e20' },
+          'vcr-los-b': { background: '#8bc34a', color: '#111827', border: '#689f38' },
+          'vcr-los-c': { background: '#ffeb3b', color: '#111827', border: '#f9a825' },
+          'vcr-los-d': { background: '#ffb300', color: '#111827', border: '#ef6c00' },
+          'vcr-los-e': { background: '#f57c00', color: '#ffffff', border: '#d84315' },
+          'vcr-los-f': { background: '#c62828', color: '#ffffff', border: '#8e0000' }
+        };
+
+        const contentCanvas = await html2canvas(captureEl, {
+          backgroundColor: '#ffffff',
+          scale: 4,
+          useCORS: true,
+          logging: false,
+          allowTaint: true,
+          onclone: (clonedDocument) => {
+            // Ensure bold styling is applied to cloned document
+            clonedDocument.querySelectorAll('thead th').forEach((th) => {
+              th.style.display = 'table-cell';
+              th.style.visibility = 'visible';
+              th.style.opacity = '1';
+              th.style.fontWeight = '900';
+              th.style.backgroundColor = '#ffffff';
+              th.style.color = '#000000';
+              th.style.fontSize = '13px';
+              th.style.borderBottom = '2px solid #000000';
+            });
+            clonedDocument.querySelectorAll('tbody th, .rowhead').forEach((th) => {
+              th.style.fontWeight = '900';
+              th.style.backgroundColor = '#ffffff';
+              th.style.color = '#000000';
+              th.style.fontSize = '12px';
+            });
+            clonedDocument.querySelectorAll('tbody td').forEach((td) => {
+              td.style.fontWeight = '700';
+              td.style.color = '#000000';
+            });
+            clonedDocument.querySelectorAll('.vcr-badge').forEach((badge) => {
+              badge.style.display = 'inline-flex';
+              badge.style.alignItems = 'center';
+              badge.style.justifyContent = 'center';
+              badge.style.gap = '4px';
+              badge.style.padding = '5px 8px';
+              badge.style.borderRadius = '999px';
+              badge.style.fontWeight = '800';
+              badge.style.fontSize = '10px';
+              badge.style.lineHeight = '1.15';
+
+              const losClass = Array.from(badge.classList).find((className) => losPalette[className]);
+              const palette = losClass ? losPalette[losClass] : null;
+              if (palette) {
+                badge.style.backgroundColor = palette.background;
+                badge.style.color = palette.color;
+                badge.style.border = `1px solid ${palette.border}`;
+              }
+
+              badge.querySelectorAll('span, div').forEach((child) => {
+                child.style.color = 'inherit';
+                child.style.opacity = '1';
+              });
+            });
+
+            // Force all text-bearing elements to have explicit visible colors.
+            // This catches anything that only inherits color via CSS classes (not inline styles)
+            // which html2canvas can miss when capturing an isolated subtree.
+            clonedDocument.querySelectorAll('div, p, li, label').forEach((el) => {
+              if (!el.style.color) {
+                el.style.color = '#111827';
+              }
+            });
+
+            // Force caption/label divs inside the two direction panels
+            clonedDocument.querySelectorAll('div[style*="font-weight:800"], div[style*="font-weight: 800"], div[style*="font-weight:700"], div[style*="font-weight: 700"]').forEach((el) => {
+              if (!el.style.color) el.style.color = '#0f172a';
+              el.style.opacity = '1';
+            });
+
+            const clonedRoot = clonedDocument.getElementById('tgsTiaPreviewHost');
+            const clonedSheet = clonedRoot ? clonedRoot.firstElementChild : clonedDocument.body.firstElementChild;
+            if (clonedSheet) {
+              clonedSheet.style.width = '2200px';
+              clonedSheet.style.maxWidth = 'none';
+              clonedSheet.style.margin = '0';
+            }
+            clonedDocument.querySelectorAll('table').forEach((table) => {
+              table.style.backgroundColor = '#ffffff';
+            });
+          }
+        });
+
+        if (captureEl) {
+          captureEl.style.width = originalCaptureWidth;
+          captureEl.style.maxWidth = originalCaptureMaxWidth;
+          captureEl.style.margin = originalCaptureMargin;
+        }
+
+        // Export onto a true A4 landscape canvas.
+        const pageWidth = 3508;
+        const pageHeight = 2480;
+        const margin = 120;
+        const drawWidth = pageWidth - (margin * 2);
+        const drawHeight = pageHeight - (margin * 2);
+
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = pageWidth;
+        exportCanvas.height = pageHeight;
+        const ctx = exportCanvas.getContext('2d');
+        if (!ctx) throw new Error('Canvas context not available');
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pageWidth, pageHeight);
+
+        const scale = Math.min(drawWidth / contentCanvas.width, drawHeight / contentCanvas.height);
+        const targetW = Math.max(1, Math.round(contentCanvas.width * scale));
+        const targetH = Math.max(1, Math.round(contentCanvas.height * scale));
+        const offsetX = Math.round((pageWidth - targetW) / 2);
+        const offsetY = Math.round((pageHeight - targetH) / 2);
+
+        ctx.drawImage(contentCanvas, offsetX, offsetY, targetW, targetH);
+        const dataUrl = exportCanvas.toDataURL('image/png');
+        const safeTitle = String((typeof getReportAddressForPrint === 'function' ? getReportAddressForPrint() : 'tia_sheet') || 'tia_sheet')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '')
+          .slice(0, 64) || 'tia_sheet';
+        const fileName = `${safeTitle}_tgs_sheet.png`;
+
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Restore host scroll container
+        previewHost.style.maxHeight = originalHostMaxHeight;
+        previewHost.style.overflow = originalHostOverflow;
+
+        setButtonState('Downloaded');
+        if (previewStatus) {
+          previewStatus.textContent = `Downloaded image: ${fileName}`;
+          previewStatus.style.color = '#0f766e';
+        }
+      } catch (_err) {
+        if (captureEl) {
+          captureEl.style.width = originalCaptureWidth;
+          captureEl.style.maxWidth = originalCaptureMaxWidth;
+          captureEl.style.margin = originalCaptureMargin;
+        }
+        // Restore host scroll container on error too
+        previewHost.style.maxHeight = originalHostMaxHeight;
+        previewHost.style.overflow = originalHostOverflow;
+        setButtonState('Download Failed');
+        if (previewStatus) {
+          previewStatus.textContent = 'Image download failed. Try again after preview fully loads.';
+          previewStatus.style.color = '#b91c1c';
+        }
+      }
+    })();
+  }
+
+  let tgsPreviewAutoRefreshTimer = null;
+
+  function isTgsPreviewVisible() {
+    const previewWrap = document.getElementById('tgsTiaPreviewWrap');
+    if (!previewWrap) return false;
+    return previewWrap.style.display !== 'none';
+  }
+
+  function scheduleTgsPreviewAutoRefresh(delayMs = 280) {
+    if (!isTgsPreviewVisible()) return;
+    if (window.tgsTiaEditMode) return;
+    if (tgsPreviewAutoRefreshTimer) {
+      clearTimeout(tgsPreviewAutoRefreshTimer);
+      tgsPreviewAutoRefreshTimer = null;
+    }
+    tgsPreviewAutoRefreshTimer = setTimeout(() => {
+      copyTgsTiaSheet(null, { noScroll: true, silentButton: true, autoRefresh: true });
+      tgsPreviewAutoRefreshTimer = null;
+    }, Math.max(120, Number(delayMs) || 280));
+  }
+
+  function setupTgsPreviewAutoRefresh() {
+    if (window.__tgsPreviewAutoRefreshBound) return;
+    window.__tgsPreviewAutoRefreshBound = true;
+
+    const ignoreIfInsidePreview = (target) => {
+      if (!target || !(target instanceof Element)) return false;
+      return !!target.closest('#tgsTiaPreviewWrap');
+    };
+
+    document.addEventListener('input', (event) => {
+      if (ignoreIfInsidePreview(event.target)) return;
+      scheduleTgsPreviewAutoRefresh(320);
+    }, true);
+
+    document.addEventListener('change', (event) => {
+      if (ignoreIfInsidePreview(event.target)) return;
+      scheduleTgsPreviewAutoRefresh(260);
+    }, true);
+
+    const calcBtn = document.getElementById('calcBtn');
+    if (calcBtn) {
+      calcBtn.addEventListener('click', () => {
+        // Calculation updates are batched; delay ensures tables are finished rendering.
+        scheduleTgsPreviewAutoRefresh(900);
+      });
+    }
+
+    const observedOutputIds = [
+      'groupedBodyD1', 'groupedBodyD2',
+      'queueGroupedBodyD1', 'queueGroupedBodyD2',
+      'vcrGroupedBodyD1', 'vcrGroupedBodyD2',
+      'queueRiskBadge', 'vcrRiskBadge',
+      'kpiWorstVcr', 'queue-result'
+    ];
+
+    const observer = new MutationObserver(() => {
+      scheduleTgsPreviewAutoRefresh(220);
+    });
+
+    observedOutputIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      observer.observe(el, {
+        subtree: true,
+        childList: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+    });
+
+    window.__tgsPreviewMutationObserver = observer;
+  }
+
   function setupOptionalFeaturePrintToggles() {
     const toggleButtons = Array.from(document.querySelectorAll('.print-toggle-btn[data-target-card]'));
     if (!toggleButtons.length) return;
@@ -17816,6 +18886,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const dv2 = calculateDV(2, d2Daily, site, projectedTotal);
     const dvDisplay = (dv1 === dv2) ? dv1 : `${dv1} (D1) / ${dv2} (D2)`;
     const maxDv = Math.max(dv1, dv2);
+    const sharedDv = Math.max(1, (dv1 > 0 && dv2 > 0) ? Math.min(dv1, dv2) : maxDv);
     const dv = maxDv;
 
     // Map new architecture outputs directly to existing variables for UI rendering
@@ -17897,14 +18968,18 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     // VCR Array Computations
     const periodKeys = ['AM','OP','PM','EV'];
     const baseD1 = {}, baseD2 = {}, slcD1 = {}, slcD2 = {}, slrf = {};
+    const baseD1Formula = {}, baseD2Formula = {}, slcD1Formula = {}, slcD2Formula = {}, slrfFormula = {};
     const laneClosureLabel = getLaneClosureLabel();
+    const roadCapClass = document.getElementById('roadCapacityClass')?.value || 'arterial';
+    const d1CapacityProfile = getAustroadsCapacityProfile(1, roadCapClass);
+    const d2CapacityProfile = getAustroadsCapacityProfile(2, roadCapClass);
     const d1OpenLanes = getEffectiveOpenLanes(d1Metrics.lanes);
     const d2OpenLanes = getEffectiveOpenLanes(d2Metrics.lanes);
     const d1OpenLaneExpr = d1Metrics.lanes > 1 ? `${d1Metrics.lanes} - ${d1Metrics.lanes - d1OpenLanes}` : '1';
     const d2OpenLaneExpr = d2Metrics.lanes > 1 ? `${d2Metrics.lanes} - ${d2Metrics.lanes - d2OpenLanes}` : '1';
     const selectedClosureCount = getSelectedLaneClosureCount();
-    const d1CloseScenarios = Array.from({ length: Math.max(0, d1Metrics.lanes - 1) }, (_, i) => ({ closureCount: i + 1, openLanes: d1Metrics.lanes - i - 1, values: {} }));
-    const d2CloseScenarios = Array.from({ length: Math.max(0, d2Metrics.lanes - 1) }, (_, i) => ({ closureCount: i + 1, openLanes: d2Metrics.lanes - i - 1, values: {} }));
+    const d1CloseScenarios = Array.from({ length: Math.max(0, d1Metrics.lanes - 1) }, (_, i) => ({ closureCount: i + 1, openLanes: d1Metrics.lanes - i - 1, values: {}, formulas: {} }));
+    const d2CloseScenarios = Array.from({ length: Math.max(0, d2Metrics.lanes - 1) }, (_, i) => ({ closureCount: i + 1, openLanes: d2Metrics.lanes - i - 1, values: {}, formulas: {} }));
     const laneClosureAssumptionNoteEl = document.getElementById('laneClosureAssumptionNote');
     if (laneClosureAssumptionNoteEl) {
       if (d1Metrics.lanes === 1 && d2Metrics.lanes === 1) {
@@ -17914,44 +18989,53 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       }
     }
 
+    setFormulaBelow('kpiDV', `DV = max(DV1, DV2) = max(${Math.round(dv1).toLocaleString()}, ${Math.round(dv2).toLocaleString()}) = ${Math.round(maxDv).toLocaleString()} vph/lane`);
+
     periodKeys.forEach(p => {
       const m1 = d1AdjProfile[p];
       const m2 = d2AdjProfile[p];
+      const d1HourlyTotal = (Number(m1.hourlyPerLane) || 0) * Math.max(1, d1Metrics.lanes);
+      const d2HourlyTotal = (Number(m2.hourlyPerLane) || 0) * Math.max(1, d2Metrics.lanes);
 
       baseD1[p] = TMRCalculator.calculateVCR(m1.hourlyPerLane, dv1);
       baseD2[p] = TMRCalculator.calculateVCR(m2.hourlyPerLane, dv2);
+      baseD1Formula[p] = buildBaseVcrStep(d1HourlyTotal, d1Metrics.lanes, dv1, baseD1[p]);
+      baseD2Formula[p] = buildBaseVcrStep(d2HourlyTotal, d2Metrics.lanes, dv2, baseD2[p]);
 
-      if (sourceUpper === 'TMR' || sourceUpper === 'GOLD COAST') {
-        if (d1Metrics.lanes > 1) {
-          slcD1[p] = (m1.hourlyPerLane * d1Metrics.lanes / d1OpenLanes) / maxDv;
-        } else {
-          slcD1[p] = null;
-        }
-        if (d2Metrics.lanes > 1) {
-          slcD2[p] = (m2.hourlyPerLane * d2Metrics.lanes / d2OpenLanes) / maxDv;
-        } else {
-          slcD2[p] = null;
-        }
+      if (d1Metrics.lanes > 1) {
+        slcD1[p] = (m1.hourlyPerLane * d1Metrics.lanes / d1OpenLanes) / dv1;
+        slcD1Formula[p] = buildLaneClosureVcrStep(`${laneClosureLabel} (${d1OpenLanes} open)`, d1HourlyTotal, d1OpenLanes, dv1, slcD1[p]);
       } else {
-        if (d1Metrics.lanes > 1) slcD1[p] = (m1.hourlyPerLane * d1Metrics.lanes / d1OpenLanes) / dv1;
-        else slcD1[p] = null;
-        
-        if (d2Metrics.lanes > 1) slcD2[p] = (m2.hourlyPerLane * d2Metrics.lanes / d2OpenLanes) / dv2;
-        else slcD2[p] = null;
+        slcD1[p] = null;
+        slcD1Formula[p] = '';
+      }
+
+      if (d2Metrics.lanes > 1) {
+        slcD2[p] = (m2.hourlyPerLane * d2Metrics.lanes / d2OpenLanes) / dv2;
+        slcD2Formula[p] = buildLaneClosureVcrStep(`${laneClosureLabel} (${d2OpenLanes} open)`, d2HourlyTotal, d2OpenLanes, dv2, slcD2[p]);
+      } else {
+        slcD2[p] = null;
+        slcD2Formula[p] = '';
       }
 
       if (oneWayMode) {
         slrf[p] = null;
+        slrfFormula[p] = '';
       } else if (d1Metrics.lanes === 1 && d2Metrics.lanes === 1) {
-        // Use normalized hourly demand for period VCR (not multi-hour bucket total).
-        slrf[p] = ((m1.hourlyPerLane * d1Metrics.lanes) + (m2.hourlyPerLane * d2Metrics.lanes)) / maxDv;
+        slrf[p] = sharedDv > 0 ? (((m1.hourlyPerLane * d1Metrics.lanes) + (m2.hourlyPerLane * d2Metrics.lanes)) / sharedDv) : null;
+        slrfFormula[p] = buildSlrfVcrStep(d1HourlyTotal, d2HourlyTotal, sharedDv, slrf[p]);
       } else {
         slrf[p] = null;
+        slrfFormula[p] = '';
       }
-      // Compute VCR for every possible lane closure count (all scenarios shown in table)
-      const isTmrSrc = sourceUpper === 'TMR' || sourceUpper === 'GOLD COAST';
-      d1CloseScenarios.forEach(sc => { sc.values[p] = (m1.hourlyPerLane * d1Metrics.lanes / sc.openLanes) / (isTmrSrc ? maxDv : dv1); });
-      d2CloseScenarios.forEach(sc => { sc.values[p] = (m2.hourlyPerLane * d2Metrics.lanes / sc.openLanes) / (isTmrSrc ? maxDv : dv2); });
+      d1CloseScenarios.forEach(sc => {
+        sc.values[p] = (m1.hourlyPerLane * d1Metrics.lanes / sc.openLanes) / dv1;
+        sc.formulas[p] = buildLaneClosureVcrStep(`${sc.closureCount} lane${sc.closureCount > 1 ? 's' : ''} closed`, d1HourlyTotal, sc.openLanes, dv1, sc.values[p]);
+      });
+      d2CloseScenarios.forEach(sc => {
+        sc.values[p] = (m2.hourlyPerLane * d2Metrics.lanes / sc.openLanes) / dv2;
+        sc.formulas[p] = buildLaneClosureVcrStep(`${sc.closureCount} lane${sc.closureCount > 1 ? 's' : ''} closed`, d2HourlyTotal, sc.openLanes, dv2, sc.values[p]);
+      });
     });
 
     // Update section headers with intelligent direction labels
@@ -18290,15 +19374,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const d2ScenRows = d2CloseScenarios.map(sc => {
         const scenLabel = sc.closureCount === 1 ? `1 Lane Closed (${sc.openLanes} open)` : `${sc.closureCount} Lanes Closed (${sc.openLanes} open)`;
         const isSel = sc.closureCount === selectedClosureCount;
-        return { label: isSel ? `★ ${scenLabel}` : scenLabel, values: isD2Active ? sc.values : null, formula: `VCR = (hourly/lane × ${d2Metrics.lanes} / ${sc.openLanes}) / DV`, highlighted: isSel };
+        return { label: isSel ? `★ ${scenLabel}` : scenLabel, values: isD2Active ? sc.values : null, formula: sc.formulas, highlighted: isSel };
       });
       const d2FallbackRows = d2CloseScenarios.length === 0 ? [{ label: 'Lane Closure (N/A — 1 lane)', values: null }] : [];
       const rowsD2 = [
-        { label: isD2Active ? `Design Volume (Capacity) * = ${Math.round(dv2).toLocaleString()}` : 'Design Volume (Capacity) *', values: null },
-        { label: 'Base VCR', values: isD2Active ? baseD2 : null, formula: 'Base VCR = (Vol / Lanes) / DV' },
+        { label: isD2Active ? `Design Capacity * = ${Math.round(dv2).toLocaleString()} vph/lane (${Math.round(dv2 * Math.max(1, d2Metrics.lanes)).toLocaleString()} vph directional)<div class="formula-inline">${buildCapacityStepFormula(d2CapacityProfile, d2Metrics.lanes)}</div>` : 'Design Capacity *', values: null },
+        { label: 'Base VCR', values: isD2Active ? baseD2 : null, formula: baseD2Formula },
         ...d2ScenRows,
         ...d2FallbackRows,
-        { label: 'Single Lane Reversible Flow', values: isD2Active ? slrf : null, formula: 'SLRF VCR = (D1_Vol + D2_Vol) / Max(DV1, DV2)' }
+        { label: 'Single Lane Reversible Flow', values: isD2Active ? slrf : null, formula: slrfFormula }
       ];
 
       vcrGroupedBodyD2.innerHTML = '';
@@ -18319,10 +19403,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             cell.style.background = '#f4f3f0';
           });
         } else {
-          setVcrLosCell(cells[0], row.values.AM, row.formula);
-          setVcrLosCell(cells[1], row.values.OP, row.formula);
-          setVcrLosCell(cells[2], row.values.PM, row.formula);
-          setVcrLosCell(cells[3], row.values.EV, row.formula);
+          setVcrLosCell(cells[0], row.values.AM, resolveFormulaForPeriod(row.formula, 'AM'));
+          setVcrLosCell(cells[1], row.values.OP, resolveFormulaForPeriod(row.formula, 'OP'));
+          setVcrLosCell(cells[2], row.values.PM, resolveFormulaForPeriod(row.formula, 'PM'));
+          setVcrLosCell(cells[3], row.values.EV, resolveFormulaForPeriod(row.formula, 'EV'));
         }
         vcrGroupedBodyD2.appendChild(tr);
       });
@@ -18333,15 +19417,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const d1ScenRows = d1CloseScenarios.map(sc => {
         const scenLabel = sc.closureCount === 1 ? `1 Lane Closed (${sc.openLanes} open)` : `${sc.closureCount} Lanes Closed (${sc.openLanes} open)`;
         const isSel = sc.closureCount === selectedClosureCount;
-        return { label: isSel ? `★ ${scenLabel}` : scenLabel, values: isD1Active ? sc.values : null, formula: `VCR = (hourly/lane × ${d1Metrics.lanes} / ${sc.openLanes}) / DV`, highlighted: isSel };
+        return { label: isSel ? `★ ${scenLabel}` : scenLabel, values: isD1Active ? sc.values : null, formula: sc.formulas, highlighted: isSel };
       });
       const d1FallbackRows = d1CloseScenarios.length === 0 ? [{ label: 'Lane Closure (N/A — 1 lane)', values: null }] : [];
       const rowsD1 = [
-        { label: isD1Active ? `Design Volume (Capacity) * = ${Math.round(dv1).toLocaleString()}` : 'Design Volume (Capacity) *', values: null },
-        { label: 'Base VCR', values: isD1Active ? baseD1 : null, formula: 'Base VCR = (Vol / Lanes) / DV' },
+        { label: isD1Active ? `Design Capacity * = ${Math.round(dv1).toLocaleString()} vph/lane (${Math.round(dv1 * Math.max(1, d1Metrics.lanes)).toLocaleString()} vph directional)<div class="formula-inline">${buildCapacityStepFormula(d1CapacityProfile, d1Metrics.lanes)}</div>` : 'Design Capacity *', values: null },
+        { label: 'Base VCR', values: isD1Active ? baseD1 : null, formula: baseD1Formula },
         ...d1ScenRows,
         ...d1FallbackRows,
-        { label: 'Single Lane Reversible Flow', values: isD1Active ? slrf : null, formula: 'SLRF VCR = (D1_Vol + D2_Vol) / Max(DV1, DV2)' }
+        { label: 'Single Lane Reversible Flow', values: isD1Active ? slrf : null, formula: slrfFormula }
       ];
 
       vcrGroupedBodyD1.innerHTML = '';
@@ -18362,10 +19446,10 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             cell.style.background = '#f4f3f0';
           });
         } else {
-          setVcrLosCell(cells[0], row.values.AM, row.formula);
-          setVcrLosCell(cells[1], row.values.OP, row.formula);
-          setVcrLosCell(cells[2], row.values.PM, row.formula);
-          setVcrLosCell(cells[3], row.values.EV, row.formula);
+          setVcrLosCell(cells[0], row.values.AM, resolveFormulaForPeriod(row.formula, 'AM'));
+          setVcrLosCell(cells[1], row.values.OP, resolveFormulaForPeriod(row.formula, 'OP'));
+          setVcrLosCell(cells[2], row.values.PM, resolveFormulaForPeriod(row.formula, 'PM'));
+          setVcrLosCell(cells[3], row.values.EV, resolveFormulaForPeriod(row.formula, 'EV'));
         }
         vcrGroupedBodyD1.appendChild(tr);
       });
@@ -18469,7 +19553,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         if (d1Metrics.lanes > 1) d1WorkVcr = (d1BaseVcr * d1Metrics.lanes) / getEffectiveOpenLanes(d1Metrics.lanes);
         if (d2Metrics.lanes > 1) d2WorkVcr = (d2BaseVcr * d2Metrics.lanes) / getEffectiveOpenLanes(d2Metrics.lanes);
         if (d1Metrics.lanes === 1 && d2Metrics.lanes === 1) {
-          d1WorkVcr = d2WorkVcr = maxDv > 0 ? ((d1Hour.perLane + d2Hour.perLane) / maxDv) : 0;
+          d1WorkVcr = d2WorkVcr = sharedDv > 0 ? ((d1Hour.perLane + d2Hour.perLane) / sharedDv) : 0;
         }
 
         const d1WorkCap = d1WorkVcr > 0 ? (d1Hour.total / d1WorkVcr) : 0;
@@ -18685,7 +19769,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         if (d2Metrics.lanes > 1) d2WorkVcr = (d2BaseVcr * d2Metrics.lanes) / getEffectiveOpenLanes(d2Metrics.lanes);
 
         if (d1Metrics.lanes === 1 && d2Metrics.lanes === 1) {
-          const slrfHourly = maxDv > 0 ? ((d1PerLane + d2PerLane) / maxDv) : null;
+          const slrfHourly = sharedDv > 0 ? ((d1PerLane + d2PerLane) / sharedDv) : null;
           d1WorkVcr = slrfHourly;
           d2WorkVcr = slrfHourly;
         }
@@ -18712,13 +19796,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           <td class="hourly-vcr-cell" data-label="Worst Hourly VCR"></td>
         `;
         const vcrCells = tr.querySelectorAll('.hourly-vcr-cell');
-        const f1Base = 'Base VCR = (D1 Vol / D1 Lanes) / DV1';
+        const f1Base = buildBaseVcrStep(d1Hour.total, d1Metrics.lanes, dv1, d1BaseVcr);
         const d1Closed = Math.max(1, d1Metrics.lanes - getEffectiveOpenLanes(d1Metrics.lanes));
         const d2Closed = Math.max(1, d2Metrics.lanes - getEffectiveOpenLanes(d2Metrics.lanes));
         const laneClosureLabel = getLaneClosureLabel();
-        const f1Work = d1Metrics.lanes === 1 ? 'SLRF VCR = (D1 Vol + D2 Vol) / Max_DV' : `${laneClosureLabel} VCR = (D1 Vol / (D1 Lanes - ${d1Closed})) / DV1`;
-        const f2Base = 'Base VCR = (D2 Vol / D2 Lanes) / DV2';
-        const f2Work = d2Metrics.lanes === 1 ? 'SLRF VCR = (D1 Vol + D2 Vol) / Max_DV' : `${laneClosureLabel} VCR = (D2 Vol / (D2 Lanes - ${d2Closed})) / DV2`;
+        const f1Work = d1Metrics.lanes === 1 ? buildSlrfVcrStep(d1Hour.total, d2Hour.total, sharedDv, d1WorkVcr) : buildLaneClosureVcrStep(`${laneClosureLabel} (${getEffectiveOpenLanes(d1Metrics.lanes)} open)`, d1Hour.total, getEffectiveOpenLanes(d1Metrics.lanes), dv1, d1WorkVcr);
+        const f2Base = buildBaseVcrStep(d2Hour.total, d2Metrics.lanes, dv2, d2BaseVcr);
+        const f2Work = d2Metrics.lanes === 1 ? buildSlrfVcrStep(d1Hour.total, d2Hour.total, sharedDv, d2WorkVcr) : buildLaneClosureVcrStep(`${laneClosureLabel} (${getEffectiveOpenLanes(d2Metrics.lanes)} open)`, d2Hour.total, getEffectiveOpenLanes(d2Metrics.lanes), dv2, d2WorkVcr);
 
         setHourlyVcrLosCell(vcrCells[0], d1BaseVcr, f1Base);
         setHourlyVcrLosCell(vcrCells[1], d1WorkVcr, f1Work);
@@ -18748,7 +19832,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           } else {
             d1CloseScenarios.forEach((sc, idx) => {
               const scenVcr = dv1 > 0 ? (d1PerLane * d1Metrics.lanes / sc.openLanes) / dv1 : null;
-              const scenFormula = `${sc.closureCount} Lane${sc.closureCount > 1 ? 's' : ''} Closed: (D1 Vol/hr × ${d1Metrics.lanes}/${sc.openLanes}) / DV1`;
+              const scenFormula = buildLaneClosureVcrStep(`${sc.closureCount} Lane${sc.closureCount > 1 ? 's' : ''} Closed`, d1Hour.total, sc.openLanes, dv1, scenVcr);
               setHourlyVcrLosCell(d1Cells[1 + idx], scenVcr, scenFormula);
               if (sc.closureCount === selectedClosureCount && d1Cells[1 + idx]) {
                 d1Cells[1 + idx].style.outline = '2px solid #1565C0';
@@ -18778,7 +19862,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           } else {
             d2CloseScenarios.forEach((sc, idx) => {
               const scenVcr = dv2 > 0 ? (d2PerLane * d2Metrics.lanes / sc.openLanes) / dv2 : null;
-              const scenFormula = `${sc.closureCount} Lane${sc.closureCount > 1 ? 's' : ''} Closed: (D2 Vol/hr × ${d2Metrics.lanes}/${sc.openLanes}) / DV2`;
+              const scenFormula = buildLaneClosureVcrStep(`${sc.closureCount} Lane${sc.closureCount > 1 ? 's' : ''} Closed`, d2Hour.total, sc.openLanes, dv2, scenVcr);
               setHourlyVcrLosCell(d2Cells[1 + idx], scenVcr, scenFormula);
               if (sc.closureCount === selectedClosureCount && d2Cells[1 + idx]) {
                 d2Cells[1 + idx].style.outline = '2px solid #1565C0';
@@ -18885,20 +19969,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     let dvFormulaStr = '';
     let peakVolStr = '';
 
+    dvFormulaStr = 'Austroads practical per-lane capacity = Base class capacity × terrain factor × lane-width factor × lateral-clearance factor × HV/RT factor (minimum 500 vph/lane)';
+
     if (isTmrStyle) {
-      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Measured hourly profile scaled to target daily volume';
     } else if (sourceText === 'IPSWICH') {
-      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Peak = 12.78% of Daily, Off-Peak = 45% of Peak';
     } else if (sourceText === 'GOLD COAST') {
-      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Peak = 15% * 85% of Daily, Off-Peak = 48.55% of Peak';
     } else if (sourceText === 'BRISBANE' || sourceText === 'LOGAN' || sourceText === 'TOOWOOMBA' || sourceText === 'NSW') {
-      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Peak = 12% * 85% of Daily, Off-Peak = 45% of Peak';
     } else {
-      dvFormulaStr = `Physical per-lane capacity (vph/lane) from Road Classification dropdown`;
       peakVolStr = 'Peak = 60% * 85% of Daily, OP/EV = 15% * 85% of Daily';
     }
 
@@ -18908,7 +19989,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const traceRows = [
       ['Data Source Pattern', displayedSource],
-      ['Road Classification (Cap.)', txt('roadCapacityClass') + ` → ${dv1} vph/lane`],
+      ['Road Classification (Cap.)', txt('roadCapacityClass') + ` → D1 ${dv1} vph/lane, D2 ${dv2} vph/lane`],
       ['DV Formula Applied', dvFormulaStr],
       ['Peak Distribution Logic', peakVolStr],
       ['DTCA Path', dtca === 'YES' ? 'Directional VADT (D1_VADT / D2_VADT)' : '50/50 split from VADT'],
@@ -19463,7 +20544,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
 
     const selectedLanes = peakDirection === 'D2' ? Math.max(1, Number(d2Lanes) || 1) : Math.max(1, Number(d1Lanes) || 1);
-    const satFlowVph = selectedLanes * 1800;
+    const roadCapClassEl = document.getElementById('roadCapacityClass');
+    const roadCapClass = roadCapClassEl ? (roadCapClassEl.value || 'arterial') : 'arterial';
+    const selectedDirection = peakDirection === 'D2' ? 2 : 1;
+    const perLaneCapacity = getAustroadsCapacityProfile(selectedDirection, roadCapClass).adjustedCapacity;
+    const satFlowVph = Math.round(selectedLanes * perLaneCapacity);
 
     const hvPct = peakDirection === 'D2' ? (Number(d2HvPct) || 0) : (Number(d1HvPct) || 0);
     const spacing = resolveQueueVehicleSpacing(hvPct, isRtrActive);
@@ -19524,15 +20609,18 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
 
     // Find the absolute Peak Hour Volume for D1 and D2 to stress-test the signals
+    const sourceUpperSG = String(site && site.source ? site.source : '').trim().toUpperCase();
+    const isIpswichSG = sourceUpperSG === 'IPSWICH';
+    const peakHourFraction = isIpswichSG ? (IPSWICH_CONSTANTS.PEAK_HOUR_PERCENT / 100) : 0.09;
     let v1 = 0; let v2 = 0;
     if (site && site.directions_weekday) {
       const gaz = site.directions_weekday['GAZETTAL'] || [];
       const ag = site.directions_weekday['AGAINST GAZETTAL'] || [];
-      v1 = gaz.length ? Math.max(...gaz.map(v => Number(v)||0)) : num('D1_VADT') * 0.09;
-      v2 = ag.length ? Math.max(...ag.map(v => Number(v)||0)) : num('D2_VADT') * 0.09;
+      v1 = gaz.length ? Math.max(...gaz.map(v => Number(v)||0)) : num('D1_VADT') * peakHourFraction;
+      v2 = ag.length ? Math.max(...ag.map(v => Number(v)||0)) : num('D2_VADT') * peakHourFraction;
     } else {
-      v1 = num('D1_VADT') * 0.09; // Fallback to 9% of daily volume if no profile
-      v2 = num('D2_VADT') * 0.09;
+      v1 = num('D1_VADT') * peakHourFraction; // Fallback to peak hour fraction of daily volume if no profile
+      v2 = num('D2_VADT') * peakHourFraction;
     }
     
     // Prevent divide by zero
@@ -19590,6 +20678,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const dv1 = calculateDV(1, d1Daily, site, projectedTotal);
     const dv2 = calculateDV(2, d2Daily, site, projectedTotal);
     const maxDv = Math.max(dv1, dv2);
+    const sharedDv = Math.max(1, (dv1 > 0 && dv2 > 0) ? Math.min(dv1, dv2) : maxDv);
 
     const d1PerLane = d1Metrics.lanes > 0 ? (v1 / d1Metrics.lanes) : 0;
     const d2PerLane = d2Metrics.lanes > 0 ? (v2 / d2Metrics.lanes) : 0;
@@ -19602,7 +20691,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (d1Metrics.lanes > 1) d1WorkVcr = (d1BaseVcr * d1Metrics.lanes) / getEffectiveOpenLanes(d1Metrics.lanes);
     if (d2Metrics.lanes > 1) d2WorkVcr = (d2BaseVcr * d2Metrics.lanes) / getEffectiveOpenLanes(d2Metrics.lanes);
     if (d1Metrics.lanes === 1 && d2Metrics.lanes === 1) {
-      const sharedWorkVcr = maxDv > 0 ? ((v1 + v2) / maxDv) : 0;
+      const sharedWorkVcr = sharedDv > 0 ? ((v1 + v2) / sharedDv) : 0;
       d1WorkVcr = sharedWorkVcr;
       d2WorkVcr = sharedWorkVcr;
     }
@@ -23478,6 +24567,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
       setupInputUnitBadges();
       setupInputCommitFeedback();
+      setupTgsPreviewAutoRefresh();
         // Reverted to original page flow layout (no sidebar/tabbed workspace wrapper).
   });
 
@@ -23826,6 +24916,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const dv1 = calculateDV(1, num('D1_VADT'), site, projectedTotal);
     const dv2 = calculateDV(2, num('D2_VADT'), site, projectedTotal);
     const maxDv = Math.max(dv1, dv2);
+    const sharedDv = Math.max(1, (dv1 > 0 && dv2 > 0) ? Math.min(dv1, dv2) : maxDv);
 
     const d1Lanes = Math.max(1, num('D1_Lanes'));
     const d2Lanes = Math.max(1, num('D2_Lanes'));
@@ -23954,7 +25045,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         if (Number.isFinite(fromWorst)) return fromWorst;
         const vol1 = Number(gazData[h]) || 0;
         const vol2 = Number(agData[h]) || 0;
-        return maxDv > 0 ? ((vol1 + vol2) / maxDv) : 0;
+        return sharedDv > 0 ? ((vol1 + vol2) / sharedDv) : 0;
       });
       const sched = buildSchedule('Single Lane Reversible Flow Scheduler (Both Directions Combined)', combinedVcr);
       timelineEl.appendChild(sched.card);
@@ -24145,12 +25236,21 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     // This follows from the geometric tail of the conditional queue distribution,
     // which is much heavier than a Poisson/normal approximation under high utilisation.
     // Invert at the 95th percentile:  Pw·ρ^k ≤ 0.05  →  k ≥ ln(0.05/Pw) / ln(ρ)
+    // When Pw > 0.05 both logs are negative — their quotient is positive and correct.
+    // Guard: if the Erlang-C numerics overflow (pw = NaN) or the quotient is
+    // non-positive/non-finite (e.g. rho underflows near 0), fall back to at least 1
+    // vehicle rather than silently returning 0 or NaN.
     let p95Queue;
-    if (pw <= 0.05 || rho <= 0) {
+    if (pw <= 0.05 || rho <= 0 || !Number.isFinite(pw)) {
       // Erlang-C ≤ 0.05: fewer than 5% of arrivals ever wait — p95 queue is zero.
       p95Queue = 0;
     } else {
-      p95Queue = Math.ceil(Math.log(0.05 / pw) / Math.log(rho));
+      const rawP95 = Math.log(0.05 / pw) / Math.log(rho);
+      // Ensure result is a positive finite integer; clamp to ≥ 1 when queueing is
+      // non-trivial (pw > 0.05 means more than 5% of arrivals wait).
+      p95Queue = (Number.isFinite(rawP95) && rawP95 > 0)
+        ? Math.ceil(rawP95)
+        : 1;
     }
     
     // Level of Service based on utilization
@@ -24942,7 +26042,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       growthRate: Number(dbNode && dbNode.Growth_Rate) || 2.5,
       yearsElapsed,
       cvPercentage: Number(dbNode && (dbNode.HV_Percent || dbNode.hvPercent)) || 5.0,
-      directionalLanes: Number(dbNode && (dbNode.Lanes || dbNode.lanes)) || 1,
+      directionalLanes: Math.max(1, Math.ceil((Number(dbNode && (dbNode.Lanes || dbNode.lanes)) || 2) / 2)),
       crossingWidth: 0
     };
   }
@@ -26949,85 +28049,116 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 <script>
 const LoganTrafficEngine = (function() {
 
+  // ─── ROAD CAPACITIES ─────────────────────────────────────────────────────
+  // Hourly capacities (PCE/hr/lane) sourced from Austroads (2020) Table 5.2
+  // urban arterials mid-block, and TMR CBA Manual Table 2 / Austroads AP-R264/05.
+  // dailyLimit = approximate AADT threshold for road type (vpd).
+  // hourlyCapacityPerLane = Austroads mid-block hourly capacity (PCE/hr/lane).
   const ROAD_CAPACITIES = {
-    "Two Lane Urban": { dailyLimit: 10000, designCapacity: 1500 },
-    "Collector Street": { dailyLimit: 5000, designCapacity: null },
-    "Local Street": { dailyLimit: 1500, designCapacity: null }
+    "Motorway / Freeway":      { dailyLimit: 80000, hourlyCapacityPerLane: 1800 },
+    "Urban Arterial (Divided)":{ dailyLimit: 40000, hourlyCapacityPerLane: 1600 },
+    "Two Lane Urban":          { dailyLimit: 20000, hourlyCapacityPerLane: 1200 },
+    "Collector Street":        { dailyLimit: 12000, hourlyCapacityPerLane: 900  },
+    "Local Street":            { dailyLimit: 3000,  hourlyCapacityPerLane: 500  }
   };
 
+  // ─── TEMPORAL DAY FACTORS ─────────────────────────────────────────────────
+  // Source: Austroads AGTM Part 3 – Table of seasonal/day-of-week factors.
+  // Index: [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
   const TEMPORAL_DAY_FACTORS = {
     "Urban arterial 1 (Capital City)": [0.98, 0.95, 0.93, 0.92, 0.88, 1.17, 1.37],
-    "Urban arterial 1 (Other)": [1.01, 0.98, 0.95, 0.94, 0.89, 1.09, 1.24],
+    "Urban arterial 1 (Other)":        [1.01, 0.98, 0.95, 0.94, 0.89, 1.09, 1.24],
     "Urban arterial 2 (Capital City)": [0.99, 0.96, 0.95, 0.93, 0.89, 1.13, 1.31],
-    "Urban arterial 2 (Others)": [1.0, 0.97, 0.94, 0.93, 0.88, 1.11, 1.30],
-    "Urban CBD (Capital City)": [1.02, 1.0, 0.97, 0.94, 0.86, 1.07, 1.34],
-    "Urban industrial (Others)": [0.85, 0.85, 0.84, 0.84, 0.84, 1.84, 2.66],
-    "Rural urban fringe": [1.14, 1.14, 1.10, 1.07, 1.07, 0.94, 0.86],
-    "Rural strategic 1": [1.05, 1.01, 0.99, 0.97, 0.97, 1.09, 1.10],
-    "Rural strategic 2": [1.11, 1.14, 1.10, 1.05, 1.05, 1.03, 0.91],
-    "Rural recreation summer": [1.07, 1.17, 1.13, 1.05, 1.05, 1.11, 0.88],
-    "Rural recreation winter": [1.15, 1.25, 1.21, 1.12, 1.12, 1.03, 0.82]
+    "Urban arterial 2 (Others)":       [1.0,  0.97, 0.94, 0.93, 0.88, 1.11, 1.30],
+    "Urban CBD (Capital City)":        [1.02, 1.0,  0.97, 0.94, 0.86, 1.07, 1.34],
+    "Urban industrial (Others)":       [0.85, 0.85, 0.84, 0.84, 0.84, 1.84, 2.66],
+    "Rural urban fringe":              [1.14, 1.14, 1.10, 1.07, 1.07, 0.94, 0.86],
+    "Rural strategic 1":               [1.05, 1.01, 0.99, 0.97, 0.97, 1.09, 1.10],
+    "Rural strategic 2":               [1.11, 1.14, 1.10, 1.05, 1.05, 1.03, 0.91],
+    "Rural recreation summer":         [1.07, 1.17, 1.13, 1.05, 1.05, 1.11, 0.88],
+    "Rural recreation winter":         [1.15, 1.25, 1.21, 1.12, 1.12, 1.03, 0.82]
   };
 
+  // ─── GEOMETRIC QUEUE MULTIPLIERS ─────────────────────────────────────────
+  // Vehicle space assumptions: passenger car ~6m, heavy vehicle ~20m.
   const GEOMETRIC_QUEUE_MULTIPLIERS = {
-    2: { ma: 2.4, mo: 8.0 },
-    5: { ma: 6.0, mo: 20.0 },
-    10: { ma: 12.0, mo: 40.0 },
-    15: { ma: 18.0, mo: 60.0 },
+    2:  { ma: 2.4,  mo: 8.0   },
+    5:  { ma: 6.0,  mo: 20.0  },
+    10: { ma: 12.0, mo: 40.0  },
+    15: { ma: 18.0, mo: 60.0  },
     30: { ma: 36.0, mo: 120.0 }
   };
 
+  // ─── ENGINEERING CONSTANTS ────────────────────────────────────────────────
+  // PEAK_K_FACTOR: proportion of AADT occurring in the peak hour.
+  //   Source: TMR CBA Manual Table 3 / Austroads AP-R264/05.
+  //   Urban single carriageway = 0.10 (10%).
+  //   Urban dual carriageway   = 0.125 (12.5%).
+  //   Rural single carriageway = 0.0833 (8.33%).
+  //   This engine defaults to 0.10 (urban single carriageway — most conservative
+  //   and most common context for development TIAs in South East Queensland).
+  //   Override per project if dual carriageway or rural context applies.
   const ENGINEERING_CONSTANTS = {
-    PEAK_K_FACTOR: 0.15,
-    BASE_PASSENGER_SPLIT: 0.85,
-    MINIMUM_CAPACITY_FLOOR: 500,
+    PEAK_K_FACTOR:           0.10,   // ← corrected from 0.15; TMR/Austroads urban = 0.10
     FIVE_MIN_INTERVAL_RATIO: 5 / 60,
-    PED_TRAVEL_SPEED_MS: 1.2,
-    PED_EXPECTED_DELAY_S: 10
+    PED_TRAVEL_SPEED_MS:     1.2,
+    PED_EXPECTED_DELAY_S:    10,
+    MINIMUM_CAPACITY_FLOOR:  200     // absolute minimum directional floor (PCE/hr)
   };
 
+  // ─── ROAD TYPE RESOLUTION ─────────────────────────────────────────────────
   function resolveInfrastructureClass(rawRoadType) {
     const raw = String(rawRoadType || '').trim();
     const normalized = raw.toLowerCase();
 
     const temporalAliases = {
-      'tmr': 'Urban arterial 1 (Other)',
-      'state': 'Urban arterial 1 (Other)',
-      'state road': 'Urban arterial 1 (Other)',
-      'motorway': 'Urban arterial 1 (Other)',
-      'highway': 'Urban arterial 1 (Other)',
-      'collector': 'Urban arterial 2 (Others)',
-      'collector street': 'Urban arterial 2 (Others)',
-      'local': 'Urban arterial 2 (Others)',
-      'local street': 'Urban arterial 2 (Others)',
-      'residential': 'Urban arterial 2 (Others)',
-      'urban arterial 1 (other)': 'Urban arterial 1 (Other)',
-      'urban arterial 2 (other)': 'Urban arterial 2 (Others)',
-      'urban arterial 2 (others)': 'Urban arterial 2 (Others)'
+      'tmr':                          'Urban arterial 1 (Other)',
+      'state':                        'Urban arterial 1 (Other)',
+      'state road':                   'Urban arterial 1 (Other)',
+      'motorway':                     'Urban arterial 1 (Other)',
+      'motorway / freeway':           'Urban arterial 1 (Other)',
+      'highway':                      'Urban arterial 1 (Other)',
+      'urban arterial (divided)':     'Urban arterial 1 (Other)',
+      'collector':                    'Urban arterial 2 (Others)',
+      'collector street':             'Urban arterial 2 (Others)',
+      'local':                        'Urban arterial 2 (Others)',
+      'local street':                 'Urban arterial 2 (Others)',
+      'residential':                  'Urban arterial 2 (Others)',
+      'two lane urban':               'Urban arterial 2 (Others)',
+      'urban arterial 1 (other)':     'Urban arterial 1 (Other)',
+      'urban arterial 2 (other)':     'Urban arterial 2 (Others)',
+      'urban arterial 2 (others)':    'Urban arterial 2 (Others)'
     };
 
     const capacityAliases = {
-      'tmr': 'Two Lane Urban',
-      'state': 'Two Lane Urban',
-      'state road': 'Two Lane Urban',
-      'motorway': 'Two Lane Urban',
-      'highway': 'Two Lane Urban',
-      'collector': 'Collector Street',
-      'collector street': 'Collector Street',
-      'local': 'Local Street',
-      'local street': 'Local Street',
-      'residential': 'Local Street'
+      'tmr':                          'Two Lane Urban',
+      'state':                        'Two Lane Urban',
+      'state road':                   'Two Lane Urban',
+      'motorway':                     'Motorway / Freeway',
+      'motorway / freeway':           'Motorway / Freeway',
+      'highway':                      'Urban Arterial (Divided)',
+      'urban arterial (divided)':     'Urban Arterial (Divided)',
+      'two lane urban':               'Two Lane Urban',
+      'collector':                    'Collector Street',
+      'collector street':             'Collector Street',
+      'local':                        'Local Street',
+      'local street':                 'Local Street',
+      'residential':                  'Local Street'
     };
 
     const temporalKey =
       TEMPORAL_DAY_FACTORS[raw]
       ? raw
-      : (TEMPORAL_DAY_FACTORS[temporalAliases[normalized]] ? temporalAliases[normalized] : 'Urban arterial 1 (Other)');
+      : (TEMPORAL_DAY_FACTORS[temporalAliases[normalized]]
+          ? temporalAliases[normalized]
+          : 'Urban arterial 1 (Other)');
 
     const capacityKey =
       ROAD_CAPACITIES[raw]
       ? raw
-      : (ROAD_CAPACITIES[capacityAliases[normalized]] ? capacityAliases[normalized] : 'Two Lane Urban');
+      : (ROAD_CAPACITIES[capacityAliases[normalized]]
+          ? capacityAliases[normalized]
+          : 'Two Lane Urban');
 
     return { temporalKey, capacityKey };
   }
@@ -27036,15 +28167,21 @@ const LoganTrafficEngine = (function() {
     return Math.ceil(Number(value) || 0);
   }
 
+  // ─── AADT PROJECTION ──────────────────────────────────────────────────────
+  // Formula: AADT_projected = AADT_base × (1 + r/100)^n
+  // Source: Austroads / TMR CBA Manual Eq. 3 — Compound traffic growth.
   function computeAADTProjection(rawCount, roadType, dayIndex, growthRatePercent, yearsElapsed) {
     const resolvedClass = resolveInfrastructureClass(roadType);
-    const factors = TEMPORAL_DAY_FACTORS[resolvedClass.temporalKey] || [1, 1, 1, 1, 1, 1, 1];
+    const factors = TEMPORAL_DAY_FACTORS[resolvedClass.temporalKey] || [1,1,1,1,1,1,1];
 
     const safeDayIndex = Math.max(0, Math.min(6, Number(dayIndex) || 0));
     const selectedDayFactor = Number(factors[safeDayIndex]) || 1;
     const normalizedBaseAADT = precisionRoundUp((Number(rawCount) || 0) * selectedDayFactor);
 
-    const compoundGrowthMultiplier = Math.pow(1 + ((Number(growthRatePercent) || 0) / 100), Number(yearsElapsed) || 0);
+    const compoundGrowthMultiplier = Math.pow(
+      1 + ((Number(growthRatePercent) || 0) / 100),
+      Number(yearsElapsed) || 0
+    );
     const projectedTargetAADT = precisionRoundUp(normalizedBaseAADT * compoundGrowthMultiplier);
 
     return {
@@ -27055,14 +28192,16 @@ const LoganTrafficEngine = (function() {
     };
   }
 
+  // ─── PEAK HOUR VOLUME ─────────────────────────────────────────────────────
+  // Formula: Peak Hour Volume = AADT × K
+  // Source: TMR CBA Manual Table 3 / Austroads AP-R264/05.
+  // K = 0.10 for urban single carriageway (default).
   function extractPeakAndClassify(projectedAADT, commercialPercentage) {
     const rawPeakThroughput = (Number(projectedAADT) || 0) * ENGINEERING_CONSTANTS.PEAK_K_FACTOR;
-    const scaledBaselinePeak = rawPeakThroughput * ENGINEERING_CONSTANTS.BASE_PASSENGER_SPLIT;
 
     const commercialDecimal = (Number(commercialPercentage) || 0) / 100;
-    const peakCommercialVolume = precisionRoundUp(scaledBaselinePeak * commercialDecimal);
-
-    const peakPassengerVolume = precisionRoundUp(scaledBaselinePeak) - peakCommercialVolume;
+    const peakCommercialVolume = precisionRoundUp(rawPeakThroughput * commercialDecimal);
+    const peakPassengerVolume  = precisionRoundUp(rawPeakThroughput) - peakCommercialVolume;
     const totalPeakVolume = peakPassengerVolume + peakCommercialVolume;
 
     return {
@@ -27072,49 +28211,61 @@ const LoganTrafficEngine = (function() {
     };
   }
 
+  // ─── SATURATION / VCR / LOS ───────────────────────────────────────────────
+  // Formula: VCR = Peak Hour Volume / (Hourly Capacity per Lane × Lanes)
+  // Source: Austroads AGTM Part 2 (VCR) and Austroads (2020) Table 5.2 
+  //         (urban arterial mid-block hourly capacities per lane).
+  // LOS thresholds: Austroads AGTM Part 3, Module 3-2.
   function evaluateSaturationAndLOS(totalPeakVolume, roadType, directionalLanes) {
     const resolvedClass = resolveInfrastructureClass(roadType);
     const structuralData = ROAD_CAPACITIES[resolvedClass.capacityKey] || null;
-    let directionalCapacityLimit;
 
-    if (structuralData && Number(structuralData.dailyLimit) > 0) {
-      const rawCalculatedCapacity = precisionRoundUp(
-        (ENGINEERING_CONSTANTS.PEAK_K_FACTOR * Number(structuralData.dailyLimit)) / 2
-      );
-      directionalCapacityLimit = Math.max(
-        rawCalculatedCapacity,
+    // Directional capacity = hourlyCapacityPerLane × number of lanes in direction.
+    // This is the Austroads-correct method — NOT derived from dailyLimit × K / 2.
+    const lanesInDirection = Math.max(1, Number(directionalLanes) || 1);
+    let directionalCapacity;
+
+    if (structuralData && structuralData.hourlyCapacityPerLane > 0) {
+      directionalCapacity = Math.max(
+        structuralData.hourlyCapacityPerLane * lanesInDirection,
         ENGINEERING_CONSTANTS.MINIMUM_CAPACITY_FLOOR
       );
     } else {
-      directionalCapacityLimit = ENGINEERING_CONSTANTS.MINIMUM_CAPACITY_FLOOR;
+      directionalCapacity = ENGINEERING_CONSTANTS.MINIMUM_CAPACITY_FLOOR;
     }
 
-    const activeFunctionalCapacity = directionalCapacityLimit * Math.max(1, Number(directionalLanes) || 1);
-    const vcr = (Number(totalPeakVolume) || 0) / activeFunctionalCapacity;
+    const vcr = (Number(totalPeakVolume) || 0) / directionalCapacity;
 
+    // LOS thresholds — Austroads AGTM Part 2/3 (mid-block urban arterial):
     let grading = "F";
-    if (vcr <= 0.6) grading = "A";
-    else if (vcr <= 0.7) grading = "B";
-    else if (vcr <= 0.9) grading = "C";
-    else if (vcr <= 0.95) grading = "D";
-    else if (vcr <= 1.0) grading = "E";
+    if      (vcr <= 0.60) grading = "A";
+    else if (vcr <= 0.70) grading = "B";
+    else if (vcr <= 0.80) grading = "C";
+    else if (vcr <= 0.90) grading = "D";
+    else if (vcr <= 1.00) grading = "E";
 
     return {
-      functionalCapacity: activeFunctionalCapacity,
+      functionalCapacity: directionalCapacity,
       saturationRatio: vcr.toFixed(5),
       levelOfService: grading,
       resolvedRoadClass: resolvedClass.capacityKey
     };
   }
 
+  // ─── QUEUE GEOMETRY ───────────────────────────────────────────────────────
   function simulateQueueGeometry(hourlyPassengerVolume, hourlyCommercialVolume) {
-    const pAccumulation5Min = precisionRoundUp((Number(hourlyPassengerVolume) || 0) * ENGINEERING_CONSTANTS.FIVE_MIN_INTERVAL_RATIO);
-    const cAccumulation5Min = precisionRoundUp((Number(hourlyCommercialVolume) || 0) * ENGINEERING_CONSTANTS.FIVE_MIN_INTERVAL_RATIO);
+    const pAccumulation5Min = precisionRoundUp(
+      (Number(hourlyPassengerVolume) || 0) * ENGINEERING_CONSTANTS.FIVE_MIN_INTERVAL_RATIO
+    );
+    const cAccumulation5Min = precisionRoundUp(
+      (Number(hourlyCommercialVolume) || 0) * ENGINEERING_CONSTANTS.FIVE_MIN_INTERVAL_RATIO
+    );
 
     const spatialEstimates = {};
     for (const [duration, factors] of Object.entries(GEOMETRIC_QUEUE_MULTIPLIERS)) {
       const geometricLengthMeters = precisionRoundUp(
-        (pAccumulation5Min * Number(factors.ma || 0)) + (cAccumulation5Min * Number(factors.mo || 0))
+        (pAccumulation5Min * Number(factors.ma || 0)) +
+        (cAccumulation5Min * Number(factors.mo || 0))
       );
       spatialEstimates[`${duration}_Minutes`] = geometricLengthMeters;
     }
@@ -27122,9 +28273,13 @@ const LoganTrafficEngine = (function() {
     return spatialEstimates;
   }
 
+  // ─── PEDESTRIAN FRICTION ──────────────────────────────────────────────────
   function calculatePedestrianFriction(crossingDistanceMeters) {
-    const transitTimeSeconds = (Number(crossingDistanceMeters) || 0) / ENGINEERING_CONSTANTS.PED_TRAVEL_SPEED_MS;
-    const totalNodeDelay = precisionRoundUp(transitTimeSeconds + ENGINEERING_CONSTANTS.PED_EXPECTED_DELAY_S);
+    const transitTimeSeconds =
+      (Number(crossingDistanceMeters) || 0) / ENGINEERING_CONSTANTS.PED_TRAVEL_SPEED_MS;
+    const totalNodeDelay = precisionRoundUp(
+      transitTimeSeconds + ENGINEERING_CONSTANTS.PED_EXPECTED_DELAY_S
+    );
 
     return {
       transitTime: transitTimeSeconds.toFixed(2),
@@ -27132,52 +28287,44 @@ const LoganTrafficEngine = (function() {
     };
   }
 
-  /**
-   * Robust Manual VADT Generation and Distribution
-   * Reflects the worked-out example for Trip Generation
-   */
+  // ─── TRIP GENERATION / VADT ───────────────────────────────────────────────
   const TripGenerationModel = {
-    /**
-     * Calculates Total VADT and divides it into D1 and D23.
-     * @param {Object} params 
-     * @param {number} params.independentVariable - The base unit (e.g., Gross Floor Area in 100m2, Number of Dwellings, etc.)
-     * @param {number} params.tripRate - The generation rate per unit (from your reference example)
-     * @param {number} params.d1Split - The percentage split for D1 (e.g., 0.50 for 50%)
-     * @param {number} params.d23Split - The percentage split for D23 (e.g., 0.50 for 50%)
-     * @returns {Object} VADT breakdown
-     */
     calculateVADT: function(params) {
-      const { 
-        independentVariable = 0, 
-        tripRate = 0, 
-        d1Split = 0.5, 
-        d23Split = 0.5 
+      const {
+        independentVariable = 0,
+        tripRate = 0,
+        d1Split = 0.5,
+        d23Split = 0.5
       } = params;
 
-      // 1. Generate the Total Vehicle Average Daily Traffic (VADT)
       const totalGeneratedVADT = independentVariable * tripRate;
 
-      // 2. Distribute the VADT based on the scenario directional splits
-      const d1VADT = totalGeneratedVADT * d1Split;
-      const d23VADT = totalGeneratedVADT * d23Split;
+      const splitSum = (Number(d1Split) || 0) + (Number(d23Split) || 0);
+      const normDivisor = splitSum > 0 ? splitSum : 1;
+      const d1Norm  = (Number(d1Split) || 0)  / normDivisor;
+      const d23Norm = (Number(d23Split) || 0) / normDivisor;
+
+      const d1VADT  = totalGeneratedVADT * d1Norm;
+      const d23VADT = totalGeneratedVADT * d23Norm;
 
       const currentYear = new Date().getFullYear();
 
       return {
         totalVADT: Number(totalGeneratedVADT.toFixed(2)),
-        d1VADT: Number(d1VADT.toFixed(2)),
-        d23VADT: Number(d23VADT.toFixed(2)),
-        baseYear: currentYear,
+        d1VADT:    Number(d1VADT.toFixed(2)),
+        d23VADT:   Number(d23VADT.toFixed(2)),
+        baseYear:   currentYear,
         targetYear: currentYear,
         metadata: {
-          calculationUsed: `(${independentVariable} units) * (${tripRate} rate)`,
-          splitRatio: `D1: ${(d1Split * 100).toFixed(1)}% | D23: ${(d23Split * 100).toFixed(1)}%`,
-          yearsUsed: `Base Year: ${currentYear} | Target Year: ${currentYear}`
+          calculationUsed: `(${independentVariable} units) × (${tripRate} rate)`,
+          splitRatio:      `D1: ${(d1Norm * 100).toFixed(1)}% | D23: ${(d23Norm * 100).toFixed(1)}%`,
+          yearsUsed:       `Base Year: ${currentYear} | Target Year: ${currentYear}`
         }
       };
     }
   };
 
+  // ─── PUBLIC API ───────────────────────────────────────────────────────────
   return {
     executeSimulation: function(payload) {
       const {
@@ -27186,10 +28333,10 @@ const LoganTrafficEngine = (function() {
         devUnits, devTripRate, devD1Split, devD23Split
       } = payload || {};
 
-      const aadtPhase = computeAADTProjection(rawCount, roadType, dayIndex, growthRate, yearsElapsed);
-      const peakPhase = extractPeakAndClassify(aadtPhase.projectedAADT, cvPercentage);
+      const aadtPhase       = computeAADTProjection(rawCount, roadType, dayIndex, growthRate, yearsElapsed);
+      const peakPhase       = extractPeakAndClassify(aadtPhase.projectedAADT, cvPercentage);
       const saturationPhase = evaluateSaturationAndLOS(peakPhase.total, roadType, directionalLanes);
-      const geometricPhase = simulateQueueGeometry(peakPhase.passenger, peakPhase.commercial);
+      const geometricPhase  = simulateQueueGeometry(peakPhase.passenger, peakPhase.commercial);
 
       let pedestrianPhase = null;
       if (Number(crossingWidth) > 0) {
@@ -27200,25 +28347,26 @@ const LoganTrafficEngine = (function() {
       if (devUnits && devTripRate) {
         generatedVADTPhase = TripGenerationModel.calculateVADT({
           independentVariable: Number(devUnits),
-          tripRate: Number(devTripRate),
-          d1Split: Number(devD1Split || 0.5),
-          d23Split: Number(devD23Split || 0.5)
+          tripRate:            Number(devTripRate),
+          d1Split:             Number(devD1Split  || 0.5),
+          d23Split:            Number(devD23Split || 0.5)
         });
-        
-        // Set both base year and target year to current year for manual traffic generation
-        const baseYearField = document.getElementById('baseYear');
-        const openingYearField = document.getElementById('openingYear');
-        if (baseYearField) baseYearField.value = String(generatedVADTPhase.baseYear);
-        if (openingYearField) openingYearField.value = String(generatedVADTPhase.targetYear);
+
+        const baseYearField    = document.getElementById('baseYear');
+        const openingYearField = document.getElementById('macroOpeningYear');
+        if (baseYearField    && !String(baseYearField.value).trim())
+          baseYearField.value    = String(generatedVADTPhase.baseYear);
+        if (openingYearField && !String(openingYearField.value).trim())
+          openingYearField.value = String(generatedVADTPhase.targetYear);
       }
 
       return {
         timestamp: new Date().toISOString(),
         metrics: {
-          aadt: aadtPhase,
-          peak: peakPhase,
-          saturation: saturationPhase,
-          queues: geometricPhase,
+          aadt:             aadtPhase,
+          peak:             peakPhase,
+          saturation:       saturationPhase,
+          queues:           geometricPhase,
           pedestrianFriction: pedestrianPhase,
           generatedTraffic: generatedVADTPhase
         }
