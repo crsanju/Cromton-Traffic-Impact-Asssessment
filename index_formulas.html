@@ -17151,7 +17151,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     });
   }
 
-  function copyTgsTiaSheet(button) {
+  function copyTgsTiaSheet(button, options = {}) {
     const escapeHtml = (value) => String(value || '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -17335,6 +17335,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const previewWrap = document.getElementById('tgsTiaPreviewWrap');
     const previewHost = document.getElementById('tgsTiaPreviewHost');
     const previewStatus = document.getElementById('tgsTiaPreviewStatus');
+    const autoRefresh = !!(options && options.autoRefresh);
 
     if (previewHost) {
       previewHost.innerHTML = html;
@@ -17343,20 +17344,27 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       previewWrap.style.display = 'block';
     }
     if (previewStatus) {
-      previewStatus.textContent = 'Preview generated. Review below, then click Copy Preview to Clipboard.';
-      previewStatus.style.color = '#0f766e';
+      if (autoRefresh) {
+        previewStatus.textContent = `Preview auto-updated at ${new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}.`;
+        previewStatus.style.color = '#0d47a1';
+      } else {
+        previewStatus.textContent = 'Preview generated. Review below, then click Copy Preview to Clipboard.';
+        previewStatus.style.color = '#0f766e';
+      }
     }
 
     const original = button ? button.textContent : 'Generate TGS TIA Sheet';
-    if (button) {
+    if (button && !(options && options.silentButton)) {
       button.textContent = 'Preview Updated';
       setTimeout(() => {
         button.textContent = original;
       }, 1300);
     }
 
-    if (previewWrap && typeof previewWrap.scrollIntoView === 'function') {
+    if (!options || !options.noScroll) {
+      if (previewWrap && typeof previewWrap.scrollIntoView === 'function') {
       previewWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     }
   }
 
@@ -17438,6 +17446,80 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         }
       }
     })();
+  }
+
+  let tgsPreviewAutoRefreshTimer = null;
+
+  function isTgsPreviewVisible() {
+    const previewWrap = document.getElementById('tgsTiaPreviewWrap');
+    if (!previewWrap) return false;
+    return previewWrap.style.display !== 'none';
+  }
+
+  function scheduleTgsPreviewAutoRefresh(delayMs = 280) {
+    if (!isTgsPreviewVisible()) return;
+    if (tgsPreviewAutoRefreshTimer) {
+      clearTimeout(tgsPreviewAutoRefreshTimer);
+      tgsPreviewAutoRefreshTimer = null;
+    }
+    tgsPreviewAutoRefreshTimer = setTimeout(() => {
+      copyTgsTiaSheet(null, { noScroll: true, silentButton: true, autoRefresh: true });
+      tgsPreviewAutoRefreshTimer = null;
+    }, Math.max(120, Number(delayMs) || 280));
+  }
+
+  function setupTgsPreviewAutoRefresh() {
+    if (window.__tgsPreviewAutoRefreshBound) return;
+    window.__tgsPreviewAutoRefreshBound = true;
+
+    const ignoreIfInsidePreview = (target) => {
+      if (!target || !(target instanceof Element)) return false;
+      return !!target.closest('#tgsTiaPreviewWrap');
+    };
+
+    document.addEventListener('input', (event) => {
+      if (ignoreIfInsidePreview(event.target)) return;
+      scheduleTgsPreviewAutoRefresh(320);
+    }, true);
+
+    document.addEventListener('change', (event) => {
+      if (ignoreIfInsidePreview(event.target)) return;
+      scheduleTgsPreviewAutoRefresh(260);
+    }, true);
+
+    const calcBtn = document.getElementById('calcBtn');
+    if (calcBtn) {
+      calcBtn.addEventListener('click', () => {
+        // Calculation updates are batched; delay ensures tables are finished rendering.
+        scheduleTgsPreviewAutoRefresh(900);
+      });
+    }
+
+    const observedOutputIds = [
+      'groupedBodyD1', 'groupedBodyD2',
+      'queueGroupedBodyD1', 'queueGroupedBodyD2',
+      'vcrGroupedBodyD1', 'vcrGroupedBodyD2',
+      'queueRiskBadge', 'vcrRiskBadge',
+      'kpiWorstVcr', 'queue-result'
+    ];
+
+    const observer = new MutationObserver(() => {
+      scheduleTgsPreviewAutoRefresh(220);
+    });
+
+    observedOutputIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      observer.observe(el, {
+        subtree: true,
+        childList: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+    });
+
+    window.__tgsPreviewMutationObserver = observer;
   }
 
   function setupOptionalFeaturePrintToggles() {
@@ -23936,6 +24018,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
       setupInputUnitBadges();
       setupInputCommitFeedback();
+      setupTgsPreviewAutoRefresh();
         // Reverted to original page flow layout (no sidebar/tabbed workspace wrapper).
   });
 
