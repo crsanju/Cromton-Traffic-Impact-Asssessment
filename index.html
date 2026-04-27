@@ -914,9 +914,9 @@
 
     /* Updated Austroads/HCM Aligned LOS Colors */
     .queue-calculator-card .los-a { background-color: #2e7d32; color: #ffffff; } /* <= 0.60 */
-    .queue-calculator-card .los-b { background-color: #8bc34a; color: #1a2e05; } /* <= 0.70 */
-    .queue-calculator-card .los-c { background-color: #ffeb3b; color: #3d2e00; } /* <= 0.80 */
-    .queue-calculator-card .los-d { background-color: #ffb300; color: #3d1f00; } /* <= 0.90 */
+    .queue-calculator-card .los-b { background-color: #8bc34a; color: #111827; } /* <= 0.70 */
+    .queue-calculator-card .los-c { background-color: #ffeb3b; color: #111827; } /* <= 0.80 */
+    .queue-calculator-card .los-d { background-color: #ffb300; color: #111827; } /* <= 0.90 */
     .queue-calculator-card .los-e { background-color: #f57c00; color: #ffffff; } /* <= 1.00 */
     .queue-calculator-card .los-f { background-color: #c62828; color: #ffffff; } /* > 1.00 */
 
@@ -1992,9 +1992,9 @@
       letter-spacing: 0.02em;
     }
     .vcr-los-a { background-color: #2e7d32; color: #ffffff; border: 1px solid #1b5e20; } /* LOS A: VCR ≤ 0.60 */
-    .vcr-los-b { background-color: #8bc34a; color: #1a2e05; border: 1px solid #689f38; } /* LOS B: VCR ≤ 0.70 */
-    .vcr-los-c { background-color: #ffeb3b; color: #3d2e00; border: 1px solid #f9a825; } /* LOS C: VCR ≤ 0.80 */
-    .vcr-los-d { background-color: #ffb300; color: #3d1f00; border: 1px solid #ef6c00; } /* LOS D: VCR ≤ 0.90 */
+    .vcr-los-b { background-color: #8bc34a; color: #111827; border: 1px solid #689f38; } /* LOS B: VCR ≤ 0.70 */
+    .vcr-los-c { background-color: #ffeb3b; color: #111827; border: 1px solid #f9a825; } /* LOS C: VCR ≤ 0.80 */
+    .vcr-los-d { background-color: #ffb300; color: #111827; border: 1px solid #ef6c00; } /* LOS D: VCR ≤ 0.90 */
     .vcr-los-e { background-color: #f57c00; color: #ffffff; border: 1px solid #d84315; } /* LOS E: VCR ≤ 1.00 */
     .vcr-los-f { background-color: #c62828; color: #ffffff; border: 1px solid #8e0000; } /* LOS F: VCR > 1.00 */
 
@@ -15605,7 +15605,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     else if (value > 0.60) colorClass = 'vcr-los-b';
 
     const thresholds = { 'vcr-los-a': '≤0.60', 'vcr-los-b': '≤0.70', 'vcr-los-c': '≤0.80', 'vcr-los-d': '≤0.90', 'vcr-los-e': '≤1.00', 'vcr-los-f': '>1.00' };
-    return `<span class="vcr-badge ${colorClass}">${value.toFixed(2)} ${losLabel(value)} <span style="opacity:0.65;font-size:0.88em;">${thresholds[colorClass]}</span></span>`;
+    return `<span class="vcr-badge ${colorClass}">${value.toFixed(2)} ${losLabel(value)} <span style="font-size:0.88em;">${thresholds[colorClass]}</span></span>`;
   }
 
   function setVcrCell(td, value){
@@ -17268,7 +17268,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
         badge.querySelectorAll('span').forEach((child) => {
           child.style.color = 'inherit';
-          child.style.opacity = '0.92';
+          child.style.opacity = '1';
         });
       });
       clone.style.width = '100%';
@@ -17357,22 +17357,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:10px;">
     <div style="border:1px solid #9ca3af; padding:8px;">
-      <div style="font-weight:700; font-size:12px; margin-bottom:6px; color:#0f172a;">Direction 2, Against Gazettal</div>
-      <div style="font-size:11px; margin-bottom:4px; color:#334155;">Grouped Directional Summary</div>
+      <div style="font-weight:800; font-size:13px; margin-bottom:6px; color:#0f172a;">Direction 2, Against Gazettal</div>
+      <div style="font-size:11px; font-weight:700; margin-bottom:4px; color:#1e293b;">Grouped Directional Summary</div>
       ${groupedD2Html}
-      <div style="font-size:11px; margin:2px 0 4px 0; color:#334155;">Queue Length Estimation</div>
+      <div style="font-size:11px; font-weight:700; margin:2px 0 4px 0; color:#1e293b;">Queue Length Estimation</div>
       ${queueD2Html}
-      <div style="font-size:11px; margin:2px 0 4px 0; color:#334155;">VCR / LOS</div>
+      <div style="font-size:11px; font-weight:700; margin:2px 0 4px 0; color:#1e293b;">VCR / LOS</div>
       ${vcrD2Html}
     </div>
 
     <div style="border:1px solid #9ca3af; padding:8px;">
-      <div style="font-weight:700; font-size:12px; margin-bottom:6px; color:#0f172a;">Direction 1, Gazettal</div>
-      <div style="font-size:11px; margin-bottom:4px; color:#334155;">Grouped Directional Summary</div>
+      <div style="font-weight:800; font-size:13px; margin-bottom:6px; color:#0f172a;">Direction 1, Gazettal</div>
+      <div style="font-size:11px; font-weight:700; margin-bottom:4px; color:#1e293b;">Grouped Directional Summary</div>
       ${groupedD1Html}
-      <div style="font-size:11px; margin:2px 0 4px 0; color:#334155;">Queue Length Estimation</div>
+      <div style="font-size:11px; font-weight:700; margin:2px 0 4px 0; color:#1e293b;">Queue Length Estimation</div>
       ${queueD1Html}
-      <div style="font-size:11px; margin:2px 0 4px 0; color:#334155;">VCR / LOS</div>
+      <div style="font-size:11px; font-weight:700; margin:2px 0 4px 0; color:#1e293b;">VCR / LOS</div>
       ${vcrD1Html}
     </div>
   </div>
@@ -17381,12 +17381,12 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     <div style="border:1px solid #9ca3af; padding:8px;">
       <div style="font-weight:800; font-size:12px; margin-bottom:6px;">Notes & Application Guidance</div>
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px 10px; font-size:10.5px; line-height:1.32; color:#1f2937;">
-        <div style="border:1px solid #d7dee3; padding:6px 7px; background:#ffffff;"><span style="display:block; font-weight:800; color:#475569; margin-bottom:2px;">Use Of Output</span>Prepared from live TIA calculator inputs and intended for direct placement in TGS / TMP layout sheets.</div>
-        <div style="border:1px solid #d7dee3; padding:6px 7px; background:#ffffff;"><span style="display:block; font-weight:800; color:#475569; margin-bottom:2px;">Worst Capacity Condition</span>Current worst case is ${escapeHtml(worstVcrText)} (${escapeHtml(worstLosText)}). ${escapeHtml(vcrRiskText)}.</div>
-        <div style="border:1px solid #d7dee3; padding:6px 7px; background:#ffffff;"><span style="display:block; font-weight:800; color:#475569; margin-bottom:2px;">Queue Interpretation</span>Adopted peak queue is ${escapeHtml(queuePeakText)}. ${escapeHtml(queueRiskText)}.</div>
-        <div style="border:1px solid #d7dee3; padding:6px 7px; background:#ffffff;"><span style="display:block; font-weight:800; color:#475569; margin-bottom:2px;">Closure Assumption</span>Assessment reflects D1 ${escapeHtml(d1Lanes)} lane(s), D2 ${escapeHtml(d2Lanes)} lane(s), under ${escapeHtml(laneClosureMode)} conditions.</div>
-        <div style="border:1px solid #d7dee3; padding:6px 7px; background:#ffffff;"><span style="display:block; font-weight:800; color:#475569; margin-bottom:2px;">Assessment Periods</span>AM 07:00-09:00, OP 09:00-16:00, PM 16:00-18:00, EV 18:00-07:00. Review staging against the highest-risk period before issue.</div>
-        <div style="border:1px solid #d7dee3; padding:6px 7px; background:#ffffff;"><span style="display:block; font-weight:800; color:#475569; margin-bottom:2px;">Design Check</span>Use LOS and queue outputs together. Where LOS E/F or extended queues remain, revise staging, timing, or lane management before finalising the sheet.</div>
+        <div style="border:1px solid #c8d4dc; padding:6px 7px; background:#ffffff;"><span style="display:block; font-weight:800; color:#1e293b; margin-bottom:2px;">Use Of Output</span><span style="color:#1f2937;">Prepared from live TIA calculator inputs and intended for direct placement in TGS / TMP layout sheets.</span></div>
+        <div style="border:1px solid #c8d4dc; padding:6px 7px; background:#ffffff;"><span style="display:block; font-weight:800; color:#1e293b; margin-bottom:2px;">Worst Capacity Condition</span><span style="color:#1f2937;">Current worst case is ${escapeHtml(worstVcrText)} (${escapeHtml(worstLosText)}). ${escapeHtml(vcrRiskText)}.</span></div>
+        <div style="border:1px solid #c8d4dc; padding:6px 7px; background:#ffffff;"><span style="display:block; font-weight:800; color:#1e293b; margin-bottom:2px;">Queue Interpretation</span><span style="color:#1f2937;">Adopted peak queue is ${escapeHtml(queuePeakText)}. ${escapeHtml(queueRiskText)}.</span></div>
+        <div style="border:1px solid #c8d4dc; padding:6px 7px; background:#ffffff;"><span style="display:block; font-weight:800; color:#1e293b; margin-bottom:2px;">Closure Assumption</span><span style="color:#1f2937;">Assessment reflects D1 ${escapeHtml(d1Lanes)} lane(s), D2 ${escapeHtml(d2Lanes)} lane(s), under ${escapeHtml(laneClosureMode)} conditions.</span></div>
+        <div style="border:1px solid #c8d4dc; padding:6px 7px; background:#ffffff;"><span style="display:block; font-weight:800; color:#1e293b; margin-bottom:2px;">Assessment Periods</span><span style="color:#1f2937;">AM 07:00-09:00, OP 09:00-16:00, PM 16:00-18:00, EV 18:00-07:00. Review staging against the highest-risk period before issue.</span></div>
+        <div style="border:1px solid #c8d4dc; padding:6px 7px; background:#ffffff;"><span style="display:block; font-weight:800; color:#1e293b; margin-bottom:2px;">Design Check</span><span style="color:#1f2937;">Use LOS and queue outputs together. Where LOS E/F or extended queues remain, revise staging, timing, or lane management before finalising the sheet.</span></div>
       </div>
     </div>
 
