@@ -17206,7 +17206,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         cell.style.fontWeight = '600';
         cell.style.verticalAlign = 'middle';
         cell.style.backgroundColor = '#ffffff';
-        cell.style.color = '#0f172a';
+        cell.style.color = '#000000';
       });
       clone.querySelectorAll('thead').forEach((head) => {
         head.style.display = 'table-header-group';
@@ -17236,7 +17236,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       clone.querySelectorAll('tbody td').forEach((cell) => {
         cell.style.backgroundColor = '#ffffff';
         cell.style.fontWeight = '700';
-        cell.style.color = '#111827';
+        cell.style.color = '#000000';
       });
       clone.style.width = '100%';
       clone.style.borderCollapse = 'collapse';
@@ -17653,7 +17653,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             });
             clonedDocument.querySelectorAll('tbody td').forEach((td) => {
               td.style.fontWeight = '700';
-              td.style.color = '#111827';
+              td.style.color = '#000000';
             });
             clonedDocument.querySelectorAll('table').forEach((table) => {
               table.style.backgroundColor = 'transparent';
@@ -17661,27 +17661,27 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           }
         });
 
-        // Export onto an A4 landscape canvas so the saved image follows page layout conventions.
-        const pageWidth = 3508;
-        const pageHeight = 2480;
+        // Export onto a true landscape canvas (wider than tall)
+        const pageWidth = 2480;
+        const pageHeight = 3508;
         const margin = 120;
         const drawWidth = pageWidth - (margin * 2);
         const drawHeight = pageHeight - (margin * 2);
 
         const exportCanvas = document.createElement('canvas');
-        exportCanvas.width = pageWidth;
-        exportCanvas.height = pageHeight;
+        exportCanvas.width = pageHeight;  // Swap to ensure landscape output
+        exportCanvas.height = pageWidth;
         const ctx = exportCanvas.getContext('2d');
         if (!ctx) throw new Error('Canvas context not available');
 
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, pageWidth, pageHeight);
+        ctx.fillRect(0, 0, pageHeight, pageWidth);
 
-        const scale = Math.min(drawWidth / contentCanvas.width, drawHeight / contentCanvas.height);
+        const scale = Math.min(drawHeight / contentCanvas.width, drawWidth / contentCanvas.height);
         const targetW = Math.max(1, Math.round(contentCanvas.width * scale));
         const targetH = Math.max(1, Math.round(contentCanvas.height * scale));
-        const offsetX = Math.round((pageWidth - targetW) / 2);
-        const offsetY = Math.round((pageHeight - targetH) / 2);
+        const offsetX = Math.round((pageHeight - targetW) / 2);
+        const offsetY = Math.round((pageWidth - targetH) / 2);
 
         ctx.drawImage(contentCanvas, offsetX, offsetY, targetW, targetH);
         const dataUrl = exportCanvas.toDataURL('image/png');
