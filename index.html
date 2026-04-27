@@ -17786,7 +17786,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const detourOnlyMode = !!(options && options.detourOnly);
     const previewMode = String((options && options.previewMode) || (detourOnlyMode ? 'detour' : 'tgs')).toLowerCase() === 'detour' ? 'detour' : 'tgs';
     const previewContext = getTiaPreviewContext(previewMode);
-    const html = detourOnlyMode ? detourHtml : `${baseHtml}${detourHtml}`;
+    const html = detourOnlyMode ? detourHtml : baseHtml;
     window[previewContext.htmlKey] = html;
     const temp = document.createElement('div');
     temp.innerHTML = html;

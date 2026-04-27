@@ -1,3 +1,7 @@
+# OS files
+desktop.ini
+Desktop.ini
+
 # ── Generated output files ────────────────────────────────────────────────────
 # Large GeoJSON outputs exceed GitHub's 25 MB file limit.
 # Keep source GeoJSON (Brisbane.geojson etc.) but block generated outputs.
