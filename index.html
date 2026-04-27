@@ -17479,6 +17479,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       };
       const clone = table.cloneNode(true);
       clone.removeAttribute('id');
+      clone.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
       clone.querySelectorAll('.formula-inline, .report-remove-x, .report-remove-part-btn').forEach((el) => el.remove());
       clone.querySelectorAll('th, td').forEach((cell) => {
         cell.style.padding = '8px 10px';
@@ -18290,7 +18291,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
     const ignoreIfInsidePreview = (target) => {
       if (!target || !(target instanceof Element)) return false;
-      return !!target.closest('#tgsTiaPreviewWrap');
+      return !!target.closest('#tgsTiaPreviewWrap') || !!target.closest('#detourTiaPreviewWrap');
     };
 
     document.addEventListener('input', (event) => {
