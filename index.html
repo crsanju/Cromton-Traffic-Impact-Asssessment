@@ -4482,48 +4482,6 @@
       <p class="section-help">Tracks directional and network stress across periods using LOS color bands. Use this as primary capacity risk screening.</p>
       <p id="laneClosureAssumptionNote" class="section-help" style="margin-top:-4px; color:#0d47a1; font-weight:700;">Work VCR assumes: Single Lane Closure (default)</p>
       <div id="vcrRiskBadge" style="display:none; margin: 6px 0 10px 0; padding: 8px 10px; border-radius: 6px; background: #ffebee; border: 1px solid #ef9a9a; color: #b71c1c; font-weight: 700; font-size: 0.9em;"></div>
-      <div class="table-actions" style="justify-content:flex-start; margin: 0 0 8px 0;">
-        <button
-          type="button"
-          id="generateTgsTiaBtn"
-          class="copy-table-btn"
-          style="background:#00695c; border-color:#004d40;"
-          onclick="copyTgsTiaSheet(this)">
-          Generate TGS TIA Sheet
-        </button>
-      </div>
-      <div id="tgsTiaPreviewWrap" style="display:none; border:1px solid #90a4ae; border-radius:8px; padding:10px; background:#f8fafc; margin:0 0 10px 0;">
-        <div class="table-actions" style="justify-content:space-between; margin:0 0 8px 0;">
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <button
-              type="button"
-              id="copyTgsTiaPreviewBtn"
-              class="copy-table-btn"
-              style="background:#1d4ed8; border-color:#1e40af;"
-              onclick="copyTgsTiaSheetPreview(this)">
-              Copy Preview to Clipboard
-            </button>
-            <button
-              type="button"
-              id="downloadTgsTiaImageBtn"
-              class="copy-table-btn"
-              style="background:#7c3aed; border-color:#6d28d9;"
-              onclick="downloadTgsTiaSheetImage(this)">
-              Download as Image
-            </button>
-            <button
-              type="button"
-              id="toggleTgsTiaEditBtn"
-              class="copy-table-btn"
-              style="background:#b45309; border-color:#92400e;"
-              onclick="toggleTgsTiaEditMode(this)">
-              Enable Edit Mode
-            </button>
-          </div>
-          <span id="tgsTiaPreviewStatus" style="font-size:11px; color:#334155; font-weight:600;">Preview not generated yet.</span>
-        </div>
-        <div id="tgsTiaPreviewHost" style="max-height:520px; overflow:auto; border:1px solid #cbd5e1; background:#ffffff; padding:8px;"></div>
-      </div>
       <div class="table-actions" style="justify-content: flex-end; margin: 0 0 8px 0;">
         <button type="button" class="vcr-toggle-btn" data-view="table" style="padding: 6px 10px; border-radius: 4px; border: 1px solid #c7d4db; background: #e3f2fd; color: #0d47a1; cursor: pointer; font-weight: 600;" onclick="setVcrView('table')">Table</button>
         <button type="button" class="vcr-toggle-btn" data-view="chart" style="padding: 6px 10px; border-radius: 4px; border: 1px solid #c7d4db; background: #f5f5f5; color: #37474f; cursor: pointer; font-weight: 600;" onclick="setVcrView('chart')">Chart</button>
@@ -4565,6 +4523,51 @@
       </div>
       <p class="table-note">* Design capacity uses Austroads/TMR practical per-lane capacity adjusted for terrain, geometry and HV/RT mix, with a minimum of 500 vph/lane.</p>
     </div>
+
+    <div style="margin:0 0 16px 0;">
+      <button
+        type="button"
+        id="generateTgsTiaBtn"
+        style="display:block; width:100%; padding:16px 24px; background:#00695c; border:2px solid #004d40; border-radius:8px; color:#ffffff; font-size:1.1em; font-weight:900; letter-spacing:0.03em; cursor:pointer; text-align:center; box-shadow:0 2px 8px rgba(0,105,92,0.25); transition:background 0.15s;"
+        onmouseover="this.style.background='#004d40'"
+        onmouseout="this.style.background='#00695c'"
+        onclick="copyTgsTiaSheet(this)">
+        &#9654;&nbsp; Generate TGS TIA Sheet
+      </button>
+      <div id="tgsTiaPreviewWrap" style="display:none; border:1.5px solid #90a4ae; border-radius:8px; padding:10px; background:#f8fafc; margin:10px 0 0 0;">
+        <div class="table-actions" style="justify-content:space-between; margin:0 0 8px 0;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button
+              type="button"
+              id="copyTgsTiaPreviewBtn"
+              class="copy-table-btn"
+              style="background:#1d4ed8; border-color:#1e40af;"
+              onclick="copyTgsTiaSheetPreview(this)">
+              Copy Preview to Clipboard
+            </button>
+            <button
+              type="button"
+              id="downloadTgsTiaImageBtn"
+              class="copy-table-btn"
+              style="background:#7c3aed; border-color:#6d28d9;"
+              onclick="downloadTgsTiaSheetImage(this)">
+              Download as Image
+            </button>
+            <button
+              type="button"
+              id="toggleTgsTiaEditBtn"
+              class="copy-table-btn"
+              style="background:#b45309; border-color:#92400e;"
+              onclick="toggleTgsTiaEditMode(this)">
+              Enable Edit Mode
+            </button>
+          </div>
+          <span id="tgsTiaPreviewStatus" style="font-size:11px; color:#334155; font-weight:600;">Preview not generated yet.</span>
+        </div>
+        <div id="tgsTiaPreviewHost" style="max-height:520px; overflow:auto; border:1px solid #cbd5e1; background:#ffffff; padding:8px;"></div>
+      </div>
+    </div>
+
 <details class="card" id="hourlyEstimateCard" open>
   <summary style="cursor: pointer; font-size: 1.2em; font-weight: 700; color: #1f5e63; margin-bottom: 10px;">HOURLY ESTIMATE</summary>
       <p style="margin: 6px 0 12px 0; font-size: 0.86em; color: #37474f; background: #f1f8ff; border: 1px solid #bbdefb; border-radius: 6px; padding: 8px 10px;">
@@ -17320,20 +17323,20 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const queueRiskText = getValue('queueRiskBadge') || '-';
 
     const html = `
-<div style="font-family: Calibri, 'Segoe UI', Tahoma, Arial, sans-serif; color:#111827; border:1.5px solid #6b7280; padding:12px; background:#fff; max-width:1280px; width:100%; box-sizing:border-box;">
-  <div style="font-size:11px; color:#4b5563; text-align:right; margin-bottom:4px;">Generated ${escapeHtml(generatedAt)}</div>
+<div style="font-family: Calibri, 'Segoe UI', Tahoma, Arial, sans-serif; color:#111827; border:2px solid #334155; padding:14px; background:#eef1f6; max-width:1280px; width:100%; box-sizing:border-box;">
+  <div style="font-size:11px; color:#1e293b; font-weight:700; text-align:right; margin-bottom:8px;">Generated ${escapeHtml(generatedAt)}</div>
 
   <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:10px; margin-bottom:10px;">
     <table style="width:100%; border-collapse:collapse; table-layout:fixed; background:#ffffff;">
       <tr>
-        <th colspan="5" style="text-align:left; background:#475569; color:#ffffff; border:1.5px solid #334155; padding:10px 12px; font-size:13px; font-weight:900; letter-spacing:0.01em;">Count Location: ${escapeHtml(title)} - Site ${escapeHtml(siteId)}</th>
+        <th colspan="5" style="text-align:left; background:#1e293b; color:#ffffff; border:1.5px solid #0f172a; padding:10px 12px; font-size:13px; font-weight:900; letter-spacing:0.01em;">Count Location: ${escapeHtml(title)} - Site ${escapeHtml(siteId)}</th>
       </tr>
       <tr>
-        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#475569; color:#ffffff; font-weight:900; text-align:center;">Period</th>
-        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#475569; color:#ffffff; font-weight:900; text-align:center;">From</th>
-        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#475569; color:#ffffff; font-weight:900; text-align:center;">To</th>
-        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#475569; color:#ffffff; font-weight:900; text-align:center;">Hrs</th>
-        <th style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#475569; color:#ffffff; font-weight:900; text-align:center;">Notes</th>
+        <th style="border:1.5px solid #334155; padding:8px 10px; font-size:12px; background:#334155; color:#ffffff; font-weight:900; text-align:center;">Period</th>
+        <th style="border:1.5px solid #334155; padding:8px 10px; font-size:12px; background:#334155; color:#ffffff; font-weight:900; text-align:center;">From</th>
+        <th style="border:1.5px solid #334155; padding:8px 10px; font-size:12px; background:#334155; color:#ffffff; font-weight:900; text-align:center;">To</th>
+        <th style="border:1.5px solid #334155; padding:8px 10px; font-size:12px; background:#334155; color:#ffffff; font-weight:900; text-align:center;">Hrs</th>
+        <th style="border:1.5px solid #334155; padding:8px 10px; font-size:12px; background:#334155; color:#ffffff; font-weight:900; text-align:center;">Notes</th>
       </tr>
       <tr><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; text-align:center; background:#ffffff;">AM</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">07:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">09:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">2</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">Morning peak</td></tr>
       <tr><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; text-align:center; background:#ffffff;">OP</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">09:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">16:00</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">7</td><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; text-align:center; background:#ffffff;">Off-peak day</td></tr>
@@ -17342,62 +17345,62 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     </table>
 
     <table style="width:100%; border-collapse:collapse; table-layout:fixed; background:#ffffff;">
-      <tr><th style="text-align:left; font-size:12px; background:#475569; color:#ffffff; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Year of Traffic Count</th><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(baseYear)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#475569; color:#ffffff; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Current Year</th><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(targetYear)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#475569; color:#ffffff; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Number of Years</th><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(yearDelta)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#475569; color:#ffffff; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Growth Rate (% p.a.)</th><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(growthRate)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#475569; color:#ffffff; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">HV %</th><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(hvPercent)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#475569; color:#ffffff; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Lanes Direction 1</th><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(d1Lanes)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#475569; color:#ffffff; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Lanes Direction 2</th><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(d2Lanes)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#475569; color:#ffffff; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Worst VCR / LOS</th><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(worstVcrText)} (${escapeHtml(worstLosText)})</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#475569; color:#ffffff; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Peak Queue</th><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(queuePeakText)}</td></tr>
-      <tr><th style="text-align:left; font-size:12px; background:#475569; color:#ffffff; border:1.5px solid #64748b; padding:8px 10px; font-weight:900;">Work VCR Assumption</th><td style="border:1.5px solid #94a3b8; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(laneClosureMode)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Year of Traffic Count</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(baseYear)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Current Year</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(targetYear)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Number of Years</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(yearDelta)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Growth Rate (% p.a.)</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(growthRate)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">HV %</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(hvPercent)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Lanes Direction 1</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(d1Lanes)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Lanes Direction 2</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(d2Lanes)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Worst VCR / LOS</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(worstVcrText)} (${escapeHtml(worstLosText)})</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Peak Queue</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:800; color:#000000; background:#ffffff; text-align:center;">${escapeHtml(queuePeakText)}</td></tr>
+      <tr><th style="text-align:left; font-size:12px; background:#334155; color:#ffffff; border:1.5px solid #1e293b; padding:8px 10px; font-weight:900;">Work VCR Assumption</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; font-weight:700; color:#000000; background:#f8fafc; text-align:center;">${escapeHtml(laneClosureMode)}</td></tr>
     </table>
   </div>
 
   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:10px;">
-    <div style="border:1px solid #9ca3af; padding:8px;">
-      <div style="font-weight:800; font-size:13px; margin-bottom:6px; color:#0f172a;">Direction 2, Against Gazettal</div>
-      <div style="font-size:11px; font-weight:700; margin-bottom:4px; color:#1e293b;">Grouped Directional Summary</div>
+    <div style="border:1.5px solid #475569; border-top:4px solid #1e293b; padding:10px; background:#ffffff;">
+      <div style="font-weight:900; font-size:13px; margin-bottom:8px; color:#0f172a; letter-spacing:0.01em;">Direction 2, Against Gazettal</div>
+      <div style="font-size:11.5px; font-weight:900; margin-bottom:5px; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #475569; text-transform:uppercase; letter-spacing:0.05em;">Grouped Directional Summary</div>
       ${groupedD2Html}
-      <div style="font-size:11px; font-weight:700; margin:2px 0 4px 0; color:#1e293b;">Queue Length Estimation</div>
+      <div style="font-size:11.5px; font-weight:900; margin:8px 0 5px 0; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #475569; text-transform:uppercase; letter-spacing:0.05em;">Queue Length Estimation</div>
       ${queueD2Html}
-      <div style="font-size:11px; font-weight:700; margin:2px 0 4px 0; color:#1e293b;">VCR / LOS</div>
+      <div style="font-size:11.5px; font-weight:900; margin:8px 0 5px 0; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #475569; text-transform:uppercase; letter-spacing:0.05em;">VCR / LOS</div>
       ${vcrD2Html}
     </div>
 
-    <div style="border:1px solid #9ca3af; padding:8px;">
-      <div style="font-weight:800; font-size:13px; margin-bottom:6px; color:#0f172a;">Direction 1, Gazettal</div>
-      <div style="font-size:11px; font-weight:700; margin-bottom:4px; color:#1e293b;">Grouped Directional Summary</div>
+    <div style="border:1.5px solid #475569; border-top:4px solid #1e293b; padding:10px; background:#ffffff;">
+      <div style="font-weight:900; font-size:13px; margin-bottom:8px; color:#0f172a; letter-spacing:0.01em;">Direction 1, Gazettal</div>
+      <div style="font-size:11.5px; font-weight:900; margin-bottom:5px; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #475569; text-transform:uppercase; letter-spacing:0.05em;">Grouped Directional Summary</div>
       ${groupedD1Html}
-      <div style="font-size:11px; font-weight:700; margin:2px 0 4px 0; color:#1e293b;">Queue Length Estimation</div>
+      <div style="font-size:11.5px; font-weight:900; margin:8px 0 5px 0; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #475569; text-transform:uppercase; letter-spacing:0.05em;">Queue Length Estimation</div>
       ${queueD1Html}
-      <div style="font-size:11px; font-weight:700; margin:2px 0 4px 0; color:#1e293b;">VCR / LOS</div>
+      <div style="font-size:11.5px; font-weight:900; margin:8px 0 5px 0; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #475569; text-transform:uppercase; letter-spacing:0.05em;">VCR / LOS</div>
       ${vcrD1Html}
     </div>
   </div>
 
   <div style="display:grid; grid-template-columns: minmax(0, 3fr) minmax(220px, 1fr); gap:12px; margin-bottom:8px; align-items:stretch;">
-    <div style="border:1px solid #9ca3af; padding:8px;">
-      <div style="font-weight:800; font-size:12px; margin-bottom:6px;">Notes & Application Guidance</div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px 10px; font-size:10.5px; line-height:1.32; color:#1f2937;">
-        <div style="border:1px solid #c8d4dc; padding:6px 7px; background:#ffffff; color:#1f2937;"><div style="font-weight:800; color:#1e293b; margin-bottom:3px; font-size:10.5px; line-height:1.3;">Use Of Output</div><div style="color:#1f2937; font-size:10.5px; line-height:1.32;">Prepared from live TIA calculator inputs and intended for direct placement in TGS / TMP layout sheets.</div></div>
-        <div style="border:1px solid #c8d4dc; padding:6px 7px; background:#ffffff; color:#1f2937;"><div style="font-weight:800; color:#1e293b; margin-bottom:3px; font-size:10.5px; line-height:1.3;">Worst Capacity Condition</div><div style="color:#1f2937; font-size:10.5px; line-height:1.32;">Current worst case is ${escapeHtml(worstVcrText)} (${escapeHtml(worstLosText)}). ${escapeHtml(vcrRiskText)}.</div></div>
-        <div style="border:1px solid #c8d4dc; padding:6px 7px; background:#ffffff; color:#1f2937;"><div style="font-weight:800; color:#1e293b; margin-bottom:3px; font-size:10.5px; line-height:1.3;">Queue Interpretation</div><div style="color:#1f2937; font-size:10.5px; line-height:1.32;">Adopted peak queue is ${escapeHtml(queuePeakText)}. ${escapeHtml(queueRiskText)}.</div></div>
-        <div style="border:1px solid #c8d4dc; padding:6px 7px; background:#ffffff; color:#1f2937;"><div style="font-weight:800; color:#1e293b; margin-bottom:3px; font-size:10.5px; line-height:1.3;">Closure Assumption</div><div style="color:#1f2937; font-size:10.5px; line-height:1.32;">Assessment reflects D1 ${escapeHtml(d1Lanes)} lane(s), D2 ${escapeHtml(d2Lanes)} lane(s), under ${escapeHtml(laneClosureMode)} conditions.</div></div>
-        <div style="border:1px solid #c8d4dc; padding:6px 7px; background:#ffffff; color:#1f2937;"><div style="font-weight:800; color:#1e293b; margin-bottom:3px; font-size:10.5px; line-height:1.3;">Assessment Periods</div><div style="color:#1f2937; font-size:10.5px; line-height:1.32;">AM 07:00-09:00, OP 09:00-16:00, PM 16:00-18:00, EV 18:00-07:00. Review staging against the highest-risk period before issue.</div></div>
-        <div style="border:1px solid #c8d4dc; padding:6px 7px; background:#ffffff; color:#1f2937;"><div style="font-weight:800; color:#1e293b; margin-bottom:3px; font-size:10.5px; line-height:1.3;">Design Check</div><div style="color:#1f2937; font-size:10.5px; line-height:1.32;">Use LOS and queue outputs together. Where LOS E/F or extended queues remain, revise staging, timing, or lane management before finalising the sheet.</div></div>
+    <div style="border:1.5px solid #475569; border-top:4px solid #1e293b; padding:10px; background:#ffffff;">
+      <div style="font-weight:900; font-size:13px; margin-bottom:8px; color:#0f172a; padding-bottom:4px; border-bottom:2px solid #334155;">Notes &amp; Application Guidance</div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px 10px;">
+        <div style="border:1px solid #64748b; border-left:3px solid #334155; padding:7px 9px; background:#f1f5f9;"><div style="font-weight:900; color:#0f172a; margin-bottom:4px; font-size:11.5px;">Use Of Output</div><div style="color:#111827; font-size:11px; line-height:1.45;">Prepared from live TIA calculator inputs and intended for direct placement in TGS / TMP layout sheets.</div></div>
+        <div style="border:1px solid #64748b; border-left:3px solid #334155; padding:7px 9px; background:#f1f5f9;"><div style="font-weight:900; color:#0f172a; margin-bottom:4px; font-size:11.5px;">Worst Capacity Condition</div><div style="color:#111827; font-size:11px; line-height:1.45;">Current worst case is ${escapeHtml(worstVcrText)} (${escapeHtml(worstLosText)}). ${escapeHtml(vcrRiskText)}.</div></div>
+        <div style="border:1px solid #64748b; border-left:3px solid #334155; padding:7px 9px; background:#f1f5f9;"><div style="font-weight:900; color:#0f172a; margin-bottom:4px; font-size:11.5px;">Queue Interpretation</div><div style="color:#111827; font-size:11px; line-height:1.45;">Adopted peak queue is ${escapeHtml(queuePeakText)}. ${escapeHtml(queueRiskText)}.</div></div>
+        <div style="border:1px solid #64748b; border-left:3px solid #334155; padding:7px 9px; background:#f1f5f9;"><div style="font-weight:900; color:#0f172a; margin-bottom:4px; font-size:11.5px;">Closure Assumption</div><div style="color:#111827; font-size:11px; line-height:1.45;">Assessment reflects D1 ${escapeHtml(d1Lanes)} lane(s), D2 ${escapeHtml(d2Lanes)} lane(s), under ${escapeHtml(laneClosureMode)} conditions.</div></div>
+        <div style="border:1px solid #64748b; border-left:3px solid #334155; padding:7px 9px; background:#f1f5f9;"><div style="font-weight:900; color:#0f172a; margin-bottom:4px; font-size:11.5px;">Assessment Periods</div><div style="color:#111827; font-size:11px; line-height:1.45;">AM 07:00-09:00, OP 09:00-16:00, PM 16:00-18:00, EV 18:00-07:00. Review staging against the highest-risk period before issue.</div></div>
+        <div style="border:1px solid #64748b; border-left:3px solid #334155; padding:7px 9px; background:#f1f5f9;"><div style="font-weight:900; color:#0f172a; margin-bottom:4px; font-size:11.5px;">Design Check</div><div style="color:#111827; font-size:11px; line-height:1.45;">Use LOS and queue outputs together. Where LOS E/F or extended queues remain, revise staging, timing, or lane management before finalising the sheet.</div></div>
       </div>
     </div>
 
-    <div style="border:1px solid #9ca3af; padding:8px; align-self:start;">
-        <div style="font-weight:700; font-size:12px; margin-bottom:4px;">LOS Legend</div>
-        <div style="font-size:10.2px; border:1px solid #1b5e20; margin-bottom:3px; background:#2e7d32; color:#ffffff; padding:3px 6px; font-weight:800;">LOS A (VCR <= 0.60)</div>
-        <div style="font-size:10.2px; border:1px solid #689f38; margin-bottom:3px; background:#8bc34a; color:#111827; padding:3px 6px; font-weight:800;">LOS B (0.60 < VCR <= 0.70)</div>
-        <div style="font-size:10.2px; border:1px solid #f9a825; margin-bottom:3px; background:#ffeb3b; color:#111827; padding:3px 6px; font-weight:800;">LOS C (0.70 < VCR <= 0.80)</div>
-        <div style="font-size:10.2px; border:1px solid #ef6c00; margin-bottom:3px; background:#ffb300; color:#111827; padding:3px 6px; font-weight:800;">LOS D (0.80 < VCR <= 0.90)</div>
-        <div style="font-size:10.2px; border:1px solid #d84315; margin-bottom:3px; background:#f57c00; color:#ffffff; padding:3px 6px; font-weight:800;">LOS E (0.90 < VCR <= 1.00)</div>
-        <div style="font-size:10.2px; border:1px solid #8e0000; background:#c62828; color:#ffffff; padding:3px 6px; font-weight:800;">LOS F (VCR > 1.00)</div>
+    <div style="border:1.5px solid #475569; border-top:4px solid #1e293b; padding:10px; background:#ffffff; align-self:start;">
+        <div style="font-weight:900; font-size:12px; margin-bottom:6px; color:#0f172a; padding-bottom:3px; border-bottom:2px solid #334155;">LOS Legend</div>
+        <div style="font-size:11px; border:1px solid #1b5e20; margin-bottom:4px; background:#2e7d32; color:#ffffff; padding:4px 8px; font-weight:800;">LOS A (VCR &lt;= 0.60)</div>
+        <div style="font-size:11px; border:1px solid #689f38; margin-bottom:4px; background:#8bc34a; color:#111827; padding:4px 8px; font-weight:800;">LOS B (0.60 &lt; VCR &lt;= 0.70)</div>
+        <div style="font-size:11px; border:1px solid #f9a825; margin-bottom:4px; background:#ffeb3b; color:#111827; padding:4px 8px; font-weight:800;">LOS C (0.70 &lt; VCR &lt;= 0.80)</div>
+        <div style="font-size:11px; border:1px solid #ef6c00; margin-bottom:4px; background:#ffb300; color:#111827; padding:4px 8px; font-weight:800;">LOS D (0.80 &lt; VCR &lt;= 0.90)</div>
+        <div style="font-size:11px; border:1px solid #d84315; margin-bottom:4px; background:#f57c00; color:#ffffff; padding:4px 8px; font-weight:800;">LOS E (0.90 &lt; VCR &lt;= 1.00)</div>
+        <div style="font-size:11px; border:1px solid #8e0000; background:#c62828; color:#ffffff; padding:4px 8px; font-weight:800;">LOS F (VCR &gt; 1.00)</div>
     </div>
   </div>
 </div>`;
@@ -17717,7 +17720,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
               th.style.visibility = 'visible';
               th.style.opacity = '1';
               th.style.fontWeight = '900';
-              th.style.backgroundColor = '#3f4b5c';
+              th.style.backgroundColor = '#334155';
               th.style.color = '#ffffff';
               th.style.fontSize = '13px';
               th.style.borderBottom = '3px solid #1e293b';
