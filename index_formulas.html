@@ -17488,6 +17488,113 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       return clone.outerHTML;
     };
 
+    const buildInlineSummaryTable = (rows) => {
+      const safeRows = Array.isArray(rows) ? rows : [];
+      const body = safeRows.map(([label, value]) => {
+        return `<tr><th style="text-align:left; border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#ffffff; color:#000000; font-weight:900;">${escapeHtml(label)}</th><td style="border:1.5px solid #64748b; padding:8px 10px; font-size:12px; background:#ffffff; color:#000000; font-weight:700;">${escapeHtml(value)}</td></tr>`;
+      }).join('');
+      return `<table style="width:100%; border-collapse:collapse; table-layout:fixed; background:#ffffff; margin-bottom:10px;">${body}</table>`;
+    };
+
+    const buildDetourDelayTableForTgs = () => {
+      const delayEstimateText = getValue('detourDelayEstimate') || '-';
+      return buildInlineSummaryTable([
+        ['Detour Route Length (km)', getValue('detourRouteLengthKm') || '-'],
+        ['Average Travel Speed on Detour (km/h)', getValue('detourAvgSpeedKmh') || '-'],
+        ['Controlled Intersections (#)', getValue('detourControlledIntCount') || '-'],
+        ['Uncontrolled Intersections (#)', getValue('detourUncontrolledIntCount') || '-'],
+        ['Delay @ Controlled (s)', getValue('detourControlledDelaySec') || '-'],
+        ['Delay @ Uncontrolled (s)', getValue('detourUncontrolledDelaySec') || '-'],
+        ['Estimated Delay', delayEstimateText]
+      ]);
+    };
+
+    const buildDetourSheetsForTgs = () => {
+      if (!document.getElementById('detourCard')) return '';
+
+      const hasRouteScenarioApi =
+        typeof ensureDetourRouteScenarios === 'function'
+        && typeof saveActiveDetourRouteScenario === 'function'
+        && typeof captureCurrentDetourRouteState === 'function'
+        && typeof applyDetourRouteState === 'function';
+
+      let originalIndex = Math.max(0, Number(window.activeDetourRouteIndex) || 0);
+      let originalState = null;
+      let scenarios = [];
+      if (hasRouteScenarioApi) {
+        ensureDetourRouteScenarios();
+        saveActiveDetourRouteScenario();
+        scenarios = Array.isArray(window.detourRouteScenarios) ? window.detourRouteScenarios : [];
+        originalState = captureCurrentDetourRouteState();
+      }
+
+      const routeIndexes = scenarios.length
+        ? scenarios.map((_, idx) => idx)
+        : [Math.max(0, Number(window.activeDetourRouteIndex) || 0)];
+
+      const blocks = [];
+      routeIndexes.forEach((routeIndex, blockIndex) => {
+        if (hasRouteScenarioApi && scenarios.length) {
+          window.activeDetourRouteIndex = routeIndex;
+          applyDetourRouteState(scenarios[routeIndex] || {}, { skipScan: true });
+        }
+
+        if (typeof calculateDetourOverlay === 'function') calculateDetourOverlay();
+        if (typeof calculatePedestrianDelay === 'function') calculatePedestrianDelay();
+
+        const routeLabelRaw = getValue('detourRouteName') || `Detour Route ${routeIndex + 1}`;
+        const routeLabel = routeLabelRaw === '-' ? `Detour Route ${routeIndex + 1}` : routeLabelRaw;
+        const selectedPath = getValue('detourSelectedPathDisplay') || '-';
+        const selectedStreet = getValue('detourActiveStreetIndicator') || '-';
+
+        const routeSummaryHtml = buildInlineSummaryTable([
+          ['Detour Route', routeLabel],
+          ['Selected Path', selectedPath],
+          ['Active Street', selectedStreet]
+        ]);
+
+        const capacitySummaryHtml = cloneTableForTgs('detourSegmentDetailedTable')
+          || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">No detour route capacity summary available.</div>';
+        const roadStatusHtml = cloneTableForTgs('postDiversionTable')
+          || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">No post-diversion road status table available.</div>';
+        const pedDelayHtml = cloneTableForTgs('pedDetailTable')
+          || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">No pedestrian delay table available.</div>';
+
+        const sectionBreak = blockIndex > 0
+          ? 'page-break-before: always; break-before: page; margin-top: 18px;'
+          : 'margin-top: 18px;';
+
+        blocks.push(`
+<div style="${sectionBreak} font-family: Calibri, 'Segoe UI', Tahoma, Arial, sans-serif; color:#111827; border:2px solid #7e22ce; padding:14px; background:#f8f2fb; max-width:1280px; width:100%; box-sizing:border-box;">
+  <div style="font-weight:900; font-size:16px; color:#4a148c; margin-bottom:10px; border-bottom:2px solid #8e24aa; padding-bottom:6px;">Detour Analysis Sheet - ${escapeHtml(routeLabel)}</div>
+  <div style="font-weight:900; font-size:12px; margin: 0 0 6px 0; color:#4a148c;">Detour Route</div>
+  ${routeSummaryHtml}
+
+  <div style="font-weight:900; font-size:12px; margin: 6px 0; color:#4a148c;">Detour Route Capacity Summary</div>
+  ${capacitySummaryHtml}
+
+  <div style="font-weight:900; font-size:12px; margin: 6px 0; color:#4a148c;">Estimated Delay Table</div>
+  ${buildDetourDelayTableForTgs()}
+
+  <div style="font-weight:900; font-size:12px; margin: 6px 0; color:#4a148c;">Detour Road Summary: Road Status After Diversion</div>
+  ${roadStatusHtml}
+
+  <div style="font-weight:900; font-size:12px; margin: 6px 0; color:#4a148c;">Pedestrian Delay Table</div>
+  ${pedDelayHtml}
+</div>`);
+      });
+
+      if (hasRouteScenarioApi) {
+        window.activeDetourRouteIndex = originalIndex;
+        if (originalState) applyDetourRouteState(originalState, { skipScan: true });
+        if (typeof calculateDetourOverlay === 'function') calculateDetourOverlay();
+        if (typeof calculatePedestrianDelay === 'function') calculatePedestrianDelay();
+        if (typeof renderDetourRouteScenarioManager === 'function') renderDetourRouteScenarioManager();
+      }
+
+      return blocks.join('');
+    };
+
     const title = (typeof getReportAddressForPrint === 'function'
       ? getReportAddressForPrint()
       : getValue('printSiteName')) || 'Traffic Impact Assessment';
@@ -17527,7 +17634,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const vcrRiskText = getValue('vcrRiskBadge') || '-';
     const queueRiskText = getValue('queueRiskBadge') || '-';
 
-    const html = `
+    const baseHtml = `
 <div style="font-family: Calibri, 'Segoe UI', Tahoma, Arial, sans-serif; color:#111827; border:2px solid #334155; padding:14px; background:#eef1f6; max-width:1280px; width:100%; box-sizing:border-box;">
   <div style="font-size:11px; color:#1e293b; font-weight:700; text-align:right; margin-bottom:8px;">Generated ${escapeHtml(generatedAt)}</div>
 
@@ -17609,7 +17716,8 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     </div>
   </div>
 </div>`;
-    window.lastTgsTiaSheetHtml = html;
+  const html = `${baseHtml}${buildDetourSheetsForTgs()}`;
+  window.lastTgsTiaSheetHtml = html;
     const temp = document.createElement('div');
     temp.innerHTML = html;
     window.lastTgsTiaSheetText = cleanText(temp.textContent || '');
