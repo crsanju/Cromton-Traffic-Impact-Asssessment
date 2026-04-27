@@ -17200,12 +17200,13 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       clone.removeAttribute('id');
       clone.querySelectorAll('.formula-inline, .report-remove-x, .report-remove-part-btn').forEach((el) => el.remove());
       clone.querySelectorAll('th, td').forEach((cell) => {
-        cell.style.padding = '6px 8px';
-        cell.style.border = '1px solid #b0bec5';
-        cell.style.fontSize = '11px';
-        cell.style.verticalAlign = 'top';
+        cell.style.padding = '8px 10px';
+        cell.style.border = '1.5px solid #64748b';
+        cell.style.fontSize = '12px';
+        cell.style.fontWeight = '600';
+        cell.style.verticalAlign = 'middle';
         cell.style.backgroundColor = '#ffffff';
-        cell.style.color = '#111827';
+        cell.style.color = '#0f172a';
       });
       clone.querySelectorAll('thead').forEach((head) => {
         head.style.display = 'table-header-group';
@@ -17213,25 +17214,29 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         head.style.pageBreakInside = 'avoid';
       });
       clone.querySelectorAll('thead th').forEach((cell) => {
-        cell.style.background = '#eceff1';
-        cell.style.backgroundColor = '#eceff1';
-        cell.style.color = '#0f172a';
-        cell.style.fontWeight = '800';
+        cell.style.background = '#3f4b5c';
+        cell.style.backgroundColor = '#3f4b5c';
+        cell.style.color = '#ffffff';
+        cell.style.fontWeight = '900';
         cell.style.display = 'table-cell';
         cell.style.visibility = 'visible';
         cell.style.textAlign = 'center';
-        cell.style.borderBottom = '2px solid #64748b';
-        cell.style.borderTop = '2px solid #64748b';
+        cell.style.borderBottom = '3px solid #1e293b';
+        cell.style.borderTop = '3px solid #1e293b';
         cell.style.opacity = '1';
+        cell.style.fontSize = '13px';
       });
       clone.querySelectorAll('tbody th, .rowhead').forEach((cell) => {
-        cell.style.fontWeight = '800';
-        cell.style.color = '#111827';
-        cell.style.backgroundColor = '#f8fafc';
-        cell.style.fontWeight = '700';
+        cell.style.fontWeight = '900';
+        cell.style.color = '#ffffff';
+        cell.style.backgroundColor = '#1e293b';
+        cell.style.fontSize = '12px';
+        cell.style.textAlign = 'center';
       });
       clone.querySelectorAll('tbody td').forEach((cell) => {
         cell.style.backgroundColor = '#ffffff';
+        cell.style.fontWeight = '700';
+        cell.style.color = '#111827';
       });
       clone.style.width = '100%';
       clone.style.borderCollapse = 'collapse';
@@ -17629,14 +17634,26 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           logging: false,
           allowTaint: true,
           onclone: (clonedDocument) => {
-            // Additional styling pass on the cloned document
+            // Ensure bold styling is applied to cloned document
             clonedDocument.querySelectorAll('thead th').forEach((th) => {
               th.style.display = 'table-cell';
               th.style.visibility = 'visible';
               th.style.opacity = '1';
-              th.style.fontWeight = '800';
-              th.style.backgroundColor = '#eceff1';
-              th.style.color = '#0f172a';
+              th.style.fontWeight = '900';
+              th.style.backgroundColor = '#3f4b5c';
+              th.style.color = '#ffffff';
+              th.style.fontSize = '13px';
+              th.style.borderBottom = '3px solid #1e293b';
+            });
+            clonedDocument.querySelectorAll('tbody th, .rowhead').forEach((th) => {
+              th.style.fontWeight = '900';
+              th.style.backgroundColor = '#1e293b';
+              th.style.color = '#ffffff';
+              th.style.fontSize = '12px';
+            });
+            clonedDocument.querySelectorAll('tbody td').forEach((td) => {
+              td.style.fontWeight = '700';
+              td.style.color = '#111827';
             });
             clonedDocument.querySelectorAll('table').forEach((table) => {
               table.style.backgroundColor = 'transparent';
