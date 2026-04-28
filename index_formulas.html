@@ -17469,6 +17469,17 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const cloneTableForTgs = (tableId) => {
       const table = document.getElementById(tableId);
       if (!table) return '';
+
+      // If the tbody only has a placeholder row (single colspan td, no vcr-badge), treat as empty
+      const tbody = table.querySelector('tbody');
+      if (tbody) {
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const hasRealData = rows.some(row => {
+          const cells = row.querySelectorAll('td');
+          return cells.length > 1 || (cells.length === 1 && !cells[0].hasAttribute('colspan') && row.querySelector('.vcr-badge'));
+        });
+        if (!hasRealData) return '';
+      }
       const losPalette = {
         'vcr-los-a': { background: '#2e7d32', color: '#ffffff', border: '#1b5e20' },
         'vcr-los-b': { background: '#8bc34a', color: '#111827', border: '#689f38' },
@@ -17578,60 +17589,30 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const buildDetourSheetsForTgs = () => {
       if (!document.getElementById('detourCard')) return '';
 
-      const hasRouteScenarioApi =
-        typeof ensureDetourRouteScenarios === 'function'
-        && typeof saveActiveDetourRouteScenario === 'function'
-        && typeof captureCurrentDetourRouteState === 'function'
-        && typeof applyDetourRouteState === 'function';
+      // Clone the currently-rendered live tables — do NOT re-run calculateDetourOverlay().
+      // Re-running it with skipScan:true would clear the tables to placeholder state.
+      // The live tables are already correct from the UI's own calculation cycle.
+      const activeIndex = Math.max(0, Number(window.activeDetourRouteIndex) || 0);
+      const routeLabelRaw = getValue('detourRouteName') || `Detour Route ${activeIndex + 1}`;
+      const routeLabel = routeLabelRaw === '-' ? `Detour Route ${activeIndex + 1}` : routeLabelRaw;
+      const selectedPath = getValue('detourSelectedPathDisplay') || '-';
+      const selectedStreet = getValue('detourActiveStreetIndicator') || '-';
 
-      let originalIndex = Math.max(0, Number(window.activeDetourRouteIndex) || 0);
-      let originalState = null;
-      let scenarios = [];
-      if (hasRouteScenarioApi) {
-        ensureDetourRouteScenarios();
-        saveActiveDetourRouteScenario();
-        scenarios = Array.isArray(window.detourRouteScenarios) ? window.detourRouteScenarios : [];
-        originalState = captureCurrentDetourRouteState();
-      }
+      const routeSummaryHtml = buildInlineSummaryTable([
+        ['Detour Route', routeLabel],
+        ['Selected Path', selectedPath],
+        ['Active Street', selectedStreet]
+      ]);
 
-      const routeIndexes = scenarios.length
-        ? scenarios.map((_, idx) => idx)
-        : [Math.max(0, Number(window.activeDetourRouteIndex) || 0)];
+      const capacitySummaryHtml = cloneTableForTgs('detourSegmentDetailedTable')
+        || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">Detour road summary table not available. Run Detour analysis first, then click Generate Detour TIA Sheet.</div>';
+      const roadStatusHtml = cloneTableForTgs('postDiversionTable')
+        || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">Road Status After Diversion table not available. Run Detour analysis first.</div>';
+      const pedDelayHtml = cloneTableForTgs('pedDetailTable')
+        || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">No pedestrian delay table available.</div>';
 
-      const blocks = [];
-      routeIndexes.forEach((routeIndex, blockIndex) => {
-        if (hasRouteScenarioApi && scenarios.length) {
-          window.activeDetourRouteIndex = routeIndex;
-          applyDetourRouteState(scenarios[routeIndex] || {}, { skipScan: true });
-        }
-
-        if (typeof calculateDetourOverlay === 'function') calculateDetourOverlay();
-        if (typeof calculatePedestrianDelay === 'function') calculatePedestrianDelay();
-
-        const routeLabelRaw = getValue('detourRouteName') || `Detour Route ${routeIndex + 1}`;
-        const routeLabel = routeLabelRaw === '-' ? `Detour Route ${routeIndex + 1}` : routeLabelRaw;
-        const selectedPath = getValue('detourSelectedPathDisplay') || '-';
-        const selectedStreet = getValue('detourActiveStreetIndicator') || '-';
-
-        const routeSummaryHtml = buildInlineSummaryTable([
-          ['Detour Route', routeLabel],
-          ['Selected Path', selectedPath],
-          ['Active Street', selectedStreet]
-        ]);
-
-        const capacitySummaryHtml = cloneTableForTgs('detourSegmentDetailedTable')
-          || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">Detour road summary table not available for this route. Run Detour analysis and try again.</div>';
-        const roadStatusHtml = cloneTableForTgs('postDiversionTable')
-          || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">Road Status After Diversion table not available for this route. Run Detour analysis and try again.</div>';
-        const pedDelayHtml = cloneTableForTgs('pedDetailTable')
-          || '<div style="font-size:12px; color:#b91c1c; border:1px dashed #dc2626; padding:8px; background:#fff5f5;">No pedestrian delay table available.</div>';
-
-        const sectionBreak = blockIndex > 0
-          ? 'page-break-before: always; break-before: page; margin-top: 18px;'
-          : 'margin-top: 18px;';
-
-        blocks.push(`
-<div style="${sectionBreak} font-family: Calibri, 'Segoe UI', Tahoma, Arial, sans-serif; color:#111827; border:2px solid #7e22ce; padding:14px; background:#f8f2fb; max-width:1280px; width:100%; box-sizing:border-box;">
+      return `
+<div style="margin-top:18px; font-family: Calibri, 'Segoe UI', Tahoma, Arial, sans-serif; color:#111827; border:2px solid #7e22ce; padding:14px; background:#f8f2fb; max-width:1280px; width:100%; box-sizing:border-box;">
   <div style="font-weight:900; font-size:16px; color:#4a148c; margin-bottom:10px; border-bottom:2px solid #8e24aa; padding-bottom:6px;">Detour Analysis Sheet - ${escapeHtml(routeLabel)}</div>
   <div style="font-weight:900; font-size:12px; margin: 0 0 6px 0; color:#4a148c;">Detour Route</div>
   ${routeSummaryHtml}
@@ -17647,18 +17628,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   <div style="font-weight:900; font-size:12px; margin: 6px 0; color:#4a148c;">Pedestrian Delay Table</div>
   ${pedDelayHtml}
-</div>`);
-      });
-
-      if (hasRouteScenarioApi) {
-        window.activeDetourRouteIndex = originalIndex;
-        if (originalState) applyDetourRouteState(originalState, { skipScan: true });
-        if (typeof calculateDetourOverlay === 'function') calculateDetourOverlay();
-        if (typeof calculatePedestrianDelay === 'function') calculatePedestrianDelay();
-        if (typeof renderDetourRouteScenarioManager === 'function') renderDetourRouteScenarioManager();
-      }
-
-      return blocks.join('');
+</div>`;
     };
 
     const title = (typeof getReportAddressForPrint === 'function'
@@ -17782,9 +17752,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     </div>
   </div>
 </div>`;
-    const detourHtml = buildDetourSheetsForTgs();
     const detourOnlyMode = !!(options && options.detourOnly);
     const previewMode = String((options && options.previewMode) || (detourOnlyMode ? 'detour' : 'tgs')).toLowerCase() === 'detour' ? 'detour' : 'tgs';
+    const detourHtml = detourOnlyMode ? buildDetourSheetsForTgs() : '';
     const previewContext = getTiaPreviewContext(previewMode);
     const html = detourOnlyMode ? detourHtml : baseHtml;
     window[previewContext.htmlKey] = html;
