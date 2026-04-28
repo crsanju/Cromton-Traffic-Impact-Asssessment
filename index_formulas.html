@@ -8498,13 +8498,33 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const summarySection = document.createElement('div');
     summarySection.className = 'ai-generated-summary';
     summarySection.style.cssText = 'background: #f0f9ff; border-left: 4px solid #2196f3; padding: 20px; margin: 20px 0; border-radius: 4px;';
-    summarySection.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3 style="margin: 0; color: #1f5e63;">📋 Summary</h3>
-        <button onclick="this.parentElement.parentElement.remove()" class="report-remove-x" style="background: #e53935; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer;">Remove</button>
-      </div>
-      <div class="report-editable" contenteditable="true" style="white-space: pre-wrap; line-height: 1.6;">${text}</div>
-    `;
+    const summaryHeader = document.createElement('div');
+    summaryHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;';
+
+    const heading = document.createElement('h3');
+    heading.style.cssText = 'margin: 0; color: #1f5e63;';
+    heading.textContent = '📋 Summary';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'report-remove-x';
+    removeBtn.style.cssText = 'background: #e53935; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer;';
+    removeBtn.textContent = 'Remove';
+    removeBtn.addEventListener('click', () => {
+      try { summarySection.remove(); } catch (_) {}
+    });
+
+    summaryHeader.appendChild(heading);
+    summaryHeader.appendChild(removeBtn);
+
+    const summaryBody = document.createElement('div');
+    summaryBody.className = 'report-editable';
+    summaryBody.setAttribute('contenteditable', 'true');
+    summaryBody.style.cssText = 'white-space: pre-wrap; line-height: 1.6;';
+    summaryBody.textContent = String(text || '');
+
+    summarySection.appendChild(summaryHeader);
+    summarySection.appendChild(summaryBody);
     
     // Insert at the beginning of the report
     const firstChild = container.firstElementChild;
@@ -9115,13 +9135,42 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   function setAppStatusBanner(message, type = 'warning') {
     const banner = document.getElementById('appStatusBanner');
     if (!banner) return;
+
+    const sanitizeStatusHtml = (raw) => {
+      const template = document.createElement('template');
+      template.innerHTML = String(raw || '');
+      const allowedTags = new Set(['STRONG', 'EM', 'B', 'I', 'CODE', 'BR', 'SPAN']);
+
+      const sanitizeNode = (node) => {
+        Array.from(node.childNodes || []).forEach((child) => {
+          if (child.nodeType === Node.COMMENT_NODE) {
+            child.remove();
+            return;
+          }
+          if (child.nodeType !== Node.ELEMENT_NODE) return;
+
+          const tag = String(child.tagName || '').toUpperCase();
+          if (!allowedTags.has(tag)) {
+            child.replaceWith(document.createTextNode(String(child.textContent || '')));
+            return;
+          }
+
+          Array.from(child.attributes || []).forEach((attr) => child.removeAttribute(attr.name));
+          sanitizeNode(child);
+        });
+      };
+
+      sanitizeNode(template.content);
+      return template.innerHTML;
+    };
+
     banner.classList.remove('hidden', 'info', 'error');
     if (type === 'info') {
       banner.classList.add('info');
     } else if (type === 'error') {
       banner.classList.add('error');
     }
-    banner.innerHTML = message;
+    banner.innerHTML = sanitizeStatusHtml(message);
   }
 
   function clearAppStatusBanner() {
@@ -10329,9 +10378,33 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const badge = document.createElement('div');
     badge.className = 'smart-suggest-badge';
     badge.style.cssText = 'display:flex; align-items:center; gap:6px; margin-top:5px; padding:4px 8px; background:#e8f0fe; border:1px solid #90caf9; border-radius:6px; font-size:0.75em; color:#1565c0;';
-    badge.innerHTML = `<span>💡 Suggested for <strong>${label}</strong>: <strong>${suggestedValue}</strong></span><button type="button" style="margin-left:auto; padding:2px 8px; border-radius:10px; border:1px solid #1565c0; background:#1565c0; color:#fff; font-size:0.9em; cursor:pointer; white-space:nowrap;">Apply</button><button type="button" style="padding:2px 6px; border-radius:10px; border:1px solid #90caf9; background:#fff; color:#1565c0; font-size:0.9em; cursor:pointer;">✕</button>`;
-    const applyBtn = badge.querySelectorAll('button')[0];
-    const dismissBtn = badge.querySelectorAll('button')[1];
+
+    const summary = document.createElement('span');
+    const prefix = document.createTextNode('💡 Suggested for ');
+    const labelStrong = document.createElement('strong');
+    labelStrong.textContent = String(label || 'Field');
+    const middle = document.createTextNode(': ');
+    const valueStrong = document.createElement('strong');
+    valueStrong.textContent = String(suggestedValue || '-');
+    summary.appendChild(prefix);
+    summary.appendChild(labelStrong);
+    summary.appendChild(middle);
+    summary.appendChild(valueStrong);
+
+    const applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.style.cssText = 'margin-left:auto; padding:2px 8px; border-radius:10px; border:1px solid #1565c0; background:#1565c0; color:#fff; font-size:0.9em; cursor:pointer; white-space:nowrap;';
+    applyBtn.textContent = 'Apply';
+
+    const dismissBtn = document.createElement('button');
+    dismissBtn.type = 'button';
+    dismissBtn.style.cssText = 'padding:2px 6px; border-radius:10px; border:1px solid #90caf9; background:#fff; color:#1565c0; font-size:0.9em; cursor:pointer;';
+    dismissBtn.textContent = '✕';
+
+    badge.appendChild(summary);
+    badge.appendChild(applyBtn);
+    badge.appendChild(dismissBtn);
+
     applyBtn.addEventListener('click', () => { onAccept(); badge.remove(); });
     dismissBtn.addEventListener('click', () => badge.remove());
     container.appendChild(badge);

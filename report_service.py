@@ -7,7 +7,7 @@ import re
 import os
 import urllib.error
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -34,10 +34,29 @@ from pydantic import BaseModel
 
 app = FastAPI(title="TIA Python Report Service", version="1.0.0")
 
+
+def _parse_allowed_origins_from_env() -> list[str]:
+  raw = os.environ.get("REPORT_ALLOWED_ORIGINS", "")
+  if not raw.strip():
+    return []
+  origins = [item.strip() for item in raw.split(",") if item.strip()]
+  return origins
+
+
+ALLOWED_ORIGINS = _parse_allowed_origins_from_env()
+ALLOWED_ORIGIN_REGEX = os.environ.get(
+  "REPORT_ALLOWED_ORIGIN_REGEX",
+  r"^https://[a-z0-9-]+\.github\.io$|^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+)
+MAX_REQUEST_BODY_BYTES = max(100_000, int(os.environ.get("REPORT_MAX_REQUEST_BYTES", "2000000")))
+MAX_DRAFTS = max(10, int(os.environ.get("REPORT_MAX_DRAFTS", "200")))
+DRAFT_TTL_HOURS = max(1, int(os.environ.get("REPORT_DRAFT_TTL_HOURS", "12")))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+  allow_origins=ALLOWED_ORIGINS,
+  allow_origin_regex=ALLOWED_ORIGIN_REGEX,
+  allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -45,11 +64,38 @@ app.add_middleware(
 
 @app.middleware("http")
 async def add_private_network_access_headers(request: Request, call_next):
+  content_length = request.headers.get("content-length")
+  if content_length:
+    try:
+      if int(content_length) > MAX_REQUEST_BODY_BYTES:
+        raise HTTPException(status_code=413, detail="Request body too large")
+    except ValueError:
+      raise HTTPException(status_code=400, detail="Invalid Content-Length header")
+
   response = await call_next(request)
   # Required for browser Private Network Access preflight when calling localhost
   # from a secure origin (for example, GitHub Pages over HTTPS).
   response.headers["Access-Control-Allow-Private-Network"] = "true"
   response.headers["Vary"] = "Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Access-Control-Request-Private-Network"
+  response.headers["X-Content-Type-Options"] = "nosniff"
+  response.headers["X-Frame-Options"] = "DENY"
+  response.headers["Referrer-Policy"] = "no-referrer"
+  response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+
+  # Keep CSP compatible with the inline editor while limiting remote execution vectors.
+  content_type = str(response.headers.get("content-type", "")).lower()
+  if "text/html" in content_type:
+    response.headers["Content-Security-Policy"] = (
+      "default-src 'self'; "
+      "img-src 'self' data:; "
+      "style-src 'self' 'unsafe-inline'; "
+      "script-src 'self' 'unsafe-inline'; "
+      "font-src 'self' data:; "
+      "connect-src 'self'; "
+      "frame-ancestors 'none'; "
+      "base-uri 'self'; "
+      "form-action 'self'"
+    )
   return response
 
 
@@ -59,6 +105,40 @@ class DraftRequest(BaseModel):
 
 
 DRAFTS: dict[str, dict[str, Any]] = {}
+
+
+def _prune_drafts(now: datetime | None = None) -> None:
+  if not DRAFTS:
+    return
+
+  now_dt = now or datetime.utcnow()
+  cutoff = now_dt - timedelta(hours=DRAFT_TTL_HOURS)
+  stale_ids: list[str] = []
+
+  for draft_id, item in list(DRAFTS.items()):
+    created_epoch = item.get("created_epoch")
+    if isinstance(created_epoch, (int, float)):
+      created_at = datetime.utcfromtimestamp(created_epoch)
+    else:
+      created_at_text = str(item.get("created_at") or "").replace("Z", "")
+      try:
+        created_at = datetime.fromisoformat(created_at_text)
+      except ValueError:
+        created_at = now_dt
+    if created_at < cutoff:
+      stale_ids.append(draft_id)
+
+  for stale_id in stale_ids:
+    DRAFTS.pop(stale_id, None)
+
+  if len(DRAFTS) > MAX_DRAFTS:
+    oldest_first = sorted(
+      DRAFTS.items(),
+      key=lambda kv: float(kv[1].get("created_epoch") or 0),
+    )
+    to_drop = len(DRAFTS) - MAX_DRAFTS
+    for draft_id, _ in oldest_first[:to_drop]:
+      DRAFTS.pop(draft_id, None)
 
 
 def _load_logo_data_url() -> str:
@@ -836,14 +916,24 @@ def _render_paragraph_block(paragraphs: list[str]) -> str:
 
 
 def _collect_chart_items(payload: dict[str, Any]) -> list[dict[str, str]]:
+  def _safe_data_image_url(value: Any) -> str:
+    text = _safe_text(value, "")
+    if not text:
+      return ""
+    if len(text) > 6_000_000:
+      return ""
+    if not re.match(r"^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=\s]+$", text, re.IGNORECASE):
+      return ""
+    return text
+
   raw_charts = payload.get("charts", []) if isinstance(payload.get("charts"), list) else []
   chart_items: list[dict[str, str]] = []
 
   for idx, chart in enumerate(raw_charts):
     if not isinstance(chart, dict):
       continue
-    image_data_url = _safe_text(chart.get("image_data_url"), "")
-    if not image_data_url.startswith("data:image/"):
+    image_data_url = _safe_data_image_url(chart.get("image_data_url"))
+    if not image_data_url:
       continue
     raw_table_ids = chart.get("table_ids", []) if isinstance(chart.get("table_ids"), list) else []
     table_ids = [_safe_text(item, "") for item in raw_table_ids if _safe_text(item, "")]
@@ -857,8 +947,8 @@ def _collect_chart_items(payload: dict[str, Any]) -> list[dict[str, str]]:
     )
 
   if not chart_items:
-    fallback = _safe_text(payload.get("chart_image_data_url"), "")
-    if fallback.startswith("data:image/"):
+    fallback = _safe_data_image_url(payload.get("chart_image_data_url"))
+    if fallback:
       chart_items.append(
         {
           "title": "Primary Chart",
@@ -1737,17 +1827,37 @@ def health() -> dict[str, str]:
 
 @app.post("/report/draft")
 def create_draft(req: DraftRequest) -> dict[str, str]:
+    _prune_drafts()
+    safe_title = str(req.title or "").strip()
+    if not safe_title:
+      safe_title = "TIA Report"
+    if len(safe_title) > 160:
+      raise HTTPException(status_code=400, detail="Title too long")
+
+    try:
+      payload_raw = json.dumps(req.payload, ensure_ascii=False)
+    except (TypeError, ValueError):
+      raise HTTPException(status_code=400, detail="Invalid payload")
+    if len(payload_raw.encode("utf-8")) > MAX_REQUEST_BODY_BYTES:
+      raise HTTPException(status_code=413, detail="Payload too large")
+
+    now = datetime.utcnow()
     draft_id = uuid.uuid4().hex
     DRAFTS[draft_id] = {
-        "title": req.title,
+        "title": safe_title,
         "payload": req.payload,
-        "created_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "created_at": now.isoformat(timespec="seconds") + "Z",
+        "created_epoch": now.timestamp(),
     }
     return {"editor_url": f"/report/editor/{draft_id}"}
 
 
 @app.get("/report/editor/{draft_id}", response_class=HTMLResponse)
 def editor_page(draft_id: str) -> str:
+  _prune_drafts()
+  if not re.fullmatch(r"[a-f0-9]{32}", str(draft_id or "")):
+    raise HTTPException(status_code=400, detail="Invalid draft id")
+
     draft = DRAFTS.get(draft_id)
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found")
