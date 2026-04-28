@@ -4480,21 +4480,6 @@
         </div>
       </div>
 
-      <div id="queueVisualizerWrap" class="simulation-container" style="display:none; background:#ffffff; border: 1px solid #c7d4db; padding:15px; border-radius:8px; margin-top:16px; position:relative;">
-        <h4 style="color:#1f5e63; margin:0 0 10px 0;"><i class="fa-solid fa-satellite"></i> Geographic Peak Queue Visualizer (2-min)</h4>
-        <p style="font-size:0.85em; color:#555; margin-top:-5px; margin-bottom:10px;">Simulating worst-case 2-minute peak queue reach on the active satellite map.</p>
-
-        <div id="geoQueueMap" style="height: 300px; width: 100%; border-radius: 4px; border: 2px solid #e1ded8; z-index:1;"></div>
-
-        <div style="position:absolute; top: 75px; left: 25px; background: rgba(255,255,255,0.92); padding: 10px 12px; border-radius: 6px; border: 1px solid #ccc; z-index:400; box-shadow: 0 2px 6px rgba(0,0,0,0.25); pointer-events:none; min-width:160px;">
-            <div style="font-weight:bold; color:#1f5e63; font-size:14px;" id="geoQueueText">Peak Queue: 0m</div>
-            <div style="font-size:10px; margin-top:3px;" id="geoOsmStatus" style="color:#aaa;">Loading geometry…</div>
-            <div style="border-top:1px solid #ddd; margin:7px 0;"></div>
-            <div style="font-size:11px; color:#555; display:flex; align-items:center; gap:6px;"><span style="display:inline-block;width:18px;height:8px;background:#e67e22;border-radius:2px;border:1px solid #fff;"></span>Heavy Vehicles</div>
-            <div style="font-size:11px; color:#555; display:flex; align-items:center; gap:6px; margin-top:4px;"><span style="display:inline-block;width:12px;height:8px;background:#3498db;border-radius:2px;border:1px solid #fff;"></span>Passenger Cars</div>
-            <div style="font-size:11px; color:#555; display:flex; align-items:center; gap:6px; margin-top:4px;"><span style="display:inline-block;width:10px;height:10px;background:#e74c3c;border-radius:50%;"></span>Stop Line</div>
-        </div>
-      </div>
     </div>
 
     <div class="card">
@@ -5581,18 +5566,11 @@
 
     
 
-    <div class="report-actions" style="display:flex; flex-wrap:nowrap; gap:6px; align-items:center; overflow-x:auto;">
+    <div class="report-actions" style="display:flex; flex-wrap:nowrap; gap:4px; align-items:center; overflow-x:auto;">
       <button class="print-btn" onclick="toggleReportMode(true, 'detailed')" style="background: linear-gradient(135deg, #6a1b9a 0%, #4a148c 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">📝 Detailed Report</button>
       <button class="print-btn" onclick="toggleReportMode(true, 'short')" style="background: linear-gradient(135deg, #8e24aa 0%, #6a1b9a 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">📄 Short Report</button>
       <button class="print-btn" onclick="openPythonEditableReport('detailed')" style="background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">🐍 Detailed Python Report</button>
       <button class="print-btn" onclick="openPythonEditableReport('short')" style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">🐍 Python Short Report</button>
-    </div>
-    <div id="pythonReportEditControls" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid #cfd8dc; border-radius:8px; background:#f8fbff; padding:8px;">
-      <button class="print-btn" type="button" onclick="triggerPythonEditsProfileLoad()" style="background: linear-gradient(135deg, #00695c 0%, #00897b 100%); font-size: 0.86em; padding: 8px 12px; white-space: nowrap;">📂 Load Python Edits JSON</button>
-      <button class="print-btn" type="button" onclick="downloadLoadedPythonEditsProfile()" style="background: linear-gradient(135deg, #37474f 0%, #455a64 100%); font-size: 0.86em; padding: 8px 12px; white-space: nowrap;">💾 Download Loaded Edits</button>
-      <button class="print-btn" type="button" onclick="clearLoadedPythonEditsProfile()" style="background: linear-gradient(135deg, #8d6e63 0%, #6d4c41 100%); font-size: 0.86em; padding: 8px 12px; white-space: nowrap;">🧹 Clear Edits</button>
-      <div id="pythonEditsProfileStatus" style="font-size:0.8em; color:#455a64; margin-left:4px;">Python edits profile: not loaded.</div>
-      <input type="file" id="pythonEditsProfileInput" accept=".json,application/json" style="display:none;" onchange="loadPythonEditsProfileFromInput(event)">
     </div>
   </div>
 
@@ -7877,6 +7855,9 @@
 
   async function openPythonEditableReport(mode = 'detailed') {
     const normalizedMode = String(mode || 'detailed').toLowerCase() === 'short' ? 'short' : 'detailed';
+    const setupModal = document.getElementById('pythonSetupModal');
+    if (setupModal) setupModal.style.display = 'none';
+
     const payload = normalizedMode === 'short'
       ? await buildShortEditableReportPayload()
       : await buildEditableReportPayload();
@@ -7889,12 +7870,6 @@
     const title = normalizedMode === 'short'
       ? `${baseTitle} - Short Report`
       : `${baseTitle} - Detailed Report`;
-
-    const serviceAvailable = await isPythonReportServiceAvailable();
-    if (!serviceAvailable) {
-      showPythonReportSetupInstructions(lastPythonServiceCheckReason || 'Python report service is offline.');
-      return;
-    }
 
     let response;
     try {
@@ -7922,6 +7897,7 @@
 
     const editorUrl = new URL(editorPath, REPORT_SERVICE_BASE_URL).toString();
     window.open(editorUrl, '_blank', 'noopener');
+    if (setupModal) setupModal.style.display = 'none';
   }
 
   // Backward-compatible alias: old JSON export action now opens the short Python report.
@@ -19117,10 +19093,6 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     checkEngineeringConflicts();
   }
 
-  let geoQueueMapInstance = null;
-  let geoQueueLayer = null;
-  let geoQueueAnimFrameId = null;
-
   // Helper: Calculate bearing between two coordinates
   function calculateBearing(lat1, lon1, lat2, lon2) {
     const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -19192,218 +19164,6 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
     return null;
   }
-
-  async function drawGeographicQueueSimulation(d1Queue, d1Bearing, d2Queue, d2Bearing, hvPercent, lat, lon) {
-    const wrap = document.getElementById('queueVisualizerWrap');
-    if (!wrap || !lat || !lon) {
-      if (wrap) wrap.style.display = 'none';
-      return;
-    }
-    wrap.style.display = 'block';
-
-    // Update UI Legend
-    const legendBox = document.getElementById('geoQueueText');
-    legendBox.innerHTML = `
-      <div style="color:#2e7d32;">D1 Queue: ${Math.round(d1Queue)}m</div>
-      <div style="color:#d32f2f; margin-top:2px;">D2 Queue: ${Math.round(d2Queue)}m</div>
-    `;
-
-    if (!geoQueueMapInstance) {
-      geoQueueMapInstance = L.map('geoQueueMap', {
-        zoomControl: false, scrollWheelZoom: false, doubleClickZoom: false, dragging: false
-      });
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(geoQueueMapInstance);
-      geoQueueLayer = L.layerGroup().addTo(geoQueueMapInstance);
-    }
-
-    if (geoQueueAnimFrameId) cancelAnimationFrame(geoQueueAnimFrameId);
-    geoQueueLayer.clearLayers();
-
-    // Traffic queues form backwards from the intersection
-    const q1Bearing = (d1Bearing + 180) % 360;
-    const q2Bearing = (d2Bearing + 180) % 360;
-
-    let pathD1 = [[lat, lon], getDestinationPoint(lat, lon, d1Queue, q1Bearing)];
-    let pathD2 = [[lat, lon], getDestinationPoint(lat, lon, d2Queue, q2Bearing)];
-
-    try {
-      const maxQ = Math.max(d1Queue, d2Queue);
-      const searchRad = Math.min(maxQ + 200, 1500);
-      const query = `[out:json][timeout:5];way(around:${searchRad},${lat},${lon})[highway];out geom;`;
-      const data = await fetchOverpassJson(query, { cacheKey: `queue_geom_${lat.toFixed(4)}_${lon.toFixed(4)}` });
-
-      if (data && data.elements && data.elements.length > 0) {
-
-        function findBestPath(targetBearing, targetLength) {
-          let bestScore = -Infinity;
-          let bestP = [];
-          data.elements.forEach(way => {
-            if (!way.geometry || way.geometry.length < 2) return;
-            const geom = way.geometry.map(g => [g.lat, g.lon]);
-            for (let i = 0; i < geom.length - 1; i++) {
-              const p1 = geom[i], p2 = geom[i+1];
-              const distToSegment = haversineDistance(lat, lon, p1[0], p1[1]);
-              if (distToSegment > 150) continue;
-
-              const bFwd = calculateBearing(p1[0], p1[1], p2[0], p2[1]);
-              const bRev = (bFwd + 180) % 360;
-
-              const diffFwd = Math.abs(((bFwd - targetBearing + 540) % 360) - 180);
-              const diffRev = Math.abs(((bRev - targetBearing + 540) % 360) - 180);
-
-              const isFwd = diffFwd < diffRev;
-              const minDiff = Math.min(diffFwd, diffRev);
-
-              const score = -distToSegment - (minDiff * 2);
-              if (score > bestScore && minDiff < 45) {
-                bestScore = score;
-                bestP = isFwd ? geom.slice(i) : geom.slice(0, i + 1).reverse();
-              }
-            }
-          });
-          if (bestP.length >= 2) {
-            bestP[0] = [lat, lon];
-            return truncatePathToDistance(bestP, targetLength);
-          }
-          return null;
-        }
-
-        const res1 = findBestPath(q1Bearing, d1Queue);
-        if (res1) pathD1 = res1;
-
-        const res2 = findBestPath(q2Bearing, d2Queue);
-        if (res2) pathD2 = res2;
-      }
-    } catch(e) {
-      console.warn('Road geometry query failed, falling back to straight lines.');
-    }
-
-    // Draw Queue Highlights
-    const boundsPoints = [];
-    if (d1Queue > 0 && pathD1.length > 1) {
-      L.polyline(pathD1, { color: 'rgba(46, 125, 50, 0.4)', weight: 14, lineCap: 'round' }).addTo(geoQueueLayer);
-      boundsPoints.push(...pathD1);
-    }
-    if (d2Queue > 0 && pathD2.length > 1) {
-      L.polyline(pathD2, { color: 'rgba(211, 47, 47, 0.4)', weight: 14, lineCap: 'round' }).addTo(geoQueueLayer);
-      boundsPoints.push(...pathD2);
-    }
-
-    if (boundsPoints.length > 1) {
-      geoQueueMapInstance.fitBounds(boundsPoints, { padding: [50, 50], maxZoom: 18 });
-    } else {
-      geoQueueMapInstance.setView([lat, lon], 18);
-    }
-    L.circleMarker([lat, lon], { radius: 6, fillColor: '#f1c40f', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(geoQueueLayer);
-
-    // 3. Generate Vehicles for both directions
-    const vehicles = [];
-    const CAR_LEN = 6, HV_LEN = 12, GAP = 2.5;
-
-    function spawnVehicles(queueLength, path, isD1) {
-      let currentLen = 0;
-      const limit = Math.min(queueLength, 400); // Cap per direction
-      let seed = Math.floor(queueLength + hvPercent);
-      const seededRand = () => { seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 0) / 0xffffffff; };
-
-      while (currentLen < limit) {
-        const isHV = (seededRand() * 100) < hvPercent;
-        const vLen = isHV ? HV_LEN : CAR_LEN;
-        if (currentLen + vLen > limit) break;
-
-        const targetDist = currentLen + (vLen/2);
-        const iconHtml = `<div style="width:${isHV ? 24 : 12}px; height:8px; background:${isHV ? '#e67e22' : '#3498db'}; border:1px solid #fff; border-radius:2px; box-shadow: 0 2px 4px rgba(0,0,0,0.5);"></div>`;
-
-        const marker = L.marker([lat, lon], {
-          icon: L.divIcon({ className: '', html: iconHtml, iconSize: [isHV ? 24 : 12, 8], iconAnchor: [isHV ? 12 : 6, 4] })
-        }).addTo(geoQueueLayer);
-        marker.setOpacity(0);
-
-        vehicles.push({
-          marker: marker,
-          isD1: isD1,
-          path: path,
-          targetDist: targetDist,
-          currentDist: limit + 10 + (currentLen * 1.5),
-          speed: 0,
-          maxSpeed: 15,
-          accel: 3,
-          limit: limit
-        });
-        currentLen += (vLen + GAP);
-      }
-    }
-
-    if (d1Queue > 0) spawnVehicles(d1Queue, pathD1, true);
-    if (d2Queue > 0) spawnVehicles(d2Queue, pathD2, false);
-
-    // 4. Run Animation Loop
-    let phase = 'RED', phaseTimer = 0, lastTime = performance.now();
-
-    function renderFrame(now) {
-      const dt = Math.min((now - lastTime) / 1000, 0.1);
-      lastTime = now;
-      phaseTimer += dt;
-
-      if (phase === 'RED' && phaseTimer > 6) { phase = 'GREEN'; phaseTimer = 0; }
-      else if (phase === 'GREEN' && phaseTimer > 4) { phase = 'RESET'; phaseTimer = 0; }
-      else if (phase === 'RESET') {
-        vehicles.forEach((v) => { v.currentDist = v.limit + 10 + (v.targetDist * 1.5); v.speed = 0; });
-        phase = 'RED'; phaseTimer = 0;
-      }
-
-      vehicles.forEach((v, i) => {
-        let desiredDist = -20; // Clear the intersection
-        if (phase === 'RED') desiredDist = v.targetDist;
-
-        // Find the vehicle directly in front of this one (in the same direction)
-        let carAhead = null;
-        for (let j = i - 1; j >= 0; j--) {
-          if (vehicles[j].isD1 === v.isD1) { carAhead = vehicles[j]; break; }
-        }
-
-        if (carAhead) {
-          const safeDist = carAhead.currentDist + 8; // 8m gap
-          if (safeDist > desiredDist) desiredDist = safeDist;
-        }
-
-        const distToTarget = v.currentDist - desiredDist;
-
-        if (distToTarget > 0.5) {
-          v.speed = Math.min(v.speed + v.accel * dt, v.maxSpeed);
-          if (distToTarget < (v.speed * 1.5)) v.speed = Math.max(distToTarget * 0.8, 0);
-          v.currentDist -= v.speed * dt;
-        } else {
-          v.speed = 0;
-          v.currentDist = desiredDist;
-        }
-
-        // Position tracking
-        const pos = getPointAlongCurvedPath(v.path, Math.max(0, v.currentDist));
-        if (pos) {
-          const travelFacing = (pos.bearing + 180) % 360;
-          // Offset 3.5m to the Left side of the road (AU rules)
-          const offsetPos = applyLateralOffset(pos.lat, pos.lon, travelFacing, 3.5);
-
-          v.marker.setLatLng([offsetPos[0], offsetPos[1]]);
-          v.marker.setOpacity(1);
-
-          const el = v.marker.getElement();
-          if (el && el.firstChild) {
-            // Rotate HTML element to face travel direction (-90 to correct CSS origin)
-            const carFacing = (travelFacing - 90 + 360) % 360;
-            el.firstChild.style.transform = `rotate(${carFacing}deg)`;
-          }
-        } else {
-          v.marker.setOpacity(0);
-        }
-      });
-
-      geoQueueAnimFrameId = requestAnimationFrame(renderFrame);
-    }
-    geoQueueAnimFrameId = requestAnimationFrame(renderFrame);
-  }
-
 
   function maxValid(values){
     const nums = values.filter(v => Number.isFinite(v) && v >= 0);
@@ -20139,36 +19899,6 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       d2Label
     };
     renderQueueCharts(lastQueueChartData);
-
-    // Geographic Peak Queue Visualizer — use worst-case q2 (2-minute cycle wait)
-    {
-      const d1Max = Math.max(...['AM','OP','PM','EV'].map(k => (queuePeriodD1[k] || {}).q2 || 0));
-      const d2Max = Math.max(...['AM','OP','PM','EV'].map(k => (queuePeriodD2[k] || {}).q2 || 0));
-      const hvPct = parseFloat((document.getElementById('HVP') || {}).value) || 0;
-
-      // Determine Map Context and travel bearings for simulation alignment
-      let qLat = null, qLon = null, d1Bearing = 0, d2Bearing = 180;
-      if (site && Number.isFinite(Number(site.latitude))) {
-          qLat = Number(site.latitude);
-          qLon = Number(site.longitude);
-          d1Bearing = getDirectionLabelBearing(site.d1_direction_label) || 0;
-          d2Bearing = getDirectionLabelBearing(site.d2_direction_label) || ((d1Bearing + 180) % 360);
-      } else if (window.selectedTiaData && Number.isFinite(Number(window.selectedTiaData.lat))) {
-          qLat = Number(window.selectedTiaData.lat);
-          qLon = Number(window.selectedTiaData.lon);
-          d1Bearing = getDirectionLabelBearing(window.selectedTiaData.d1_direction_label) || 0;
-          d2Bearing = getDirectionLabelBearing(window.selectedTiaData.d2_direction_label) || ((d1Bearing + 180) % 360);
-      }
-
-      const vizWrap = document.getElementById('queueVisualizerWrap');
-      if (vizWrap) {
-        if ((d1Max > 0 || d2Max > 0) && qLat && qLon) {
-          drawGeographicQueueSimulation(d1Max, d1Bearing, d2Max, d2Bearing, hvPct, qLat, qLon);
-        } else {
-          vizWrap.style.display = 'none';
-        }
-      }
-    }
 
     const vcrGroupedBodyD2 = document.getElementById('vcrGroupedBodyD2');
     if (vcrGroupedBodyD2) {
