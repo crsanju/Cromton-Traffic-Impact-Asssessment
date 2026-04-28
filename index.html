@@ -4488,11 +4488,10 @@
 
         <div style="position:absolute; top: 75px; left: 25px; background: rgba(255,255,255,0.92); padding: 10px 12px; border-radius: 6px; border: 1px solid #ccc; z-index:400; box-shadow: 0 2px 6px rgba(0,0,0,0.25); pointer-events:none; min-width:160px;">
             <div style="font-weight:bold; color:#1f5e63; font-size:14px;" id="geoQueueText">Peak Queue: 0m</div>
-            <div style="font-size:12px; font-weight:600; margin-top:6px;" id="geoPhaseText" style="color:#d32f2f;">Initialising…</div>
             <div style="border-top:1px solid #ddd; margin:7px 0;"></div>
-            <div style="font-size:11px; color:#555; display:flex; align-items:center; gap:6px;"><span style="display:inline-block;width:22px;height:5px;background:#e74c3c;border-radius:3px;"></span>Queue building</div>
-            <div style="font-size:11px; color:#555; display:flex; align-items:center; gap:6px; margin-top:3px;"><span style="display:inline-block;width:22px;height:5px;background:#27ae60;border-radius:3px;"></span>Queue clearing</div>
-            <div style="font-size:11px; color:#555; display:flex; align-items:center; gap:6px; margin-top:3px;"><span style="display:inline-block;width:10px;height:10px;background:#e74c3c;border-radius:50%;"></span>Stop line</div>
+            <div style="font-size:11px; color:#555; display:flex; align-items:center; gap:6px;"><span style="display:inline-block;width:18px;height:8px;background:#e67e22;border-radius:2px;border:1px solid #fff;"></span>Heavy Vehicles</div>
+            <div style="font-size:11px; color:#555; display:flex; align-items:center; gap:6px; margin-top:4px;"><span style="display:inline-block;width:12px;height:8px;background:#3498db;border-radius:2px;border:1px solid #fff;"></span>Passenger Cars</div>
+            <div style="font-size:11px; color:#555; display:flex; align-items:center; gap:6px; margin-top:4px;"><span style="display:inline-block;width:10px;height:10px;background:#e74c3c;border-radius:50%;"></span>Stop Line</div>
         </div>
       </div>
     </div>
@@ -19121,7 +19120,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
 
   // Helper: Calculate GPS coordinate given a distance and bearing
   function getDestinationPoint(lat, lon, distanceMeters, bearingDegrees) {
-    const R = 6371000; // Earth Radius
+    const R = 6371000;
     const brng = bearingDegrees * Math.PI / 180;
     const lat1 = lat * Math.PI / 180;
     const lon1 = lon * Math.PI / 180;
@@ -19130,28 +19129,79 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return [lat2 * 180 / Math.PI, lon2 * 180 / Math.PI];
   }
 
-  function drawGeographicQueueSimulation(queueLengthMeters, hvPercent, lat, lon, travelBearing) {
+  // Helper: Calculate bearing between two GPS coordinates
+  function calculateBearing(lat1, lon1, lat2, lon2) {
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const l1 = lat1 * Math.PI / 180;
+    const l2 = lat2 * Math.PI / 180;
+    const y = Math.sin(dLon) * Math.cos(l2);
+    const x = Math.cos(l1) * Math.sin(l2) - Math.sin(l1) * Math.cos(l2) * Math.cos(dLon);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  }
+
+  // Helper: Truncate (or extrapolate) a lat/lon path to an exact distance in metres
+  function truncatePathToDistance(path, maxDist) {
+    if (!path || path.length < 2) return path;
+    let newPath = [path[0]];
+    let traversed = 0;
+    for (let i = 0; i < path.length - 1; i++) {
+      const p1 = path[i], p2 = path[i + 1];
+      const segLen = haversineDistance(p1[0], p1[1], p2[0], p2[1]);
+      if (traversed + segLen >= maxDist) {
+        const fraction = (maxDist - traversed) / segLen;
+        newPath.push([p1[0] + (p2[0] - p1[0]) * fraction, p1[1] + (p2[1] - p1[1]) * fraction]);
+        return newPath;
+      }
+      traversed += segLen;
+      newPath.push(p2);
+    }
+    // Extrapolate if OSM path was shorter than the queue
+    const last1 = path[path.length - 2], last2 = path[path.length - 1];
+    const b = calculateBearing(last1[0], last1[1], last2[0], last2[1]);
+    newPath.push(getDestinationPoint(last2[0], last2[1], maxDist - traversed, b));
+    return newPath;
+  }
+
+  // Helper: Get exact lat/lon and local bearing at a given metre-distance along a curved path
+  function getPointAlongCurvedPath(path, distMeters) {
+    if (!path || path.length === 0) return null;
+    if (path.length === 1) return { lat: path[0][0], lon: path[0][1], bearing: 0 };
+    if (distMeters <= 0) return { lat: path[0][0], lon: path[0][1], bearing: calculateBearing(path[0][0], path[0][1], path[1][0], path[1][1]) };
+    let traversed = 0;
+    for (let i = 0; i < path.length - 1; i++) {
+      const p1 = path[i], p2 = path[i + 1];
+      const segLen = haversineDistance(p1[0], p1[1], p2[0], p2[1]);
+      if (traversed + segLen >= distMeters) {
+        const fraction = (distMeters - traversed) / segLen;
+        return {
+          lat: p1[0] + (p2[0] - p1[0]) * fraction,
+          lon: p1[1] + (p2[1] - p1[1]) * fraction,
+          bearing: calculateBearing(p1[0], p1[1], p2[0], p2[1])
+        };
+      }
+      traversed += segLen;
+    }
+    const last1 = path[path.length - 2], last2 = path[path.length - 1];
+    const b = calculateBearing(last1[0], last1[1], last2[0], last2[1]);
+    const finalPt = getDestinationPoint(last2[0], last2[1], distMeters - traversed, b);
+    return { lat: finalPt[0], lon: finalPt[1], bearing: b };
+  }
+
+  async function drawGeographicQueueSimulation(queueLengthMeters, hvPercent, lat, lon, travelBearing) {
     const wrap = document.getElementById('queueVisualizerWrap');
     if (!wrap || !lat || !lon) {
       if (wrap) wrap.style.display = 'none';
       return;
     }
     wrap.style.display = 'block';
-    document.getElementById('geoQueueText').textContent = `Peak Queue: ${Math.round(queueLengthMeters)}m`;
-
-    // Queue forms behind the stop line — opposite to travel direction
-    const queueBearing = (travelBearing + 180) % 360;
-    const stopPt = [lat, lon];
-    const queueEndPt = getDestinationPoint(lat, lon, queueLengthMeters, queueBearing);
+    document.getElementById('geoQueueText').textContent = `Loading road geometry…`;
 
     // 1. Initialise map once
     if (!geoQueueMapInstance) {
       geoQueueMapInstance = L.map('geoQueueMap', {
-        zoomControl: true, scrollWheelZoom: true, doubleClickZoom: true, dragging: true
+        zoomControl: false, scrollWheelZoom: false, doubleClickZoom: false, dragging: false
       });
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19, attribution: '© Esri'
-      }).addTo(geoQueueMapInstance);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(geoQueueMapInstance);
       geoQueueLayer = L.layerGroup().addTo(geoQueueMapInstance);
     }
 
@@ -19159,76 +19209,140 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (geoQueueAnimFrameId) { cancelAnimationFrame(geoQueueAnimFrameId); geoQueueAnimFrameId = null; }
     geoQueueLayer.clearLayers();
 
-    // Fit bounds then force size recalculation (map may have been hidden)
-    geoQueueMapInstance.fitBounds([stopPt, queueEndPt], { padding: [60, 60] });
+    // 2. Fetch OSM road geometry to snap the queue to real road curves
+    const queueBearing = (travelBearing + 180) % 360; // Queue forms behind the intersection
+    let exactQueuePath = [[lat, lon], getDestinationPoint(lat, lon, queueLengthMeters, queueBearing)]; // Fallback: straight line
+
+    try {
+      const query = `[out:json][timeout:5];way(around:150,${lat},${lon})[highway];out geom;`;
+      const data = await fetchOverpassJson(query, { cacheKey: `queue_geom_${lat.toFixed(4)}_${lon.toFixed(4)}` });
+
+      if (data && data.elements && data.elements.length > 0) {
+        let bestScore = -Infinity;
+        let bestPath = [];
+
+        data.elements.forEach(way => {
+          if (!way.geometry || way.geometry.length < 2) return;
+          const geom = way.geometry.map(g => [g.lat, g.lon]);
+
+          for (let i = 0; i < geom.length - 1; i++) {
+            const p1 = geom[i], p2 = geom[i + 1];
+            const distToSegment = haversineDistance(lat, lon, p1[0], p1[1]);
+            const bFwd = calculateBearing(p1[0], p1[1], p2[0], p2[1]);
+            const bRev = (bFwd + 180) % 360;
+            const diffFwd = Math.abs(((bFwd - queueBearing + 540) % 360) - 180);
+            const diffRev = Math.abs(((bRev - queueBearing + 540) % 360) - 180);
+            const isFwd = diffFwd < diffRev;
+            const minDiff = Math.min(diffFwd, diffRev);
+            // Score favours segments close to the coordinate and matching the expected bearing
+            const score = -distToSegment - (minDiff * 2);
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestPath = isFwd ? geom.slice(i) : geom.slice(0, i + 1).reverse();
+            }
+          }
+        });
+
+        if (bestPath.length >= 2) {
+          bestPath[0] = [lat, lon]; // Anchor to exact counter coordinate
+          exactQueuePath = truncatePathToDistance(bestPath, queueLengthMeters);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch road geometry for queue visualizer, using straight fallback', e);
+    }
+
+    document.getElementById('geoQueueText').textContent = `Peak Queue: ${Math.round(queueLengthMeters)}m`;
+
+    // 3. Static layers
+    // Red highlight showing the full queue extent along the road
+    const queueZoneLine = L.polyline(exactQueuePath, { color: 'rgba(231,76,60,0.4)', weight: 14, lineCap: 'round' }).addTo(geoQueueLayer);
+    // Stop-line marker
+    L.circleMarker([lat, lon], { radius: 6, fillColor: '#e74c3c', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(geoQueueLayer);
+
+    geoQueueMapInstance.fitBounds(queueZoneLine.getBounds(), { padding: [50, 50], maxZoom: 18 });
     setTimeout(() => { try { geoQueueMapInstance.invalidateSize(); } catch (_) {} }, 80);
 
-    // 2. Static layers
-    // Ghost line showing the full possible queue extent
-    L.polyline([stopPt, queueEndPt], {
-      color: 'rgba(200,200,200,0.45)', weight: 12, lineCap: 'round', dashArray: '6 8'
-    }).addTo(geoQueueLayer);
+    // 4. Generate vehicle markers
+    const vehicles = [];
+    let currentLen = 0;
+    const CAR_LEN = 6, HV_LEN = 12, GAP = 2;
+    const maxVisualQueue = Math.min(queueLengthMeters, 600);
 
-    // Stop-line circle marker
-    L.circleMarker(stopPt, {
-      radius: 8, fillColor: '#e74c3c', color: '#fff', weight: 2.5, fillOpacity: 1, zIndexOffset: 900
-    }).bindTooltip('Stop Line', { permanent: false, direction: 'right' }).addTo(geoQueueLayer);
+    let seed = Math.floor(queueLengthMeters + hvPercent);
+    const seededRand = () => { seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 0) / 0xffffffff; };
 
-    // Direction arrow: small arrowhead at the queue end showing where traffic travels
-    const arrowPt = getDestinationPoint(lat, lon, Math.min(queueLengthMeters * 0.15, 30), travelBearing);
-    L.polyline([stopPt, arrowPt], {
-      color: '#ffffff', weight: 2, opacity: 0.7, dashArray: '4 5'
-    }).addTo(geoQueueLayer);
+    while (currentLen < maxVisualQueue) {
+      const isHV = (seededRand() * 100) < hvPercent;
+      const vLen = isHV ? HV_LEN : CAR_LEN;
+      if (currentLen + vLen > maxVisualQueue) break;
 
-    // 3. Animated queue polyline (grows / shrinks between stopPt and queueEndPt)
-    const queueLine = L.polyline([stopPt, stopPt], {
-      color: '#e74c3c', weight: 10, lineCap: 'round', opacity: 0.85
-    }).addTo(geoQueueLayer);
+      const targetDist = currentLen + (vLen / 2);
+      const iconHtml = `<div style="width:${isHV ? 24 : 12}px; height:8px; background:${isHV ? '#e67e22' : '#3498db'}; border:1px solid #fff; border-radius:2px; box-shadow:0 2px 4px rgba(0,0,0,0.5);"></div>`;
 
-    // Back-of-queue marker (follows the live tail of the queue)
-    const tailMarker = L.circleMarker(stopPt, {
-      radius: 5, fillColor: '#f39c12', color: '#fff', weight: 2, fillOpacity: 1, zIndexOffset: 800
-    }).addTo(geoQueueLayer);
+      const marker = L.marker([lat, lon], {
+        icon: L.divIcon({ className: '', html: iconHtml, iconSize: [isHV ? 24 : 12, 8], iconAnchor: [isHV ? 12 : 6, 4] })
+      }).addTo(geoQueueLayer);
 
-    // 4. Animation loop — RED phase: queue grows; GREEN phase: queue shrinks
-    const RED_DURATION = 5;   // seconds to reach full queue
-    const GREEN_DURATION = 4; // seconds to clear queue
-    let phase = 'RED';
-    let progress = 0; // 0.0 = no queue, 1.0 = full queue extent
-    let lastTime = performance.now();
-    const phaseEl = document.getElementById('geoPhaseText');
+      vehicles.push({
+        marker,
+        targetDist,
+        currentDist: queueLengthMeters + 10 + (vehicles.length * 15), // spawn staggered behind queue
+        speed: 0,
+        maxSpeed: 15, // m/s
+        accel: 4
+      });
+      currentLen += (vLen + GAP);
+    }
+
+    // 5. Animation loop — RED: vehicles queue up; GREEN: vehicles clear intersection
+    let phase = 'RED', phaseTimer = 0, lastTime = performance.now();
 
     function renderFrame(now) {
       const dt = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
+      phaseTimer += dt;
 
-      if (phase === 'RED') {
-        progress = Math.min(progress + dt / RED_DURATION, 1.0);
-        if (progress >= 1.0) phase = 'GREEN';
-      } else {
-        progress = Math.max(progress - dt / GREEN_DURATION, 0.0);
-        if (progress <= 0.0) phase = 'RED';
+      if (phase === 'RED' && phaseTimer > 6) { phase = 'GREEN'; phaseTimer = 0; }
+      else if (phase === 'GREEN' && phaseTimer > 5) { phase = 'RESET'; phaseTimer = 0; }
+      else if (phase === 'RESET') {
+        vehicles.forEach((v, i) => { v.currentDist = queueLengthMeters + 10 + (i * 15); v.speed = 0; });
+        phase = 'RED'; phaseTimer = 0;
       }
 
-      // Interpolate tail position along the bearing
-      const tailLat = stopPt[0] + (queueEndPt[0] - stopPt[0]) * progress;
-      const tailLon = stopPt[1] + (queueEndPt[1] - stopPt[1]) * progress;
-      const tailPt = [tailLat, tailLon];
+      vehicles.forEach((v, i) => {
+        let desiredDist = -20; // Clear through intersection on GREEN
+        if (phase === 'RED') desiredDist = v.targetDist;
 
-      queueLine.setLatLngs([stopPt, tailPt]);
-      queueLine.setStyle({ color: phase === 'RED' ? '#e74c3c' : '#27ae60' });
-      tailMarker.setLatLng(tailPt);
-
-      if (phaseEl) {
-        const curM = Math.round(queueLengthMeters * progress);
-        if (phase === 'RED') {
-          phaseEl.textContent = `🔴 Queuing — ${curM}m`;
-          phaseEl.style.color = '#c0392b';
-        } else {
-          phaseEl.textContent = `🟢 Clearing — ${curM}m`;
-          phaseEl.style.color = '#1b5e20';
+        // Car-following: maintain gap to vehicle ahead
+        if (i > 0) {
+          const safeDist = vehicles[i - 1].currentDist + 8;
+          if (safeDist > desiredDist) desiredDist = safeDist;
         }
-      }
+
+        const distToTarget = v.currentDist - desiredDist;
+        if (distToTarget > 0.5) {
+          v.speed = Math.min(v.speed + v.accel * dt, v.maxSpeed);
+          if (distToTarget < (v.speed * 1.5)) v.speed = Math.max(distToTarget * 0.8, 0);
+          v.currentDist -= v.speed * dt;
+        } else {
+          v.speed = 0;
+          v.currentDist = desiredDist;
+        }
+
+        // Position marker along the actual road curve
+        const pos = getPointAlongCurvedPath(exactQueuePath, Math.max(0, v.currentDist));
+        if (pos) {
+          v.marker.setLatLng([pos.lat, pos.lon]);
+          const el = v.marker.getElement();
+          if (el && el.firstChild) {
+            // CSS 0° = right; bearing 0° = north → offset by -90°
+            const carFacing = (pos.bearing - 90 + 360) % 360;
+            el.firstChild.style.transform = `rotate(${carFacing}deg)`;
+          }
+        }
+      });
 
       geoQueueAnimFrameId = requestAnimationFrame(renderFrame);
     }
