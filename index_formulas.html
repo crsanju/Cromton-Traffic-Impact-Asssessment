@@ -4486,10 +4486,13 @@
 
         <div id="geoQueueMap" style="height: 300px; width: 100%; border-radius: 4px; border: 2px solid #e1ded8; z-index:1;"></div>
 
-        <div style="position:absolute; top: 75px; left: 25px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 6px; border: 1px solid #ccc; z-index:400; box-shadow: 0 2px 5px rgba(0,0,0,0.2); pointer-events:none;">
-            <div style="font-weight:bold; color:#d32f2f; font-size:14px;" id="geoQueueText">Peak Queue: 0m</div>
-            <div style="font-size:12px; color:#e67e22; margin-top:4px;">■ Heavy Vehicles</div>
-            <div style="font-size:12px; color:#3498db;">■ Passenger Cars</div>
+        <div style="position:absolute; top: 75px; left: 25px; background: rgba(255,255,255,0.92); padding: 10px 12px; border-radius: 6px; border: 1px solid #ccc; z-index:400; box-shadow: 0 2px 6px rgba(0,0,0,0.25); pointer-events:none; min-width:160px;">
+            <div style="font-weight:bold; color:#1f5e63; font-size:14px;" id="geoQueueText">Peak Queue: 0m</div>
+            <div style="font-size:12px; font-weight:600; margin-top:6px;" id="geoPhaseText" style="color:#d32f2f;">Initialising…</div>
+            <div style="border-top:1px solid #ddd; margin:7px 0;"></div>
+            <div style="font-size:11px; color:#555; display:flex; align-items:center; gap:6px;"><span style="display:inline-block;width:22px;height:5px;background:#e74c3c;border-radius:3px;"></span>Queue building</div>
+            <div style="font-size:11px; color:#555; display:flex; align-items:center; gap:6px; margin-top:3px;"><span style="display:inline-block;width:22px;height:5px;background:#27ae60;border-radius:3px;"></span>Queue clearing</div>
+            <div style="font-size:11px; color:#555; display:flex; align-items:center; gap:6px; margin-top:3px;"><span style="display:inline-block;width:10px;height:10px;background:#e74c3c;border-radius:50%;"></span>Stop line</div>
         </div>
       </div>
     </div>
@@ -19130,121 +19133,104 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   function drawGeographicQueueSimulation(queueLengthMeters, hvPercent, lat, lon, travelBearing) {
     const wrap = document.getElementById('queueVisualizerWrap');
     if (!wrap || !lat || !lon) {
-       if (wrap) wrap.style.display = 'none';
-       return;
+      if (wrap) wrap.style.display = 'none';
+      return;
     }
     wrap.style.display = 'block';
     document.getElementById('geoQueueText').textContent = `Peak Queue: ${Math.round(queueLengthMeters)}m`;
 
-    // 1. Initialize Map once
+    // Queue forms behind the stop line — opposite to travel direction
+    const queueBearing = (travelBearing + 180) % 360;
+    const stopPt = [lat, lon];
+    const queueEndPt = getDestinationPoint(lat, lon, queueLengthMeters, queueBearing);
+
+    // 1. Initialise map once
     if (!geoQueueMapInstance) {
-        geoQueueMapInstance = L.map('geoQueueMap', {
-            zoomControl: false, scrollWheelZoom: false, doubleClickZoom: false, dragging: false
-        });
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(geoQueueMapInstance);
-        geoQueueLayer = L.layerGroup().addTo(geoQueueMapInstance);
+      geoQueueMapInstance = L.map('geoQueueMap', {
+        zoomControl: true, scrollWheelZoom: true, doubleClickZoom: true, dragging: true
+      });
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19, attribution: '© Esri'
+      }).addTo(geoQueueMapInstance);
+      geoQueueLayer = L.layerGroup().addTo(geoQueueMapInstance);
     }
 
-    // Clear existing loop/markers
-    if (geoQueueAnimFrameId) cancelAnimationFrame(geoQueueAnimFrameId);
+    // Stop existing animation and clear old layers
+    if (geoQueueAnimFrameId) { cancelAnimationFrame(geoQueueAnimFrameId); geoQueueAnimFrameId = null; }
     geoQueueLayer.clearLayers();
 
-    // 2. Setup Geometry
-    // Traffic queues form backwards from the intersection (opposite to travel bearing)
-    const queueBearing = (travelBearing + 180) % 360;
-    const startPt = [lat, lon];
-    const endPt = getDestinationPoint(lat, lon, queueLengthMeters, queueBearing);
+    // Fit bounds then force size recalculation (map may have been hidden)
+    geoQueueMapInstance.fitBounds([stopPt, queueEndPt], { padding: [60, 60] });
+    setTimeout(() => { try { geoQueueMapInstance.invalidateSize(); } catch (_) {} }, 80);
 
-    geoQueueMapInstance.fitBounds([startPt, endPt], { padding: [50, 50] });
-    try { geoQueueMapInstance.invalidateSize(); } catch (_) {}
+    // 2. Static layers
+    // Ghost line showing the full possible queue extent
+    L.polyline([stopPt, queueEndPt], {
+      color: 'rgba(200,200,200,0.45)', weight: 12, lineCap: 'round', dashArray: '6 8'
+    }).addTo(geoQueueLayer);
 
-    // Draw the extent of the queue zone (red highlight)
-    L.polyline([startPt, endPt], { color: 'rgba(231, 76, 60, 0.4)', weight: 14, lineCap: 'round' }).addTo(geoQueueLayer);
-    L.circleMarker(startPt, { radius: 6, fillColor: '#e74c3c', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(geoQueueLayer); // Stopline
+    // Stop-line circle marker
+    L.circleMarker(stopPt, {
+      radius: 8, fillColor: '#e74c3c', color: '#fff', weight: 2.5, fillOpacity: 1, zIndexOffset: 900
+    }).bindTooltip('Stop Line', { permanent: false, direction: 'right' }).addTo(geoQueueLayer);
 
-    // 3. Generate Vehicles
-    const vehicles = [];
-    let currentLen = 0;
-    const CAR_LEN = 6, HV_LEN = 12, GAP = 2;
-    const maxVisualQueue = Math.min(queueLengthMeters, 600); // Cap visual markers to prevent map lag on huge queues
+    // Direction arrow: small arrowhead at the queue end showing where traffic travels
+    const arrowPt = getDestinationPoint(lat, lon, Math.min(queueLengthMeters * 0.15, 30), travelBearing);
+    L.polyline([stopPt, arrowPt], {
+      color: '#ffffff', weight: 2, opacity: 0.7, dashArray: '4 5'
+    }).addTo(geoQueueLayer);
 
-    // Stable random distribution based on HV%
-    let seed = Math.floor(queueLengthMeters + hvPercent);
-    const seededRand = () => { seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 0) / 0xffffffff; };
+    // 3. Animated queue polyline (grows / shrinks between stopPt and queueEndPt)
+    const queueLine = L.polyline([stopPt, stopPt], {
+      color: '#e74c3c', weight: 10, lineCap: 'round', opacity: 0.85
+    }).addTo(geoQueueLayer);
 
-    while (currentLen < maxVisualQueue) {
-        const isHV = (seededRand() * 100) < hvPercent;
-        const vLen = isHV ? HV_LEN : CAR_LEN;
-        if (currentLen + vLen > maxVisualQueue) break;
+    // Back-of-queue marker (follows the live tail of the queue)
+    const tailMarker = L.circleMarker(stopPt, {
+      radius: 5, fillColor: '#f39c12', color: '#fff', weight: 2, fillOpacity: 1, zIndexOffset: 800
+    }).addTo(geoQueueLayer);
 
-        const targetDist = currentLen + (vLen / 2);
-        const targetFraction = queueLengthMeters > 0 ? (targetDist / queueLengthMeters) : 0;
-
-        // Render HTML top-down cars rotating towards travel bearing
-        const iconHtml = `<div style="width:${isHV ? 24 : 12}px; height:8px; background:${isHV ? '#e67e22' : '#3498db'}; border:1px solid #fff; border-radius:2px; transform: rotate(${travelBearing}deg); box-shadow: 0 2px 4px rgba(0,0,0,0.5);"></div>`;
-
-        const marker = L.marker(startPt, {
-            icon: L.divIcon({ className: '', html: iconHtml, iconSize: [isHV ? 24 : 12, 8], iconAnchor: [isHV ? 12 : 6, 4] })
-        }).addTo(geoQueueLayer);
-
-        vehicles.push({
-            marker: marker,
-            targetF: targetFraction, // Where it stops (0.0 is intersection, 1.0 is back of queue)
-            currentF: 1.0 + (vehicles.length * 0.05), // Spawn staggered off the back
-            speed: 0,
-            maxSpeed: 0.15,
-            accel: 0.1
-        });
-        currentLen += (vLen + GAP);
-    }
-
-    // 4. Run Animation Loop (Red -> Green cycle)
-    let phase = 'RED', phaseTimer = 0, lastTime = performance.now();
+    // 4. Animation loop — RED phase: queue grows; GREEN phase: queue shrinks
+    const RED_DURATION = 5;   // seconds to reach full queue
+    const GREEN_DURATION = 4; // seconds to clear queue
+    let phase = 'RED';
+    let progress = 0; // 0.0 = no queue, 1.0 = full queue extent
+    let lastTime = performance.now();
+    const phaseEl = document.getElementById('geoPhaseText');
 
     function renderFrame(now) {
-        const dt = Math.min((now - lastTime) / 1000, 0.1);
-        lastTime = now;
-        phaseTimer += dt;
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
 
-        // Cycle logic
-        if (phase === 'RED' && phaseTimer > 6) { phase = 'GREEN'; phaseTimer = 0; }
-        else if (phase === 'GREEN' && phaseTimer > 5) { phase = 'RESET'; phaseTimer = 0; }
-        else if (phase === 'RESET') {
-            vehicles.forEach((v, i) => { v.currentF = 1.0 + (i * 0.05); v.speed = 0; });
-            phase = 'RED'; phaseTimer = 0;
+      if (phase === 'RED') {
+        progress = Math.min(progress + dt / RED_DURATION, 1.0);
+        if (progress >= 1.0) phase = 'GREEN';
+      } else {
+        progress = Math.max(progress - dt / GREEN_DURATION, 0.0);
+        if (progress <= 0.0) phase = 'RED';
+      }
+
+      // Interpolate tail position along the bearing
+      const tailLat = stopPt[0] + (queueEndPt[0] - stopPt[0]) * progress;
+      const tailLon = stopPt[1] + (queueEndPt[1] - stopPt[1]) * progress;
+      const tailPt = [tailLat, tailLon];
+
+      queueLine.setLatLngs([stopPt, tailPt]);
+      queueLine.setStyle({ color: phase === 'RED' ? '#e74c3c' : '#27ae60' });
+      tailMarker.setLatLng(tailPt);
+
+      if (phaseEl) {
+        const curM = Math.round(queueLengthMeters * progress);
+        if (phase === 'RED') {
+          phaseEl.textContent = `🔴 Queuing — ${curM}m`;
+          phaseEl.style.color = '#c0392b';
+        } else {
+          phaseEl.textContent = `🟢 Clearing — ${curM}m`;
+          phaseEl.style.color = '#1b5e20';
         }
+      }
 
-        vehicles.forEach((v, i) => {
-            let desiredF = -0.2; // Move through intersection when green
-
-            if (phase === 'RED') {
-                desiredF = v.targetF;
-            }
-
-            // Car Following logic
-            if (i > 0) {
-                const safeF = vehicles[i - 1].currentF + (queueLengthMeters > 0 ? (8 / queueLengthMeters) : 0); // 8m gap
-                if (safeF > desiredF) desiredF = safeF;
-            }
-
-            const distToTarget = v.currentF - desiredF;
-
-            if (distToTarget > 0.01) {
-                v.speed = Math.min(v.speed + v.accel * dt, v.maxSpeed);
-                if (distToTarget < (v.speed * 1.5)) v.speed = Math.max(distToTarget * 0.8, 0); // braking
-                v.currentF -= v.speed * dt;
-            } else {
-                v.speed = 0;
-                v.currentF = desiredF;
-            }
-
-            // Convert fraction back to Map Coordinates
-            const curLat = startPt[0] + (endPt[0] - startPt[0]) * v.currentF;
-            const curLon = startPt[1] + (endPt[1] - startPt[1]) * v.currentF;
-            v.marker.setLatLng([curLat, curLon]);
-        });
-
-        geoQueueAnimFrameId = requestAnimationFrame(renderFrame);
+      geoQueueAnimFrameId = requestAnimationFrame(renderFrame);
     }
     geoQueueAnimFrameId = requestAnimationFrame(renderFrame);
   }
