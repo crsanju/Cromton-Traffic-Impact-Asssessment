@@ -19129,7 +19129,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
   }
 
-  // Helper: Calculate GPS coordinate given a distance and bearing (fallback)
+  // Helper: Calculate GPS coordinate given a distance and bearing
   function getDestinationPoint(lat, lon, distanceMeters, bearingDegrees) {
     const R = 6371000;
     const brng = bearingDegrees * Math.PI / 180;
@@ -19140,18 +19140,16 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return [lat2 * 180 / Math.PI, lon2 * 180 / Math.PI];
   }
 
-  // Helper: Get actual length of an array of coordinates
-  function calculatePathLength(path) {
-    let len = 0;
-    for (let i = 0; i < path.length - 1; i++) {
-      len += haversineDistance(path[i][0], path[i][1], path[i+1][0], path[i+1][1]);
-    }
-    return len;
+  // Helper: Shift lat/lon to the left side of the road (AU rules)
+  function applyLateralOffset(lat, lon, travelBearing, offsetMeters = 3.5) {
+    const leftBearing = (travelBearing - 90 + 360) % 360;
+    return getDestinationPoint(lat, lon, offsetMeters, leftBearing);
   }
 
   // Helper: Truncate polyline strictly to distance
   function truncatePathToDistance(path, maxDist) {
     if (!path || path.length < 2) return path;
+    if (maxDist <= 0) return [path[0], path[0]];
     let newPath = [path[0]];
     let traversed = 0;
     for (let i = 0; i < path.length - 1; i++) {
@@ -19171,7 +19169,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return newPath;
   }
 
-  // Helper: Get exact lat/lon and heading. Returns null if beyond mapped road.
+  // Helper: Get exact lat/lon and heading along path
   function getPointAlongCurvedPath(path, distMeters) {
     if (!path || path.length === 0) return null;
     if (distMeters <= 0) return { lat: path[0][0], lon: path[0][1], bearing: calculateBearing(path[0][0], path[0][1], path[1][0], path[1][1]) };
@@ -19193,15 +19191,20 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     return null;
   }
 
-  async function drawGeographicQueueSimulation(queueLengthMeters, hvPercent, lat, lon, travelBearing) {
+  async function drawGeographicQueueSimulation(d1Queue, d1Bearing, d2Queue, d2Bearing, hvPercent, lat, lon) {
     const wrap = document.getElementById('queueVisualizerWrap');
     if (!wrap || !lat || !lon) {
       if (wrap) wrap.style.display = 'none';
       return;
     }
     wrap.style.display = 'block';
-    const displayQueue = Math.round(queueLengthMeters);
-    document.getElementById('geoQueueText').textContent = `Loading road geometry...`;
+
+    // Update UI Legend
+    const legendBox = document.getElementById('geoQueueText');
+    legendBox.innerHTML = `
+      <div style="color:#2e7d32;">D1 Queue: ${Math.round(d1Queue)}m</div>
+      <div style="color:#d32f2f; margin-top:2px;">D2 Queue: ${Math.round(d2Queue)}m</div>
+    `;
 
     if (!geoQueueMapInstance) {
       geoQueueMapInstance = L.map('geoQueueMap', {
@@ -19214,105 +19217,125 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (geoQueueAnimFrameId) cancelAnimationFrame(geoQueueAnimFrameId);
     geoQueueLayer.clearLayers();
 
-    const queueBearing = (travelBearing + 180) % 360;
-    let exactQueuePath = [[lat, lon]];
+    // Traffic queues form backwards from the intersection
+    const q1Bearing = (d1Bearing + 180) % 360;
+    const q2Bearing = (d2Bearing + 180) % 360;
+
+    let pathD1 = [[lat, lon], getDestinationPoint(lat, lon, d1Queue, q1Bearing)];
+    let pathD2 = [[lat, lon], getDestinationPoint(lat, lon, d2Queue, q2Bearing)];
 
     try {
-      const searchRad = Math.min(queueLengthMeters + 200, 1500);
+      const maxQ = Math.max(d1Queue, d2Queue);
+      const searchRad = Math.min(maxQ + 200, 1500);
       const query = `[out:json][timeout:5];way(around:${searchRad},${lat},${lon})[highway];out geom;`;
       const data = await fetchOverpassJson(query, { cacheKey: `queue_geom_${lat.toFixed(4)}_${lon.toFixed(4)}` });
 
       if (data && data.elements && data.elements.length > 0) {
-        let bestScore = -Infinity;
-        let bestPath = [];
 
-        data.elements.forEach(way => {
-          if (!way.geometry || way.geometry.length < 2) return;
-          const geom = way.geometry.map(g => [g.lat, g.lon]);
+        function findBestPath(targetBearing, targetLength) {
+          let bestScore = -Infinity;
+          let bestP = [];
+          data.elements.forEach(way => {
+            if (!way.geometry || way.geometry.length < 2) return;
+            const geom = way.geometry.map(g => [g.lat, g.lon]);
+            for (let i = 0; i < geom.length - 1; i++) {
+              const p1 = geom[i], p2 = geom[i+1];
+              const distToSegment = haversineDistance(lat, lon, p1[0], p1[1]);
+              if (distToSegment > 150) continue;
 
-          for (let i = 0; i < geom.length - 1; i++) {
-            const p1 = geom[i];
-            const p2 = geom[i+1];
-            const distToSegment = haversineDistance(lat, lon, p1[0], p1[1]);
-            if (distToSegment > 150) continue;
+              const bFwd = calculateBearing(p1[0], p1[1], p2[0], p2[1]);
+              const bRev = (bFwd + 180) % 360;
 
-            const bFwd = calculateBearing(p1[0], p1[1], p2[0], p2[1]);
-            const bRev = (bFwd + 180) % 360;
+              const diffFwd = Math.abs(((bFwd - targetBearing + 540) % 360) - 180);
+              const diffRev = Math.abs(((bRev - targetBearing + 540) % 360) - 180);
 
-            const diffFwd = Math.abs(((bFwd - queueBearing + 540) % 360) - 180);
-            const diffRev = Math.abs(((bRev - queueBearing + 540) % 360) - 180);
+              const isFwd = diffFwd < diffRev;
+              const minDiff = Math.min(diffFwd, diffRev);
 
-            const isFwd = diffFwd < diffRev;
-            const minDiff = Math.min(diffFwd, diffRev);
-
-            const score = -distToSegment - (minDiff * 2);
-
-            if (score > bestScore && minDiff < 45) {
-              bestScore = score;
-              bestPath = isFwd ? geom.slice(i) : geom.slice(0, i + 1).reverse();
+              const score = -distToSegment - (minDiff * 2);
+              if (score > bestScore && minDiff < 45) {
+                bestScore = score;
+                bestP = isFwd ? geom.slice(i) : geom.slice(0, i + 1).reverse();
+              }
             }
+          });
+          if (bestP.length >= 2) {
+            bestP[0] = [lat, lon];
+            return truncatePathToDistance(bestP, targetLength);
           }
-        });
-
-        if (bestPath.length >= 2) {
-          bestPath[0] = [lat, lon];
-          exactQueuePath = truncatePathToDistance(bestPath, queueLengthMeters);
+          return null;
         }
+
+        const res1 = findBestPath(q1Bearing, d1Queue);
+        if (res1) pathD1 = res1;
+
+        const res2 = findBestPath(q2Bearing, d2Queue);
+        if (res2) pathD2 = res2;
       }
     } catch(e) {
-      console.warn('Road geometry query failed, falling back to start point only.');
+      console.warn('Road geometry query failed, falling back to straight lines.');
     }
 
-    document.getElementById('geoQueueText').textContent = `Peak Queue (2-Min): ${displayQueue}m`;
-    const osmStatusEl = document.getElementById('geoOsmStatus');
-    if (osmStatusEl) {
-      const usedOsm = exactQueuePath.length > 1;
-      osmStatusEl.textContent = usedOsm ? '✓ Road geometry from OSM' : '⚠ Straight-line fallback';
-      osmStatusEl.style.color = usedOsm ? '#27ae60' : '#e67e22';
+    // Draw Queue Highlights
+    const boundsPoints = [];
+    if (d1Queue > 0 && pathD1.length > 1) {
+      L.polyline(pathD1, { color: 'rgba(46, 125, 50, 0.4)', weight: 14, lineCap: 'round' }).addTo(geoQueueLayer);
+      boundsPoints.push(...pathD1);
+    }
+    if (d2Queue > 0 && pathD2.length > 1) {
+      L.polyline(pathD2, { color: 'rgba(211, 47, 47, 0.4)', weight: 14, lineCap: 'round' }).addTo(geoQueueLayer);
+      boundsPoints.push(...pathD2);
     }
 
-    if (exactQueuePath.length > 1) {
-      const queueLine = L.polyline(exactQueuePath, { color: 'rgba(231, 76, 60, 0.4)', weight: 14, lineCap: 'round' }).addTo(geoQueueLayer);
-      geoQueueMapInstance.fitBounds(queueLine.getBounds(), { padding: [50, 50], maxZoom: 18 });
+    if (boundsPoints.length > 1) {
+      geoQueueMapInstance.fitBounds(boundsPoints, { padding: [50, 50], maxZoom: 18 });
     } else {
       geoQueueMapInstance.setView([lat, lon], 18);
     }
+    L.circleMarker([lat, lon], { radius: 6, fillColor: '#f1c40f', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(geoQueueLayer);
 
-    L.circleMarker([lat, lon], { radius: 6, fillColor: '#e74c3c', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(geoQueueLayer);
-
+    // 3. Generate Vehicles for both directions
     const vehicles = [];
-    let currentLen = 0;
     const CAR_LEN = 6, HV_LEN = 12, GAP = 2.5;
-    const renderQueueLimit = Math.min(queueLengthMeters, 800);
 
-    let seed = Math.floor(queueLengthMeters + hvPercent);
-    const seededRand = () => { seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 0) / 0xffffffff; };
+    function spawnVehicles(queueLength, path, isD1) {
+      let currentLen = 0;
+      const limit = Math.min(queueLength, 400); // Cap per direction
+      let seed = Math.floor(queueLength + hvPercent);
+      const seededRand = () => { seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 0) / 0xffffffff; };
 
-    while (currentLen < renderQueueLimit) {
-      const isHV = (seededRand() * 100) < hvPercent;
-      const vLen = isHV ? HV_LEN : CAR_LEN;
-      if (currentLen + vLen > renderQueueLimit) break;
+      while (currentLen < limit) {
+        const isHV = (seededRand() * 100) < hvPercent;
+        const vLen = isHV ? HV_LEN : CAR_LEN;
+        if (currentLen + vLen > limit) break;
 
-      const targetDist = currentLen + (vLen / 2);
-      const iconHtml = `<div style="width:${isHV ? 24 : 12}px; height:8px; background:${isHV ? '#e67e22' : '#3498db'}; border:1px solid #fff; border-radius:2px; box-shadow: 0 2px 4px rgba(0,0,0,0.5);"></div>`;
+        const targetDist = currentLen + (vLen/2);
+        const iconHtml = `<div style="width:${isHV ? 24 : 12}px; height:8px; background:${isHV ? '#e67e22' : '#3498db'}; border:1px solid #fff; border-radius:2px; box-shadow: 0 2px 4px rgba(0,0,0,0.5);"></div>`;
 
-      const marker = L.marker([lat, lon], {
-        icon: L.divIcon({ className: '', html: iconHtml, iconSize: [isHV ? 24 : 12, 8], iconAnchor: [isHV ? 12 : 6, 4] })
-      }).addTo(geoQueueLayer);
+        const marker = L.marker([lat, lon], {
+          icon: L.divIcon({ className: '', html: iconHtml, iconSize: [isHV ? 24 : 12, 8], iconAnchor: [isHV ? 12 : 6, 4] })
+        }).addTo(geoQueueLayer);
+        marker.setOpacity(0);
 
-      marker.setOpacity(0);
-
-      vehicles.push({
-        marker,
-        targetDist,
-        currentDist: renderQueueLimit + 10 + (vehicles.length * 15),
-        speed: 0,
-        maxSpeed: 15,
-        accel: 3
-      });
-      currentLen += (vLen + GAP);
+        vehicles.push({
+          marker: marker,
+          isD1: isD1,
+          path: path,
+          targetDist: targetDist,
+          currentDist: limit + 10 + (currentLen * 1.5),
+          speed: 0,
+          maxSpeed: 15,
+          accel: 3,
+          limit: limit
+        });
+        currentLen += (vLen + GAP);
+      }
     }
 
+    if (d1Queue > 0) spawnVehicles(d1Queue, pathD1, true);
+    if (d2Queue > 0) spawnVehicles(d2Queue, pathD2, false);
+
+    // 4. Run Animation Loop
     let phase = 'RED', phaseTimer = 0, lastTime = performance.now();
 
     function renderFrame(now) {
@@ -19323,20 +19346,27 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       if (phase === 'RED' && phaseTimer > 6) { phase = 'GREEN'; phaseTimer = 0; }
       else if (phase === 'GREEN' && phaseTimer > 4) { phase = 'RESET'; phaseTimer = 0; }
       else if (phase === 'RESET') {
-        vehicles.forEach((v, i) => { v.currentDist = renderQueueLimit + 10 + (i * 15); v.speed = 0; });
+        vehicles.forEach((v) => { v.currentDist = v.limit + 10 + (v.targetDist * 1.5); v.speed = 0; });
         phase = 'RED'; phaseTimer = 0;
       }
 
       vehicles.forEach((v, i) => {
-        let desiredDist = -20;
+        let desiredDist = -20; // Clear the intersection
         if (phase === 'RED') desiredDist = v.targetDist;
 
-        if (i > 0) {
-          const safeDist = vehicles[i - 1].currentDist + 8;
+        // Find the vehicle directly in front of this one (in the same direction)
+        let carAhead = null;
+        for (let j = i - 1; j >= 0; j--) {
+          if (vehicles[j].isD1 === v.isD1) { carAhead = vehicles[j]; break; }
+        }
+
+        if (carAhead) {
+          const safeDist = carAhead.currentDist + 8; // 8m gap
           if (safeDist > desiredDist) desiredDist = safeDist;
         }
 
         const distToTarget = v.currentDist - desiredDist;
+
         if (distToTarget > 0.5) {
           v.speed = Math.min(v.speed + v.accel * dt, v.maxSpeed);
           if (distToTarget < (v.speed * 1.5)) v.speed = Math.max(distToTarget * 0.8, 0);
@@ -19346,13 +19376,20 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           v.currentDist = desiredDist;
         }
 
-        const pos = getPointAlongCurvedPath(exactQueuePath, Math.max(0, v.currentDist));
+        // Position tracking
+        const pos = getPointAlongCurvedPath(v.path, Math.max(0, v.currentDist));
         if (pos) {
-          v.marker.setLatLng([pos.lat, pos.lon]);
+          const travelFacing = (pos.bearing + 180) % 360;
+          // Offset 3.5m to the Left side of the road (AU rules)
+          const offsetPos = applyLateralOffset(pos.lat, pos.lon, travelFacing, 3.5);
+
+          v.marker.setLatLng([offsetPos[0], offsetPos[1]]);
           v.marker.setOpacity(1);
+
           const el = v.marker.getElement();
           if (el && el.firstChild) {
-            const carFacing = (pos.bearing + 180 - 90) % 360;
+            // Rotate HTML element to face travel direction (-90 to correct CSS origin)
+            const carFacing = (travelFacing - 90 + 360) % 360;
             el.firstChild.style.transform = `rotate(${carFacing}deg)`;
           }
         } else {
@@ -20101,34 +20138,30 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     };
     renderQueueCharts(lastQueueChartData);
 
-    // Peak Queue Visualizer — use worst-case q2 (2-minute cycle wait) across all periods
+    // Geographic Peak Queue Visualizer — use worst-case q2 (2-minute cycle wait)
     {
-      const allQ2 = ['AM','OP','PM','EV'].flatMap(k => [
-        (queuePeriodD1[k] || {}).q2 || 0,
-        (queuePeriodD2[k] || {}).q2 || 0
-      ]);
-      const peakQ2 = Math.max(...allQ2);
+      const d1Max = Math.max(...['AM','OP','PM','EV'].map(k => (queuePeriodD1[k] || {}).q2 || 0));
+      const d2Max = Math.max(...['AM','OP','PM','EV'].map(k => (queuePeriodD2[k] || {}).q2 || 0));
       const hvPct = parseFloat((document.getElementById('HVP') || {}).value) || 0;
 
-      // Determine Map Context and travel bearing for simulation alignment
-      let qLat = null, qLon = null, travelBearing = 0;
+      // Determine Map Context and travel bearings for simulation alignment
+      let qLat = null, qLon = null, d1Bearing = 0, d2Bearing = 180;
       if (site && Number.isFinite(Number(site.latitude))) {
           qLat = Number(site.latitude);
           qLon = Number(site.longitude);
-
-          const d1Max = Math.max(...['AM','OP','PM','EV'].map(k => (queuePeriodD1[k] || {}).q2 || 0));
-          const d2Max = Math.max(...['AM','OP','PM','EV'].map(k => (queuePeriodD2[k] || {}).q2 || 0));
-          const worstLabel = (d1Max >= d2Max) ? site.d1_direction_label : site.d2_direction_label;
-          travelBearing = getDirectionLabelBearing(worstLabel) || 0;
+          d1Bearing = getDirectionLabelBearing(site.d1_direction_label) || 0;
+          d2Bearing = getDirectionLabelBearing(site.d2_direction_label) || ((d1Bearing + 180) % 360);
       } else if (window.selectedTiaData && Number.isFinite(Number(window.selectedTiaData.lat))) {
           qLat = Number(window.selectedTiaData.lat);
           qLon = Number(window.selectedTiaData.lon);
+          d1Bearing = getDirectionLabelBearing(window.selectedTiaData.d1_direction_label) || 0;
+          d2Bearing = getDirectionLabelBearing(window.selectedTiaData.d2_direction_label) || ((d1Bearing + 180) % 360);
       }
 
       const vizWrap = document.getElementById('queueVisualizerWrap');
       if (vizWrap) {
-        if (peakQ2 > 0 && qLat && qLon) {
-          drawGeographicQueueSimulation(peakQ2, hvPct, qLat, qLon, travelBearing);
+        if ((d1Max > 0 || d2Max > 0) && qLat && qLon) {
+          drawGeographicQueueSimulation(d1Max, d1Bearing, d2Max, d2Bearing, hvPct, qLat, qLon);
         } else {
           vizWrap.style.display = 'none';
         }
