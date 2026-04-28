@@ -33,6 +33,11 @@ powershell -ExecutionPolicy Bypass -File scripts/install-hooks.ps1
 python report_service.py
 # Service URL: http://127.0.0.1:8060
 
+# Optional: increase max request size for large report payloads (12 MB example)
+# Command Prompt (cmd.exe)
+set REPORT_MAX_REQUEST_BYTES=12000000
+python report_service.py
+
 # Open the frontend in browser
 # File: index.html
 ```

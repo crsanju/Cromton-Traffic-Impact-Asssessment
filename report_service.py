@@ -48,7 +48,7 @@ ALLOWED_ORIGIN_REGEX = os.environ.get(
   "REPORT_ALLOWED_ORIGIN_REGEX",
   r"^https://[a-z0-9-]+\.github\.io$|^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
 )
-MAX_REQUEST_BODY_BYTES = max(100_000, int(os.environ.get("REPORT_MAX_REQUEST_BYTES", "2000000")))
+MAX_REQUEST_BODY_BYTES = max(100_000, int(os.environ.get("REPORT_MAX_REQUEST_BYTES", "12000000")))
 MAX_DRAFTS = max(10, int(os.environ.get("REPORT_MAX_DRAFTS", "200")))
 DRAFT_TTL_HOURS = max(1, int(os.environ.get("REPORT_DRAFT_TTL_HOURS", "12")))
 
@@ -67,8 +67,18 @@ async def add_private_network_access_headers(request: Request, call_next):
   content_length = request.headers.get("content-length")
   if content_length:
     try:
-      if int(content_length) > MAX_REQUEST_BODY_BYTES:
-        raise HTTPException(status_code=413, detail="Request body too large")
+      content_length_value = int(content_length)
+      if content_length_value > MAX_REQUEST_BODY_BYTES:
+        max_mb = MAX_REQUEST_BODY_BYTES / (1024 * 1024)
+        actual_mb = content_length_value / (1024 * 1024)
+        raise HTTPException(
+          status_code=413,
+          detail=(
+            f"Request body too large ({actual_mb:.2f} MB). "
+            f"Server limit is {max_mb:.2f} MB. "
+            "Set REPORT_MAX_REQUEST_BYTES to increase the limit if needed."
+          ),
+        )
     except ValueError:
       raise HTTPException(status_code=400, detail="Invalid Content-Length header")
 
@@ -1838,8 +1848,18 @@ def create_draft(req: DraftRequest) -> dict[str, str]:
       payload_raw = json.dumps(req.payload, ensure_ascii=False)
     except (TypeError, ValueError):
       raise HTTPException(status_code=400, detail="Invalid payload")
-    if len(payload_raw.encode("utf-8")) > MAX_REQUEST_BODY_BYTES:
-      raise HTTPException(status_code=413, detail="Payload too large")
+    payload_size = len(payload_raw.encode("utf-8"))
+    if payload_size > MAX_REQUEST_BODY_BYTES:
+      max_mb = MAX_REQUEST_BODY_BYTES / (1024 * 1024)
+      actual_mb = payload_size / (1024 * 1024)
+      raise HTTPException(
+        status_code=413,
+        detail=(
+          f"Payload too large ({actual_mb:.2f} MB). "
+          f"Server limit is {max_mb:.2f} MB. "
+          "Set REPORT_MAX_REQUEST_BYTES to increase the limit if needed."
+        ),
+      )
 
     now = datetime.utcnow()
     draft_id = uuid.uuid4().hex
