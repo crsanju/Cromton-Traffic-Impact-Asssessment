@@ -14819,6 +14819,33 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     });
   }
 
+  function setQuickTiaError(title, detail = '', options = {}) {
+    const errEl = document.getElementById('quickTiaError');
+    if (!errEl) return;
+    const detailText = String(detail || '').trim();
+    const subText = String(options && options.subText ? options.subText : '').trim();
+
+    errEl.textContent = '';
+
+    const strong = document.createElement('strong');
+    strong.textContent = String(title || 'Error');
+    errEl.appendChild(strong);
+
+    if (detailText) {
+      errEl.appendChild(document.createTextNode(` ${detailText}`));
+    }
+
+    if (subText) {
+      errEl.appendChild(document.createElement('br'));
+      const note = document.createElement('span');
+      note.style.fontSize = '0.9em';
+      note.textContent = subText;
+      errEl.appendChild(note);
+    }
+
+    errEl.style.display = 'block';
+  }
+
   function initializeQuickTiaSearchHandlers() {
     if (isQuickTiaSearchInitialized) return;
     isQuickTiaSearchInitialized = true;
@@ -14835,30 +14862,18 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       const fn = window && window.performQuickTIASearch;
       if (typeof fn !== 'function') {
         console.error('performQuickTIASearch not available');
-        const errEl = document.getElementById('quickTiaError');
-        if (errEl) {
-          errEl.innerHTML = '<strong>❌ Search function is not ready yet.</strong><br><span style="font-size: 0.9em;">Please refresh the page and try again.</span>';
-          errEl.style.display = 'block';
-        }
+        setQuickTiaError('❌ Search function is not ready yet.', '', { subText: 'Please refresh the page and try again.' });
         return;
       }
       try {
         await ensureSelectedStateDataLoaded(true);
       } catch (err) {
-        const errEl = document.getElementById('quickTiaError');
-        if (errEl) {
-          errEl.innerHTML = `<strong>❌ Could not load ${getQuickTiaSelectedState()} database:</strong> ${String(err && err.message ? err.message : err)}`;
-          errEl.style.display = 'block';
-        }
+        setQuickTiaError(`❌ Could not load ${getQuickTiaSelectedState()} database:`, String(err && err.message ? err.message : err));
         return;
       }
       Promise.resolve(fn()).catch(err => {
         console.error(err);
-        const errEl = document.getElementById('quickTiaError');
-        if (errEl) {
-          errEl.innerHTML = `<strong>❌ Search failed:</strong> ${String(err && err.message ? err.message : err)}`;
-          errEl.style.display = 'block';
-        }
+        setQuickTiaError('❌ Search failed:', String(err && err.message ? err.message : err));
       });
     };
 
@@ -14879,11 +14894,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           updateQuickTiaStateStatus(`Current database: ${label}`);
         } catch (err) {
           updateQuickTiaStateStatus(`Failed to load ${label} database`, true);
-          const errEl = document.getElementById('quickTiaError');
-          if (errEl) {
-            errEl.innerHTML = `<strong>❌ Database switch failed:</strong> ${String(err && err.message ? err.message : err)}`;
-            errEl.style.display = 'block';
-          }
+          setQuickTiaError('❌ Database switch failed:', String(err && err.message ? err.message : err));
         }
       });
     }
@@ -14948,8 +14959,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         return;
       }
       console.error('Unhandled promise rejection:', ev.reason);
-      const errEl = document.getElementById('quickTiaError');
-      if (errEl) { errEl.innerHTML = `<strong>❌ Unexpected error:</strong> ${String(ev.reason && ev.reason.message ? ev.reason.message : ev.reason)}`; errEl.style.display = 'block'; }
+      setQuickTiaError('❌ Unexpected error:', String(ev.reason && ev.reason.message ? ev.reason.message : ev.reason));
       try { ev.preventDefault(); } catch (_) {}
     });
 
@@ -15094,10 +15104,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         try {
           const location = await geocodeOnline(searchInput);
           if (!location) {
-            if (errEl) {
-              errEl.innerHTML = '<strong>❌ Could not geocode that address.</strong><br><span style="font-size: 0.9em;">Try adding suburb/city/state.</span>';
-              errEl.style.display = 'block';
-            }
+            setQuickTiaError('❌ Could not geocode that address.', '', { subText: 'Try adding suburb/city/state.' });
             return;
           }
 
@@ -15115,10 +15122,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
             .sort((a, b) => a.dist - b.dist);
 
           if (!sites.length) {
-            if (errEl) {
-              errEl.innerHTML = '<strong>❌ Address found, but no traffic counter database loaded yet.</strong>';
-              errEl.style.display = 'block';
-            }
+            setQuickTiaError('❌ Address found, but no traffic counter database loaded yet.');
             return;
           }
 
@@ -15135,15 +15139,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           const radiusLabel = Number.isFinite(Number(matchResult.usedRadiusKm)) ? Number(matchResult.usedRadiusKm).toFixed(1) : '1.0';
 
           if (excludedRefs.length && exclusionSummary && errEl) {
-            errEl.innerHTML = `<strong>Note:</strong> ${exclusionSummary}<br><span style="font-size:0.9em;">Connected references shown below are within the validated 5km-radius context.</span>`;
-            errEl.style.display = 'block';
+            setQuickTiaError('Note:', exclusionSummary, { subText: 'Connected references shown below are within the validated 5km-radius context.' });
           }
 
           if (matchResult.type === 'NO_MATCH') {
-            if (errEl) {
-              errEl.innerHTML = `<strong>⚠ Address found, but no connected counter was verified within 5km radius.</strong><br><span style="font-size:0.9em;">Roads may connect beyond 5km; use manual trip generation if needed.</span>`;
-              errEl.style.display = 'block';
-            }
+            setQuickTiaError('⚠ Address found, but no connected counter was verified within 5km radius.', '', { subText: 'Roads may connect beyond 5km; use manual trip generation if needed.' });
             const panelEl = document.getElementById('quickTiaPanel');
             if (panelEl) panelEl.style.display = 'block';
             const manualRadio = document.querySelector('input[name="trafficCalcMethod"][value="manual"]');
@@ -15197,10 +15197,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           }
           handleSearchSuccess(matchResult);
         } catch (err) {
-          if (errEl) {
-            errEl.innerHTML = `<strong>❌ Search failed:</strong> ${String(err && err.message ? err.message : err)}`;
-            errEl.style.display = 'block';
-          }
+          setQuickTiaError('❌ Search failed:', String(err && err.message ? err.message : err));
         } finally {
           if (searchBtn) {
             searchBtn.innerHTML = originalBtnText || '🔍 Search';
@@ -27317,8 +27314,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     }
 
     if (!location) {
-      document.getElementById('quickTiaError').innerHTML = `<strong>❌ Could not find that address on the map.</strong><br><span style="font-size: 0.9em;">Try adding suburb/city.</span>`;
-      document.getElementById('quickTiaError').style.display = 'block';
+      setQuickTiaError('❌ Could not find that address on the map.', '', { subText: 'Try adding suburb/city.' });
       if (searchBtn) { searchBtn.innerHTML = originalBtnText; searchBtn.disabled = false; }
       return;
     }
@@ -27386,22 +27382,22 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     updateQuickAddressSearchOverlay('Validating road connectivity...', 'Removing references not connected to the searched address road network.', 78);
 
     if (matchResult.type === 'NO_MATCH') {
-      const noConnectedMsg = '<strong>⚠ No connected datapoint found within 5km radius.</strong><br><span style="font-size:0.9em;">Use manual trip generation method.</span>';
       const disconnectedExtra = excludedRefs.length
-        ? '<br><span style="font-size:0.9em;">Nearby datapoints were excluded because no connected route was verified within the 5km radius context.</span>'
+        ? ' Nearby datapoints were excluded because no connected route was verified within the 5km radius context.'
         : '';
       const beyondRadiusExtra = connectedBeyond5Count > 0 || excludedBeyond5Count > 0
-        ? '<br><span style="font-size:0.9em;">Some roads may still connect beyond 5km, but no connected reference is available within the 5km radius.</span>'
+        ? ' Some roads may still connect beyond 5km, but no connected reference is available within the 5km radius.'
         : '';
       const fallbackReferenceExtra = within5FallbackRefs.length
-        ? `<br><span style="font-size:0.9em;">Showing ${within5FallbackRefs.length} nearest datapoint${within5FallbackRefs.length === 1 ? '' : 's'} within 5km as proximity fallback (connectivity not verified).</span>`
+        ? ` Showing ${within5FallbackRefs.length} nearest datapoint${within5FallbackRefs.length === 1 ? '' : 's'} within 5km as proximity fallback (connectivity not verified).`
         : (beyond5FallbackRefs.length
-        ? `<br><span style="font-size:0.9em;">Showing ${beyond5FallbackRefs.length} nearest datapoint${beyond5FallbackRefs.length === 1 ? '' : 's'} beyond 5km radius as reference only.</span>`
+        ? ` Showing ${beyond5FallbackRefs.length} nearest datapoint${beyond5FallbackRefs.length === 1 ? '' : 's'} beyond 5km radius as reference only.`
         : '');
       const fallbackRefsToDisplay = within5FallbackRefs.length ? within5FallbackRefs : beyond5FallbackRefs;
       const fallbackIsBeyondRadius = !within5FallbackRefs.length && beyond5FallbackRefs.length > 0;
-      document.getElementById('quickTiaError').innerHTML = `${noConnectedMsg}${disconnectedExtra}${beyondRadiusExtra}${fallbackReferenceExtra}`;
-      document.getElementById('quickTiaError').style.display = 'block';
+      setQuickTiaError('⚠ No connected datapoint found within 5km radius.', 'Use manual trip generation method.', {
+        subText: `${disconnectedExtra}${beyondRadiusExtra}${fallbackReferenceExtra}`.trim()
+      });
       const panelEl = document.getElementById('quickTiaPanel');
       if (panelEl) panelEl.style.display = 'block';
       if (fallbackRefsToDisplay.length) {
@@ -27467,8 +27463,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       });
 
       if (hasSelectedBeyond5Km || (connectedWithin5Count === 0 && connectedBeyond5Count > 0)) {
-        document.getElementById('quickTiaError').innerHTML = '<strong>⚠ No connected reference is available within 5km radius.</strong><br><span style="font-size:0.9em;">Roads may connect beyond 5km; use with caution or switch to manual trip generation.</span>';
-        document.getElementById('quickTiaError').style.display = 'block';
+        setQuickTiaError('⚠ No connected reference is available within 5km radius.', '', {
+          subText: 'Roads may connect beyond 5km; use with caution or switch to manual trip generation.'
+        });
       } else {
         document.getElementById('quickTiaError').style.display = 'none';
       }
@@ -27479,8 +27476,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       if (searchBtn) { searchBtn.innerHTML = originalBtnText; searchBtn.disabled = false; }
     } catch (err) {
       console.error('performQuickTIASearch error', err);
-      const errEl = document.getElementById('quickTiaError');
-      if (errEl) { errEl.innerHTML = `<strong>❌ Error:</strong> ${String(err && err.message ? err.message : err)}`; errEl.style.display = 'block'; }
+      setQuickTiaError('❌ Error:', String(err && err.message ? err.message : err));
       // try to restore button state if possible
       try { const b = document.getElementById('quickTiaSearchBtn'); if (b) { b.innerHTML = '🔍 Search'; b.disabled = false; } } catch (_) {}
     } finally {
@@ -27710,8 +27706,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     if (!refArray.length) {
       refList.innerHTML = '<div style="padding:10px; border:1px solid #ef9a9a; border-radius:6px; background:#ffebee; color:#b71c1c; font-size:0.86em;"><strong>⚠ No connected datapoint found within 5km radius</strong><br><span style="font-size:0.82em;">No connected same-road or nearby references were verified within the 5km radius context.</span></div>';
       document.getElementById('quickTiaMultipleRefs').style.display = 'none';
-      document.getElementById('quickTiaError').innerHTML = '<strong>⚠ No connected datapoint found within 5km radius.</strong><br><span style="font-size:0.9em;">Use manual trip generation method.</span>';
-      document.getElementById('quickTiaError').style.display = 'block';
+      setQuickTiaError('⚠ No connected datapoint found within 5km radius.', '', {
+        subText: 'Use manual trip generation method.'
+      });
       return;
     }
 
@@ -27879,8 +27876,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
           const remaining = (window.selectedTiaData.references || []);
           if (!remaining.length) {
             document.getElementById('quickTiaMultipleRefs').style.display = 'none';
-            document.getElementById('quickTiaError').innerHTML = '<strong>❌ No reference points selected.</strong><br><span style="font-size:0.9em;">Search again to load nearby references.</span>';
-            document.getElementById('quickTiaError').style.display = 'block';
+            setQuickTiaError('❌ No reference points selected.', '', { subText: 'Search again to load nearby references.' });
             return;
           }
           const rebuilt = remaining.map(ref => [ref.siteId, macroSitesData[ref.siteId] || {
