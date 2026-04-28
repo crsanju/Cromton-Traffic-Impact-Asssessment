@@ -3736,11 +3736,11 @@
           2. In the Command Prompt window, press <kbd style="background:#fff; border:1px solid #a78bfa; border-radius:3px; padding:1px 5px;">Ctrl + V</kbd> to paste and then press <kbd style="background:#fff; border:1px solid #a78bfa; border-radius:3px; padding:1px 5px;">Enter</kbd>.
         </div>
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
-          <a id="downloadPythonBtn" href="https://apps.microsoft.com/detail/9NCVDN91XZQP" target="_blank" rel="noopener noreferrer" class="contact-dev-button" style="background:#1d4ed8; text-decoration:none; display:inline-flex; align-items:center;">Get Python from Microsoft Store</a>
-          <a id="downloadReportServiceBtn" href="https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/report_service.py" target="_blank" rel="noopener noreferrer" class="contact-dev-button" style="background:#0f766e; text-decoration:none; display:inline-flex; align-items:center;">Download Report-Service</a>
-          <button id="copyPythonSetupBtn" type="button" class="contact-dev-button" style="background:#166534;">Copy Commands</button>
-          <button id="copyOpenCmdBtn" type="button" class="contact-dev-button" style="background:#7c3aed;" title="Copy commands to clipboard and open Command Prompt — then paste with Ctrl+V">📋 Copy &amp; Open CMD</button>
-          <button id="pythonSetupOkBtn" type="button" class="contact-dev-button">OK</button>
+          <a id="downloadPythonBtn" href="https://apps.microsoft.com/detail/9NCVDN91XZQP" target="_blank" rel="noopener noreferrer" class="contact-dev-button" style="background:#1d4ed8; color:#ffffff; border-color:transparent; text-decoration:none; display:inline-flex; align-items:center;">Get Python from Microsoft Store</a>
+          <a id="downloadReportServiceBtn" href="https://raw.githubusercontent.com/crsanju/Cromton-Traffic-Impact-Asssessment/main/report_service.py" target="_blank" rel="noopener noreferrer" class="contact-dev-button" style="background:#0f766e; color:#ffffff; border-color:transparent; text-decoration:none; display:inline-flex; align-items:center;">Download Report-Service</a>
+          <button id="copyPythonSetupBtn" type="button" class="contact-dev-button" style="background:#166534; color:#ffffff; border-color:transparent;">Copy Commands</button>
+          <button id="copyOpenCmdBtn" type="button" class="contact-dev-button" style="background:#7c3aed; color:#ffffff; border-color:transparent;" title="Copy commands to clipboard and open Command Prompt — then paste with Ctrl+V">📋 Copy &amp; Open CMD</button>
+          <button id="pythonSetupOkBtn" type="button" class="contact-dev-button" style="background:#ffffff; color:#0f2f32; border-color:#cbd5e1;">OK</button>
         </div>
       </div>
     </div>
@@ -5586,12 +5586,14 @@
       <button class="print-btn" onclick="toggleReportMode(true, 'short')" style="background: linear-gradient(135deg, #8e24aa 0%, #6a1b9a 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">📄 Short Report</button>
       <button class="print-btn" onclick="openPythonEditableReport('detailed')" style="background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">🐍 Detailed Python Report</button>
       <button class="print-btn" onclick="openPythonEditableReport('short')" style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); font-size: 0.88em; padding: 8px 14px; white-space: nowrap;">🐍 Python Short Report</button>
+    </div>
+    <div id="pythonReportEditControls" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid #cfd8dc; border-radius:8px; background:#f8fbff; padding:8px;">
       <button class="print-btn" type="button" onclick="triggerPythonEditsProfileLoad()" style="background: linear-gradient(135deg, #00695c 0%, #00897b 100%); font-size: 0.86em; padding: 8px 12px; white-space: nowrap;">📂 Load Python Edits JSON</button>
       <button class="print-btn" type="button" onclick="downloadLoadedPythonEditsProfile()" style="background: linear-gradient(135deg, #37474f 0%, #455a64 100%); font-size: 0.86em; padding: 8px 12px; white-space: nowrap;">💾 Download Loaded Edits</button>
       <button class="print-btn" type="button" onclick="clearLoadedPythonEditsProfile()" style="background: linear-gradient(135deg, #8d6e63 0%, #6d4c41 100%); font-size: 0.86em; padding: 8px 12px; white-space: nowrap;">🧹 Clear Edits</button>
+      <div id="pythonEditsProfileStatus" style="font-size:0.8em; color:#455a64; margin-left:4px;">Python edits profile: not loaded.</div>
       <input type="file" id="pythonEditsProfileInput" accept=".json,application/json" style="display:none;" onchange="loadPythonEditsProfileFromInput(event)">
     </div>
-    <div id="pythonEditsProfileStatus" style="margin-top:6px; font-size:0.8em; color:#455a64;">Python edits profile: not loaded.</div>
   </div>
 
     <div class="copyright-footer">© 2026 Crompton Concepts. All rights reserved.</div>
@@ -22298,6 +22300,11 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
     const bodyEl = document.getElementById('detourManualVpdRows');
     if (!panelEl || !bodyEl) return;
 
+    const previousBodyScrollTop = bodyEl.scrollTop;
+    const previousBodyScrollLeft = bodyEl.scrollLeft;
+    const previousWindowScrollY = window.scrollY;
+    const previousWindowScrollX = window.scrollX;
+
     const cleanRoads = Array.from(new Set((Array.isArray(roads) ? roads : []).map(r => String(r || '').trim()).filter(Boolean)));
     window.detourManualPanelRoads = cleanRoads;
     if (!cleanRoads.length) {
@@ -22663,7 +22670,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const baseDisplayEl = bodyEl.querySelector(`.detour-base-vpd-display[data-detour-base-key="${manualKey}"]`);
         if (weightedDisplayEl) weightedDisplayEl.value = Math.max(0, Math.round(Number(estimate.weightedVolumeSum) || 0)).toLocaleString();
         if (baseDisplayEl) baseDisplayEl.value = Math.max(0, Math.round(existing.baseVpd || 0)).toLocaleString();
-        calculateDetourOverlay();
+        calculateDetourOverlay({ skipManualPanelRender: true });
         return;
       }
 
@@ -22749,7 +22756,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const sliderEl = bodyEl.querySelector(`.detour-ref-weight-slider[data-detour-manual-key="${key}"][data-ref-siteid="${siteId}"]`);
         if (sliderEl) sliderEl.value = String(inputEl.value);
         syncDetourRefWeights(inputEl, false);
-        updateDetourBaseVpdDisplay(roadName, key);
+        updateDetourBaseVpdDisplay(roadName, key, { liveOnly: true });
       });
       inputEl.addEventListener('input', () => {
         const key = String(inputEl.dataset.detourManualKey || '').trim();
@@ -22782,9 +22789,15 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
         const roadName = String(checkEl.dataset.detourManualRoad || '').trim();
         if (!key || !roadName) return;
         syncDetourRefEnabled(checkEl);
-        updateDetourBaseVpdDisplay(roadName, key);
+        updateDetourBaseVpdDisplay(roadName, key, { liveOnly: true });
       });
     });
+
+    bodyEl.scrollTop = previousBodyScrollTop;
+    bodyEl.scrollLeft = previousBodyScrollLeft;
+    if (window.scrollY !== previousWindowScrollY || window.scrollX !== previousWindowScrollX) {
+      window.scrollTo({ top: previousWindowScrollY, left: previousWindowScrollX, behavior: 'auto' });
+    }
   }
 
   function recalculateDetourManualBaseVpdForRoad(roadName, options = {}) {
@@ -24096,7 +24109,7 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
   }
   window.calculateDetourRoadTripGen = calculateDetourRoadTripGen;
 
-  function calculateDetourOverlay() {
+  function calculateDetourOverlay(options = {}) {
     syncPedestrianDetourFromTraffic({ skipRecalc: true });
     updateDetourClosureUi();
     updateRouteDistanceDisplay();
@@ -24267,7 +24280,9 @@ This comprehensive assessment provides a detailed evaluation of traffic impacts 
       manualInput.estimateMeta = estimate;
       window.detourManualRoadInputs[key] = manualInput;
     });
-    renderDetourManualVpdPanel(selectedRoadPath);
+    if (!options.skipManualPanelRender) {
+      renderDetourManualVpdPanel(selectedRoadPath);
+    }
 
     if (resultsPanel) resultsPanel.style.display = 'block';
     const selectedName = getCurrentTrafficDetourRoadName();
